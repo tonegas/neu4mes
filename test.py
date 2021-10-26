@@ -18,7 +18,7 @@ model_def = {
     },
     'Relations':{
         'x1_z':{
-            'Linear':[('x1',2),('F',2)],
+            'Linear':[('x1',2),'F'],
         }
     }
 }
@@ -56,15 +56,9 @@ model_def = {
 # massamolla = Neu4mes.Neu4mes()
 # x1 = Input('x1')
 # F = Input('Force')
-# massamolla.add_input(x1)
-# massamolla.add_input(F)
-
 # x1_z = Output('x1_z', x1.z(1), Linear(x1.tw(2))+Linear(F))
-
-# #x1_s = Output('x1_s', x1.s(1), Linear(x1.tw(2))+Linear(F))
-# massamolla.add_output(x1_z)
-# #massamolla.add_output(x1_s)
-
+# massamolla.modelDefinition(x1_z)
+# massamolla.neuralizeModel()
 
 # gear = DiscreteInput('gear',dimension = 8)
 # engine = Input('engine')
@@ -86,6 +80,7 @@ data_struct = ['time','x1','x1_s','F']
 data_folder = './data/data-linear-oscillator-a/'
 mymodel.loadData(data_struct, folder = data_folder)
 mymodel.trainModel(validation_percentage = 30)
+#mymodel.showResults()
 
 
 #Examples:
@@ -152,39 +147,6 @@ mymodel.trainModel(validation_percentage = 30)
 #         'x2p':{
 #             'Linear':[('x2',2),('F',1),'T'],
 #         },
-#     }
-# }
-#Vehicle example
-# model_def = {
-#     'SampleTime':0.05,
-#     'Input':{
-#         'gear':{
-#             'Properties':['distrete']
-#         },
-#         'engine':{},
-#         'brake':{},
-#         'altitude':{},
-#         'velocity':{}
-#     },
-#     'State':{
-#         'slope':{},
-#         'torque':{},
-#     },
-#     'Output':{
-#         'accelleration':{}
-#     },
-#     'Relations':{
-#         'slope':{
-#             'Linear':[('altitide',1)]
-#         },
-#         'torque':{
-#             'LocalModel':[('engine',1.25),'gear']
-#         },
-#         'accelleration': {
-#             'LinearNegative':[('brake',1.25)],
-#             'Linear':['slope','torque'],
-#             'Square':['velocity']
-#         }
 #     }
 # }
 
