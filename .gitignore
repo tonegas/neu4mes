@@ -1,0 +1,5 @@
+*.pyc
+data/
+env/
+structured_nn-code
+tmp/
