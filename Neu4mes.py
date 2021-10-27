@@ -10,6 +10,27 @@ def rmse(y_true, y_pred):
     # Root mean squared error (rmse) for regression
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
+class NeuObj():
+    def __init__(self):
+        self.json = {
+            'SampleTime': 0,
+            'Inputs' : {},
+            'States' : {},
+            'Outputs': {},
+            'Relations': {}
+        }
+        pass
+
+class Input(NeuObj):
+    def __init__(self,name):
+        self.name = name
+        self.max_tw = 0
+        self.json['Inputs'][self.name] = {}
+
+    def tw(self, seconds):
+        self.max_tw = seconds
+        return self, seconds 
+    
 class Relation:    
     def setInput(self):
         pass
@@ -18,6 +39,14 @@ class Relation:
         pass
 
 class Linear(Relation):
+    def __init__(self, obj):
+        if type(obj) is tuple:
+            self.json['Relations'][obj[0].name+'_lin'] = {
+                'Linear':[(obj[0].name,obj[1])],
+            }
+        elif type(obj) is :
+
+
     def setInput(self, model, relvalue):
         for el in relvalue:
             if type(el) is tuple:

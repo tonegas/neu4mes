@@ -56,18 +56,10 @@ model_def = {
 # massamolla = Neu4mes.Neu4mes()
 # x1 = Input('x1')
 # F = Input('Force')
-# x1_z = Output('x1_z', x1.z(1), Linear(x1.tw(2))+Linear(F))
+# x1_z = Output(x1.z(1), Linear(x1.tw(2))+Linear(F))
 # massamolla.modelDefinition(x1_z)
 # massamolla.neuralizeModel()
 
-# gear = DiscreteInput('gear',dimension = 8)
-# engine = Input('engine')
-# brake = Input('brake')
-# altitude = Input('altitude')
-# velocity = Input('velocity')
-# acceleration = Input('accleration')
-
-# x1_z = Output('x1_s2', acceleration, NonNegativeLinear(brake.tw(1.25))+Linear(velocity^2)+Linear(altitude.tw(2))+LocalModel(engine.tw(2),gear))
 mymodel.modelDefinition(model_def)
 mymodel.neuralizeModel()
 
