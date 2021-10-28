@@ -1,6 +1,6 @@
-import Neu4mes
+from Neu4mes import *
 
-mymodel = Neu4mes.Neu4mes()
+mymodel = Neu4mes()
 model_def = {
     'SampleTime':0.05,
     'Input':{
@@ -53,15 +53,19 @@ model_def = {
 
 
 
-# massamolla = Neu4mes.Neu4mes()
-# x1 = Input('x1')
-# F = Input('Force')
-# x1_z = Output(x1.z(1), Linear(x1.tw(2))+Linear(F))
-# massamolla.modelDefinition(x1_z)
-# massamolla.neuralizeModel()
+massamolla = Neu4mes()
+x1 = Input('x1')
+F = Input('F')
+x1_z = Output(x1.z(-1), Linear(x1.tw(2))+Linear(F))
+massamolla.addModel(x1_z)
+massamolla.neuralizeModel(0.05)
+data_struct = ['time','x1','x1_s','F']
+data_folder = './data/data-linear-oscillator-a/'
+massamolla.loadData(data_struct, folder = data_folder)
+massamolla.trainModel(validation_percentage = 30)
 
-mymodel.modelDefinition(model_def)
-mymodel.neuralizeModel()
+#mymodel.addModel(model_def)
+#mymodel.neuralizeModel()
 
 # data = {
 #     'time' : [[],[]]

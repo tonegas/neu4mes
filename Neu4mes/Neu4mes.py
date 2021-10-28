@@ -118,9 +118,6 @@ class Neu4mes:
                     for reltype, relvalue in relel.items():
                         self.setInput(relvalue, outel)
 
-        print(self.input_time_window)
-        print("GAS")
-
     def createElem(self, relation, relvalue, outel):
         if len(relvalue) == 1:
             el = relvalue[0]
@@ -239,7 +236,7 @@ class Neu4mes:
 
         # Train model
         #print('[Fitting]')
-        print(len([self.inout_4train[key] for key in self.model_def['Outputs'].keys()]))
+        #print(len([self.inout_4train[key] for key in self.model_def['Outputs'].keys()]))
 
         self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
                             [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
