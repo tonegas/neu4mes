@@ -1,4 +1,4 @@
-from Neu4mes import Neu4mes, Input, Output, Linear, Relu
+from Neu4mes import *
 import pprint
 
 #Vehicle example
@@ -56,7 +56,8 @@ gravity_force = Linear(altitude.tw(2))
 #Create the brake force contribution
 brake = Input('brake')
 brake_force = -Relu(Linear(brake.tw(1.25)))
-lat_acc = Input('lat_acc')
+brake_force2 = Linear(brake.tw(1.25))+brake
+#lat_acc = Input('lat_acc')
 
 
 #Create the areodinamic drag contribution
@@ -91,15 +92,24 @@ long_acc = Input('accleration')
 
 
 #Definition of the next acceleration predict 
-long_acc_estimator = Output(long_acc.z(-1), drag_force+gravity_force+brake_force)
-long_acc_estimator2 = Output(long_acc.z(-2), drag_force+gravity_force+brake_force)
+long_acc_estimator = Output(long_acc.z(-1), brake_force2)
+#long_acc_estimator2 = Output(altitude.z(-1), drag_force+gravity_force+brake_force)
 
-pprint.pprint(long_acc_estimator.json)
+#pprint.pprint(long_acc_estimator.json)
+#pprint.pprint(long_acc_estimator2.json)
 
 mymodel = Neu4mes()
 mymodel.addModel(long_acc_estimator)
-mymodel.addModel(long_acc_estimator2)
-mymodel.neuralizeModel()
+#mymodel.addModel(long_acc_estimator2)
+
+pprint.pprint(mymodel.model_def)
+
+mymodel.neuralizeModel(0.05)
+
+data_struct = ['time','altitude','velocity','accleration','brake']
+data_folder = './data/data-linear-oscillator-a/'
+mymodel.loadData(data_struct, folder = data_folder)
+mymodel.trainModel(validation_percentage = 30)
 
 #data_struct = ['time','velocity','accleration','engine','gear','altitude','brake']
 #data_folder = './data/vehicle_data/'

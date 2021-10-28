@@ -1,3 +1,4 @@
+from Neu4mes import * 
 import copy
 
 def merge(source, destination):
@@ -10,9 +11,6 @@ def merge(source, destination):
             destination[key] = value
 
     return destination
-
-
-
 
 class NeuObj():
     def __init__(self,json = {}):

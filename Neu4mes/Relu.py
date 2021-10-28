@@ -1,8 +1,10 @@
-import Relation
-import Input
+from Neu4mes import Relation, Input
+import tensorflow.keras.layers
 
-class Relu(Relation.Relation):
-    def __init__(self, obj):
+class Relu(Relation):
+    def __init__(self, obj = None):
+        if obj is None:
+            return
         self.name = ''
         if type(obj) is tuple:
             super().__init__(obj[0].json)
@@ -10,13 +12,13 @@ class Relu(Relation.Relation):
             self.json['Relations'][self.name] = {
                 'Relu':[(obj[0].name,obj[1])],
             }
-        elif type(obj) is Input.Input:
+        elif type(obj) is Input:
             super().__init__(obj.json)
             self.name = obj.name+'_relu'
             self.json['Relations'][self.name] = {
                 'Relu':[obj.name]
             }
-        elif issubclass(type(obj),Relation.Relation):
+        elif issubclass(type(obj),Relation):
             super().__init__(obj.json)
             self.name = obj.name+'_relu'
             self.json['Relations'][self.name] = {
@@ -24,5 +26,8 @@ class Relu(Relation.Relation):
             }
         else:
             raise Exception('Type is not supported!')
+
+    def createElem(self, name, input):
+        return tensorflow.keras.layers.ReLU(name = name)(input)
 
 

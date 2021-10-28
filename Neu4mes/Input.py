@@ -1,4 +1,4 @@
-import NeuObj
+from Neu4mes import NeuObj
 
 class Input(NeuObj.NeuObj):
     def __init__(self,name):

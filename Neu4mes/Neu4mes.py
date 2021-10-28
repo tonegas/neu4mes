@@ -1,17 +1,19 @@
-import Linear
-import Sum
-import Relation
-
-import os, os.path
-from pprint import pp, pprint
-import numpy as np
-
-
+from Neu4mes import *
+from Neu4mes.NeuObj import NeuObj, merge
+from pprint import pprint 
+import tensorflow.keras.layers
+import tensorflow.keras.models
 from tensorflow.keras import optimizers
 from tensorflow.keras import backend as K
-from tensorflow.keras.models import Model
-import tensorflow.keras.layers #import Layer, Dense, Add, Lambda, RNN
-from tensorflow.python.training.tracking import data_structures
+import os
+import numpy as np
+import random
+import string
+
+def rand(length):
+    # choose from all lowercase letter
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
 
 def rmse(y_true, y_pred):
     # Root mean squared error (rmse) for regression
@@ -19,11 +21,19 @@ def rmse(y_true, y_pred):
 
 class Neu4mes:
     def __init__(self, model_def = 0):
-        self.model_def = model_def
+        if type(model_def) is Output:
+            self.model_def = model_def.json
+        elif type(model_def) is dict:
+            self.model_def = self.model_def
+        else:
+            self.model_def = NeuObj().json
         #Keras structs
         self.relation_types = {
-            'Linear': Linear.Linear,
-            'Sum': Sum.Sum
+            'Linear': Linear,
+            'Sum': Sum,
+            'Relu': Relu,
+            'Sum': Sum,
+            'Minus': Minus
         }
         self.input_time_window = {}
         self.input_n_samples = {}
@@ -45,44 +55,116 @@ class Neu4mes:
         self.num_of_epochs = 200
 
     def addModel(self, model_def):
-        if type(model_def) is Relation.Relation:
-            self.model_def = model_def.json
+        if type(model_def) is Output:
+            self.model_def = merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
-            self.model_def = model_def
+            self.model_def = merge(self.model_def, model_def) 
 
-    def neuralizeModel(self):
-        reletions = self.model_def['Relations']
+    def neuralizeModel(self, sample_time = 0):
+        if sample_time:
+            self.model_def["SampleTime"] = sample_time
+        relations = self.model_def['Relations']
         for outel in self.model_def['Outputs']:
-            relel = reletions.get(outel)
+            relel = relations.get(outel)
             for reltype, relvalue in relel.items():
-                relaction = self.relation_types.get(reltype)
-                if relaction:
-                    relaction().setInput(self, relvalue)
-                else:
-                    print("Relation not defined")
-                    
+                self.setInput(relvalue, outel)
+
         for key,val in self.model_def['Inputs'].items():
             time_window = self.input_time_window[key]
             self.input_n_samples[key] = int(time_window/self.model_def['SampleTime'])
             if self.input_n_samples[key] > self.max_n_samples:
                 self.max_n_samples = self.input_n_samples[key]
-            self.inputs[key] = tensorflow.keras.layers.Input(shape = (self.input_n_samples[key], ), batch_size = None, name = val['Name'])
-        
+            self.inputs[key] = tensorflow.keras.layers.Input(shape = (self.input_n_samples[key], ), batch_size = None, name = key)
+
         for outel in self.model_def['Outputs']:
-            relel = reletions.get(outel)
+            relel = relations.get(outel)
             self.output_relation[outel] = []
             for reltype, relvalue in relel.items():
-                relaction = self.relation_types.get(reltype)
-                if relaction:
-                    relaction().createElem(self,relvalue,outel)
+                relation = self.relation_types.get(reltype)
+                if relation:
+                    self.outputs[outel] = self.createElem(relation,relvalue,outel)
                 else:
                     print("Relation not defined")           
-            self.outputs[outel] = tensorflow.keras.layers.Add(name = outel)([self.relations[o+outel] for o in self.output_relation[outel]])
-        
+            #self.outputs[outel] = tensorflow.keras.layers.Add(name = outel)([self.relations[o+outel] for o in self.output_relation[outel]])
+
         #print([val for key,val in self.inputs.items()])
         #print([val for key,val in self.outputs.items()])
-        self.model = Model(inputs = [val for key,val in self.inputs.items()], outputs=[val for key,val in self.outputs.items()])
+        self.model = tensorflow.keras.models.Model(inputs = [val for key,val in self.inputs.items()], outputs=[val for key,val in self.outputs.items()])
         print(self.model.summary())
+
+    def setInput(self, relvalue, outel):
+        for el in relvalue:
+            if type(el) is tuple:
+                if el[0] in self.model_def['Inputs']:
+                    time_window = self.input_time_window.get(el[0])
+                    if time_window is not None:
+                        if self.input_time_window[el[0]] < el[1]:
+                            self.input_time_window[el[0]] = el[1]
+                    else:
+                        self.input_time_window[el[0]] = el[1]
+                else:
+                    raise Exception("A window on internal signal is not supported!")
+            else: 
+                if el in self.model_def['Inputs']:
+                    time_window = self.input_time_window.get(el)
+                    if time_window is None:
+                        self.input_time_window[el] = self.model_def['SampleTime']
+                else:
+                    relel = self.model_def['Relations'].get((outel,el))
+                    if relel is None:
+                        relel = self.model_def['Relations'].get(el)
+                        if relel is None:
+                            raise Exception("Graph is not completed!")
+                    for reltype, relvalue in relel.items():
+                        self.setInput(relvalue, outel)
+
+        print(self.input_time_window)
+        print("GAS")
+
+    def createElem(self, relation, relvalue, outel):
+        if len(relvalue) == 1:
+            el = relvalue[0]
+            if type(el) is tuple:
+                el = el[0]
+
+            if el in self.model_def['Inputs']:
+                return relation().createElem(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+rand(3), self.inputs[el])
+            else:
+                relel = self.model_def['Relations'].get((outel,el))
+                if relel is None:
+                    relel = self.model_def['Relations'].get(el)
+                    if relel is None:
+                        raise Exception("Graph is not completed!")
+                for new_reltype, new_relvalue in relel.items():
+                    new_relation = self.relation_types.get(new_reltype)
+                    if new_relation:
+                        action = self.createElem(new_relation,new_relvalue, outel)
+                        return relation().createElem(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+rand(3), action)
+                    else:
+                        print("Relation not defined")    
+        else:
+            actions = []
+            for idx, el in enumerate(relvalue):
+                if type(el) is tuple:
+                    el = el[0]
+                if el in self.model_def['Inputs']:
+                    actions.append(self.inputs[el])
+                else:
+                    relel = self.model_def['Relations'].get((outel,el))
+                    if relel is None:
+                        relel = self.model_def['Relations'].get(el)
+                        if relel is None:
+                            raise Exception("Graph is not completed!")
+
+                    for new_reltype, new_relvalue in relel.items():
+                        new_relation = self.relation_types.get(new_reltype)
+                        if new_relation:
+                            actions.append(self.createElem(new_relation, new_relvalue, outel))
+                        else:
+                            print("Relation not defined") 
+            return relation().createElem(outel, actions)
+            
+
 
     def loadData(self, format, folder = './data', skiplines = 0):
         path, dirs, files = next(os.walk(folder))
@@ -117,8 +199,8 @@ class Neu4mes:
         
             for key in self.output_relation.keys():
                 used_key = key
-                elem_key = key.split('_')
-                if len(elem_key) > 1 and elem_key[1]== 'z':
+                elem_key = key.split('__')
+                if len(elem_key) > 1 and elem_key[1]== '-z1':
                     used_key = elem_key[0]
                 for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples):
                     self.inout_data_time_window[key].append(self.input_data[(file,used_key)][i+self.max_n_samples])
@@ -157,10 +239,10 @@ class Neu4mes:
 
         # Train model
         #print('[Fitting]')
-        print(len([self.inout_4train[key] for key in self.model_def['Output'].keys()]))
+        print(len([self.inout_4train[key] for key in self.model_def['Outputs'].keys()]))
 
-        self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Input'].keys()],
-                            [self.inout_4train[key] for key in self.model_def['Output'].keys()],
+        self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
+                            [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
                             epochs=self.num_of_epochs, batch_size=self.batch_size, verbose=1)
 
     def controlDefinition(control):

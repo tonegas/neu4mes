@@ -1,5 +1,4 @@
-import NeuObj
-import Input
+from Neu4mes import NeuObj, Input
 
 class Output(NeuObj.NeuObj):              
     def __init__(self, obj, relation):
