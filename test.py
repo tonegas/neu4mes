@@ -12,12 +12,12 @@ model_def = {
         }
     },
     'Output':{
-        'x1_z':{     #con z indico il ritardo unitario di una variabile     
+        'x1__-z1':{     #con z indico il ritardo unitario di una variabile     
             'Name':'Next mass 1 position'
         }
     },
     'Relations':{
-        'x1_z':{
+        'x1__-z1':{
             'Linear':[('x1',2),'F'],
         }
     }

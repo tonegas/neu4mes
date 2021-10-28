@@ -1,82 +1,29 @@
+import Linear
+import Sum
+import Relation
+
 import os, os.path
+from pprint import pp, pprint
 import numpy as np
+
+
 from tensorflow.keras import optimizers
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Layer, Input, Dense, Add, Lambda, RNN
+import tensorflow.keras.layers #import Layer, Dense, Add, Lambda, RNN
 from tensorflow.python.training.tracking import data_structures
 
 def rmse(y_true, y_pred):
     # Root mean squared error (rmse) for regression
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
-class NeuObj():
-    def __init__(self):
-        self.json = {
-            'SampleTime': 0,
-            'Inputs' : {},
-            'States' : {},
-            'Outputs': {},
-            'Relations': {}
-        }
-        pass
-
-class Input(NeuObj):
-    def __init__(self,name):
-        self.name = name
-        self.max_tw = 0
-        self.json['Inputs'][self.name] = {}
-
-    def tw(self, seconds):
-        self.max_tw = seconds
-        return self, seconds 
-    
-class Relation:    
-    def setInput(self):
-        pass
-
-    def createElem(self):
-        pass
-
-class Linear(Relation):
-    def __init__(self, obj):
-        if type(obj) is tuple:
-            self.json['Relations'][obj[0].name+'_lin'] = {
-                'Linear':[(obj[0].name,obj[1])],
-            }
-        elif type(obj) is :
-
-
-    def setInput(self, model, relvalue):
-        for el in relvalue:
-            if type(el) is tuple:
-                time_window = model.input_time_window.get(el[0])
-                if time_window:
-                    if model.input_time_window[el[0]] < el[1]:
-                        model.input_time_window[el[0]] = el[1]
-                else:
-                    model.input_time_window[el[0]] = el[1]
-            else: 
-                model.input_time_window[el] = model.model_def['SampleTime']
-
-    def createElem(self, model, relvalue, outel):
-        for el in relvalue:
-            if type(el) is tuple:
-                if model.relations.get(el[0]) is None:
-                    model.relations[el[0]+outel] = Dense(units = 1, activation = None, use_bias = None, name = "lin"+el[0]+outel)(model.inputs[el[0]])
-                model.output_relation[outel].append(el[0])
-                
-            else: 
-                if model.relations.get(el) is None:
-                    model.relations[el+outel] = Dense(units = 1, activation = None, use_bias = None, name = "lin"+el+outel)(model.inputs[el])
-                model.output_relation[outel].append(el)
-
 class Neu4mes:
     def __init__(self, model_def = 0):
         self.model_def = model_def
         #Keras structs
         self.relation_types = {
-            'Linear': Linear
+            'Linear': Linear.Linear,
+            'Sum': Sum.Sum
         }
         self.input_time_window = {}
         self.input_n_samples = {}
@@ -97,12 +44,15 @@ class Neu4mes:
         self.learning_rate = 0.001
         self.num_of_epochs = 200
 
-    def modelDefinition(self, model_def):
-        self.model_def = model_def
+    def addModel(self, model_def):
+        if type(model_def) is Relation.Relation:
+            self.model_def = model_def.json
+        elif type(model_def) is dict:
+            self.model_def = model_def
 
     def neuralizeModel(self):
         reletions = self.model_def['Relations']
-        for outel in self.model_def['Output']:
+        for outel in self.model_def['Outputs']:
             relel = reletions.get(outel)
             for reltype, relvalue in relel.items():
                 relaction = self.relation_types.get(reltype)
@@ -111,14 +61,14 @@ class Neu4mes:
                 else:
                     print("Relation not defined")
                     
-        for key,val in self.model_def['Input'].items():
+        for key,val in self.model_def['Inputs'].items():
             time_window = self.input_time_window[key]
             self.input_n_samples[key] = int(time_window/self.model_def['SampleTime'])
             if self.input_n_samples[key] > self.max_n_samples:
                 self.max_n_samples = self.input_n_samples[key]
-            self.inputs[key] = Input(shape = (self.input_n_samples[key], ), batch_size = None, name = val['Name'])
+            self.inputs[key] = tensorflow.keras.layers.Input(shape = (self.input_n_samples[key], ), batch_size = None, name = val['Name'])
         
-        for outel in self.model_def['Output']:
+        for outel in self.model_def['Outputs']:
             relel = reletions.get(outel)
             self.output_relation[outel] = []
             for reltype, relvalue in relel.items():
@@ -127,7 +77,7 @@ class Neu4mes:
                     relaction().createElem(self,relvalue,outel)
                 else:
                     print("Relation not defined")           
-            self.outputs[outel] = Add(name = outel)([self.relations[o+outel] for o in self.output_relation[outel]])
+            self.outputs[outel] = tensorflow.keras.layers.Add(name = outel)([self.relations[o+outel] for o in self.output_relation[outel]])
         
         #print([val for key,val in self.inputs.items()])
         #print([val for key,val in self.outputs.items()])
