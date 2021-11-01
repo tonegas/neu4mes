@@ -26,7 +26,6 @@ class Sum(Neu4mes.Relation):
 
 
 def createSum(self, name, input):
-    print(input)
     return tensorflow.keras.layers.Add(name = name)(input)
 
 setattr(Neu4mes.Neu4mes, sum_relation_name, createSum)

@@ -26,7 +26,7 @@ class Linear(Neu4mes.Relation):
             self.json['Relations'][self.name] = {
                 linear_relation_name:[(obj[0].name,obj[1])],
             }
-        elif type(obj) is Neu4mes.Input:
+        elif type(obj) is Neu4mes.Input or type(obj) is Neu4mes.DiscreteInput:
             super().__init__(obj.json)
             self.name = obj.name+'_lin'+rand(3)
             self.json['Relations'][self.name] = {

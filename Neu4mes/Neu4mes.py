@@ -36,6 +36,7 @@ class Neu4mes:
         self.input_n_samples = {}
         self.max_n_samples = 0
         self.inputs = {}
+        self.inputs_for_model = {}
         self.relations = {}
         self.output_relation = {}
         self.outputs = {}
@@ -78,8 +79,11 @@ class Neu4mes:
                     self.input_n_samples[key] = input_n_sample_aux
             else:
                 self.input_n_samples[key] = input_n_sample_aux
-
-            self.inputs[key] = self.input(key, self.input_n_samples[key])
+            
+            if 'Discrete' in val:
+                (self.inputs_for_model[key],self.inputs[key]) = self.discreteInput(key, self.input_n_samples[key], val['Discrete'])
+            else: 
+                (self.inputs_for_model[key],self.inputs[key]) = self.input(key, self.input_n_samples[key])
 
         for outel in self.model_def['Outputs']:
             relel = relations.get(outel)
@@ -91,9 +95,9 @@ class Neu4mes:
                 else:
                     print("Relation not defined")           
 
-        #print([val for key,val in self.inputs.items()])
-        #print([val for key,val in self.outputs.items()])
-        self.model = tensorflow.keras.models.Model(inputs = [val for key,val in self.inputs.items()], outputs=[val for key,val in self.outputs.items()])
+        print([(key,val) for key,val in self.inputs_for_model.items()])
+        print([(key,val) for key,val in self.outputs.items()])
+        self.model = tensorflow.keras.models.Model(inputs = [val for key,val in self.inputs_for_model.items()], outputs=[val for key,val in self.outputs.items()])
         print(self.model.summary())
 
     def setInput(self, relvalue, outel):
@@ -154,20 +158,24 @@ class Neu4mes:
                     return relation(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+str(self.elem), input)
         else:
             inputs = []
+            name = ''
             for idx, el in enumerate(relvalue):
                 if type(el) is tuple:
-                    if el in self.model_def['Inputs']:
+                    if el[0] in self.model_def['Inputs']:
                         input = self.part(el[0],self.inputs[el[0]],int(el[1]/self.model_def['SampleTime']))
                         inputs.append(input)
+                        name = el[0][2:]
                     else:
                         print("Tuple is defined only for Input")  
                 else:
                     if el in self.model_def['Inputs']:
                         input = self.part(el,self.inputs[el],1)
                         inputs.append(input)
+                        name = name + el[2:]
                     else:
                         inputs.append(self.createRelation(relation, el, outel))
-            return relation(outel, inputs)
+                        name = name + el[2:]
+            return relation(outel[:2]+name, inputs)
 
     def loadData(self, format, folder = './data', skiplines = 0):
         path, dirs, files = next(os.walk(folder))
