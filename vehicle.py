@@ -56,7 +56,6 @@ gravity_force = Linear(altitude.tw(2))
 #Create the brake force contribution
 brake = Input('brake')
 brake_force = -Relu(Linear(brake.tw(1.25)))
-brake_force2 = Linear(brake.tw(1.25))+brake
 #lat_acc = Input('lat_acc')
 
 
@@ -92,7 +91,7 @@ long_acc = Input('accleration')
 
 
 #Definition of the next acceleration predict 
-long_acc_estimator = Output(long_acc.z(-1), brake_force2)
+long_acc_estimator = Output(long_acc.z(-1), drag_force+gravity_force+brake_force)
 #long_acc_estimator2 = Output(altitude.z(-1), drag_force+gravity_force+brake_force)
 
 #pprint.pprint(long_acc_estimator.json)
