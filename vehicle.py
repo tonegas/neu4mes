@@ -45,9 +45,9 @@ model_def = {
     }
 }
 #Create the motor trasmission
-#gear = DiscreteInput('gear', [1,2,3,4,5,6,7,8])
-#engine = Input('engine')
-#motor_force = LocalModel(engine.tw(2), gear)
+gear = DiscreteInput('gear', [1,2,3,4,5,6,7,8])
+engine = Input('engine')
+motor_force = LocalModel(engine.tw(2), gear)
 
 #Create the concept of the slope
 altitude = Input('altitude')
@@ -56,8 +56,6 @@ gravity_force = Linear(altitude.tw(2))
 #Create the brake force contribution
 brake = Input('brake')
 brake_force = -Relu(Linear(brake.tw(1.25)))
-#lat_acc = Input('lat_acc')
-
 
 #Create the areodinamic drag contribution
 velocity = Input('velocity')
@@ -91,7 +89,7 @@ long_acc = Input('accleration')
 
 
 #Definition of the next acceleration predict 
-long_acc_estimator = Output(long_acc.z(-1), drag_force+gravity_force+brake_force)
+long_acc_estimator = Output(long_acc.z(-1), motor_force+gravity_force+brake_force)
 #long_acc_estimator2 = Output(altitude.z(-1), drag_force+gravity_force+brake_force)
 
 #pprint.pprint(long_acc_estimator.json)
@@ -105,7 +103,7 @@ pprint.pprint(mymodel.model_def)
 
 mymodel.neuralizeModel(0.05)
 
-data_struct = ['time','altitude','velocity','accleration','brake']
+data_struct = ['time','altitude','brake','accleration','engine','gear']
 data_folder = './data/data-linear-oscillator-a/'
 mymodel.loadData(data_struct, folder = data_folder)
 mymodel.trainModel(validation_percentage = 30)
