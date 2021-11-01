@@ -1,3 +1,5 @@
+from Neu4mes.Neu4mes import Neu4mes
+
 from Neu4mes.Relation import Relation
 from Neu4mes.Input import Input
 from Neu4mes.Linear import Linear
@@ -6,7 +8,7 @@ from Neu4mes.Sum import Sum
 from Neu4mes.Minus import Minus
 from Neu4mes.Output import Output
 from Neu4mes import NeuObj
-from Neu4mes.Neu4mes import Neu4mes
+
 
 __version__ = '0.0.1'
 

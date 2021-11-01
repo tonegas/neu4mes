@@ -1,7 +1,9 @@
-from Neu4mes import Relation, Input
+import Neu4mes
 import tensorflow.keras.layers
 
-class Relu(Relation):
+relu_relation_name = 'ReLU'
+
+class Relu(Neu4mes.Relation):
     def __init__(self, obj = None):
         if obj is None:
             return
@@ -10,24 +12,28 @@ class Relu(Relation):
             super().__init__(obj[0].json)
             self.name = obj[0].name+'_relu'
             self.json['Relations'][self.name] = {
-                'Relu':[(obj[0].name,obj[1])],
+                relu_relation_name:[(obj[0].name,obj[1])],
             }
-        elif type(obj) is Input:
+        elif type(obj) is Neu4mes.Input:
             super().__init__(obj.json)
             self.name = obj.name+'_relu'
             self.json['Relations'][self.name] = {
-                'Relu':[obj.name]
+                relu_relation_name:[obj.name]
             }
-        elif issubclass(type(obj),Relation):
+        elif issubclass(type(obj),Neu4mes.Relation):
             super().__init__(obj.json)
             self.name = obj.name+'_relu'
             self.json['Relations'][self.name] = {
-                'Relu':[obj.name]
+                relu_relation_name:[obj.name]
             }
         else:
             raise Exception('Type is not supported!')
 
     def createElem(self, name, input):
-        return tensorflow.keras.layers.ReLU(name = name)(input)
+        return 
 
 
+def createRelu(self, name, input):
+    return tensorflow.keras.layers.ReLU(name = name)(input)
+
+setattr(Neu4mes.Neu4mes, relu_relation_name, createRelu)

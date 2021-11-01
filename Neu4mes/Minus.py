@@ -1,7 +1,6 @@
-from Neu4mes import Relation, NeuObj
-import tensorflow.keras.layers
+import Neu4mes
 
-class Minus(Relation):
+class Minus(Neu4mes.Relation):
     def __init__(self, obj = None):
         if obj is None:
             return
@@ -14,3 +13,9 @@ class Minus(Relation):
     
     def createElem(self, name, input):
         return -input
+
+
+def createMinus(self, name, input):
+    return -input
+
+setattr(Neu4mes.Neu4mes, 'Minus', createMinus)

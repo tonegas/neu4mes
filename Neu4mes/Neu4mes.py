@@ -1,5 +1,7 @@
-from Neu4mes import *
+import Neu4mes 
+from Neu4mes.Output import Output
 from Neu4mes.NeuObj import NeuObj, merge
+
 from pprint import pprint 
 import tensorflow.keras.layers
 import tensorflow.keras.models
@@ -10,6 +12,7 @@ import numpy as np
 import random
 import string
 
+import random
 def rand(length):
     # choose from all lowercase letter
     letters = string.ascii_lowercase
@@ -27,14 +30,8 @@ class Neu4mes:
             self.model_def = self.model_def
         else:
             self.model_def = NeuObj().json
-        #Keras structs
-        self.relation_types = {
-            'Linear': Linear,
-            'Sum': Sum,
-            'Relu': Relu,
-            'Sum': Sum,
-            'Minus': Minus
-        }
+
+        self.elem = 0
         self.input_time_window = {}
         self.input_n_samples = {}
         self.max_n_samples = 0
@@ -71,21 +68,28 @@ class Neu4mes:
 
         for key,val in self.model_def['Inputs'].items():
             time_window = self.input_time_window[key]
-            self.input_n_samples[key] = int(time_window/self.model_def['SampleTime'])
-            if self.input_n_samples[key] > self.max_n_samples:
-                self.max_n_samples = self.input_n_samples[key]
-            self.inputs[key] = tensorflow.keras.layers.Input(shape = (self.input_n_samples[key], ), batch_size = None, name = key)
+            input_n_sample_aux = int(time_window/self.model_def['SampleTime'])
+
+            if input_n_sample_aux > self.max_n_samples:
+                self.max_n_samples = input_n_sample_aux
+            
+            if self.input_n_samples.get(key):
+                if input_n_sample_aux > self.input_n_samples[key]:
+                    self.input_n_samples[key] = input_n_sample_aux
+            else:
+                self.input_n_samples[key] = input_n_sample_aux
+
+            self.inputs[key] = self.input(key, self.input_n_samples[key])
 
         for outel in self.model_def['Outputs']:
             relel = relations.get(outel)
             self.output_relation[outel] = []
             for reltype, relvalue in relel.items():
-                relation = self.relation_types.get(reltype)
+                relation = getattr(self,reltype)
                 if relation:
                     self.outputs[outel] = self.createElem(relation,relvalue,outel)
                 else:
                     print("Relation not defined")           
-            #self.outputs[outel] = tensorflow.keras.layers.Add(name = outel)([self.relations[o+outel] for o in self.output_relation[outel]])
 
         #print([val for key,val in self.inputs.items()])
         #print([val for key,val in self.outputs.items()])
@@ -118,50 +122,52 @@ class Neu4mes:
                     for reltype, relvalue in relel.items():
                         self.setInput(relvalue, outel)
 
+    def createRelation(self,relation,el,outel):
+        relel = self.model_def['Relations'].get((outel,el))
+        if relel is None:
+            relel = self.model_def['Relations'].get(el)
+            if relel is None:
+                raise Exception("Graph is not completed!")
+        for new_reltype, new_relvalue in relel.items():
+            new_relation = getattr(self,new_reltype)
+            if new_relation:
+                return self.createElem(new_relation, new_relvalue, outel)
+            else:
+                print("Relation not defined")    
+
     def createElem(self, relation, relvalue, outel):
+        self.elem = self.elem + 1
         if len(relvalue) == 1:
             el = relvalue[0]
             if type(el) is tuple:
-                el = el[0]
-
-            if el in self.model_def['Inputs']:
-                return relation().createElem(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+rand(3), self.inputs[el])
+                if el[0] in self.model_def['Inputs']:
+                    input = self.part(el[0],self.inputs[el[0]],int(el[1]/self.model_def['SampleTime']))
+                    return relation(outel[:2]+'_'+el[0][:2]+'-'+el[0][-3:]+'_'+str(self.elem), input)                
+                else:
+                    print("Tuple is defined only for Input")   
             else:
-                relel = self.model_def['Relations'].get((outel,el))
-                if relel is None:
-                    relel = self.model_def['Relations'].get(el)
-                    if relel is None:
-                        raise Exception("Graph is not completed!")
-                for new_reltype, new_relvalue in relel.items():
-                    new_relation = self.relation_types.get(new_reltype)
-                    if new_relation:
-                        action = self.createElem(new_relation,new_relvalue, outel)
-                        return relation().createElem(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+rand(3), action)
-                    else:
-                        print("Relation not defined")    
+                if el in self.model_def['Inputs']:
+                    input = self.part(el,self.inputs[el],1)
+                    return relation(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+str(self.elem), input)
+                else:
+                    input = self.createRelation(relation, el, outel)
+                    return relation(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+str(self.elem), input)
         else:
-            actions = []
+            inputs = []
             for idx, el in enumerate(relvalue):
                 if type(el) is tuple:
-                    el = el[0]
-                if el in self.model_def['Inputs']:
-                    actions.append(self.inputs[el])
+                    if el in self.model_def['Inputs']:
+                        input = self.part(el[0],self.inputs[el[0]],int(el[1]/self.model_def['SampleTime']))
+                        inputs.append(input)
+                    else:
+                        print("Tuple is defined only for Input")  
                 else:
-                    relel = self.model_def['Relations'].get((outel,el))
-                    if relel is None:
-                        relel = self.model_def['Relations'].get(el)
-                        if relel is None:
-                            raise Exception("Graph is not completed!")
-
-                    for new_reltype, new_relvalue in relel.items():
-                        new_relation = self.relation_types.get(new_reltype)
-                        if new_relation:
-                            actions.append(self.createElem(new_relation, new_relvalue, outel))
-                        else:
-                            print("Relation not defined") 
-            return relation().createElem(outel, actions)
-            
-
+                    if el in self.model_def['Inputs']:
+                        input = self.part(el,self.inputs[el],1)
+                        inputs.append(input)
+                    else:
+                        inputs.append(self.createRelation(relation, el, outel))
+            return relation(outel, inputs)
 
     def loadData(self, format, folder = './data', skiplines = 0):
         path, dirs, files = next(os.walk(folder))
