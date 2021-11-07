@@ -9,14 +9,6 @@ import tensorflow.keras.layers
 # }
 linear_relation_name = 'Linear'
 
-
-import random
-import string
-def rand(length):
-    # choose from all lowercase letter
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
-
 class Linear(Neu4mes.Relation):
     def __init__(self, obj):
         self.name = ''

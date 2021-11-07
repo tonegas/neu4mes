@@ -9,14 +9,6 @@ import tensorflow.keras.layers
 # }
 localmodel_relation_name = 'LocalModel'
 
-
-import random
-import string
-def rand(length):
-    # choose from all lowercase letter
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
-
 class LocalModel(Neu4mes.Relation):
     def __init__(self, obj1, obj2):
         self.name = ''
