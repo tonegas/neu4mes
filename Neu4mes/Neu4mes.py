@@ -104,9 +104,9 @@ class Neu4mes:
                 #self.relations[outel]=self.outputs[outel]
 
         pprint(self.model_used)
-        print([(key,val) for key,val in self.inputs_for_model.items()])
-        print([(key,val) for key,val in self.outputs.items()])
-        print([(key,val) for key,val in self.relations.items()])
+        # print([(key,val) for key,val in self.inputs_for_model.items()])
+        # print([(key,val) for key,val in self.outputs.items()])
+        # print([(key,val) for key,val in self.relations.items()])
         self.model = tensorflow.keras.models.Model(inputs = [val for key,val in self.inputs_for_model.items()], outputs=[val for key,val in self.outputs.items()])
         print(self.model.summary())
 
@@ -182,7 +182,7 @@ class Neu4mes:
                         if (el[0],samples) not in self.inputs:
                             self.inputs[(el[0],samples)] = self.part(el[0],self.inputs[el[0]],samples)
                         inputs.append(self.inputs[(el[0],samples)])
-                        name = name +'_'+el[0][:2]+str(self.elem)
+                        name = name +'_'+el[0][:2]
                     else:
                         print("Tuple is defined only for Input")  
                 else:
@@ -190,12 +190,12 @@ class Neu4mes:
                         if (el[0],1) not in self.inputs:
                             self.inputs[(el[0],1)] = self.part(el,self.inputs[el],1)
                         inputs.append(self.inputs[(el[0],1)])
-                        name = name +'_'+ el[:2]+str(self.elem)
+                        name = name +'_'+ el[:2]
                     else:
                         inputs.append(self.createRelation(relation, el, outel))
-                        name = name +'_'+ el[:2]+str(self.elem)
+                        name = name +'_'+ el[:2]
             
-            return relation(name, inputs)
+            return relation(name+str(self.elem), inputs)
 
     def loadData(self, format, folder = './data', skiplines = 0):
         path, dirs, files = next(os.walk(folder))
