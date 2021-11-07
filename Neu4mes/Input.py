@@ -4,11 +4,17 @@ import tensorflow as tf
 import numpy as np
 
 class Input(Neu4mes.NeuObj.NeuObj):
-    def __init__(self,name):
+    def __init__(self,name,values = None):
         super().__init__()
         self.name = name
         self.max_tw = 0
         self.json['Inputs'][self.name] = {}
+        if values:
+            self.values = values
+            self.json['Inputs'][self.name] = {
+                'Discrete' : values
+            }
+
 
     def tw(self, seconds):
         if self.max_tw < seconds:
@@ -26,19 +32,6 @@ class Input(Neu4mes.NeuObj.NeuObj):
             return self, '__+s'+str(derivate)
         else:
             return self, '__-s'+str(-derivate)
-
-class DiscreteInput(Input):
-    def __init__(self,name,values = None):
-        super().__init__(name)
-        self.json['Inputs'][self.name] = {
-            'Discrete' : []
-        }
-        if values:
-            self.json['Inputs'][self.name]['Discrete'] = values
-
-    def s(self, derivate):
-        raise Exception('Operation not defined!')
-
 
 def createDiscreteInput(Neu4mes, name, size, types):
     input = tensorflow.keras.layers.Input(shape = (size, ), batch_size = None, name = name, dtype='int32')

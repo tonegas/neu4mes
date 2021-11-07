@@ -1,4 +1,5 @@
 from Neu4mes import NeuObj
+import types
 
 class Relation(NeuObj.NeuObj):      
     def __init__(self,json):
@@ -10,9 +11,4 @@ class Relation(NeuObj.NeuObj):
     
     def __add__(self, obj): 
         from Neu4mes import Sum
-        if type(obj) is not Sum and type(self) is not Sum:
-            return Sum(self, obj)
-        elif type(obj) is Sum:
-            return obj.sum(self)
-        else:
-            return self.sum(obj)        
+        return Sum(self, obj)        

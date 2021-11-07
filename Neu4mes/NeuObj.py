@@ -1,26 +1,31 @@
 from Neu4mes import * 
 import copy
 
-def merge(source, destination):
+def merge(source, destination, main = True):
+    if main:
+        result = copy.deepcopy(destination)
+    else:
+        result = destination
     for key, value in source.items():
         if isinstance(value, dict):
             # get node or create one
-            node = destination.setdefault(key, {})
-            merge(value, node)
+            node = result.setdefault(key, {})
+            merge(value, node, False)
         else:
-            destination[key] = value
+            result[key] = value
 
-    return destination
+    return result
 
 class NeuObj():
+    count = 0
     def __init__(self,json = {}):
+        NeuObj.count = NeuObj.count + 1
         if json:
             self.json = copy.deepcopy(json)
         else:
             self.json = {
                 'SampleTime': 0,
                 'Inputs' : {},
-                'States' : {},
                 'Outputs': {},
                 'Relations': {}
             }

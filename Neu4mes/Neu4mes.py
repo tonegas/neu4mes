@@ -24,6 +24,7 @@ def rmse(y_true, y_pred):
 
 class Neu4mes:
     def __init__(self, model_def = 0):
+        self.model_used =  NeuObj().json
         if type(model_def) is Output:
             self.model_def = model_def.json
         elif type(model_def) is dict:
@@ -57,6 +58,7 @@ class Neu4mes:
             self.model_def = merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
             self.model_def = merge(self.model_def, model_def) 
+        #pprint(self.model_def)
 
     def neuralizeModel(self, sample_time = 0):
         if sample_time:
@@ -80,10 +82,12 @@ class Neu4mes:
             else:
                 self.input_n_samples[key] = input_n_sample_aux
             
-            if 'Discrete' in val:
-                (self.inputs_for_model[key],self.inputs[key]) = self.discreteInput(key, self.input_n_samples[key], val['Discrete'])
-            else: 
-                (self.inputs_for_model[key],self.inputs[key]) = self.input(key, self.input_n_samples[key])
+            if key not in self.model_used['Inputs']:
+                if 'Discrete' in val:
+                    (self.inputs_for_model[key],self.inputs[key]) = self.discreteInput(key, self.input_n_samples[key], val['Discrete'])
+                else: 
+                    (self.inputs_for_model[key],self.inputs[key]) = self.input(key, self.input_n_samples[key])
+                self.model_used['Inputs'][key]=val
 
         for outel in self.model_def['Outputs']:
             relel = relations.get(outel)
@@ -93,10 +97,16 @@ class Neu4mes:
                 if relation:
                     self.outputs[outel] = self.createElem(relation,relvalue,outel)
                 else:
-                    print("Relation not defined")           
+                    print("Relation not defined") 
+            if outel not in self.model_used['Outputs']:
+                self.model_used['Outputs'][outel]=self.model_def['Outputs'][outel]   
+                self.model_used['Relations'][outel]=relel        
+                #self.relations[outel]=self.outputs[outel]
 
+        pprint(self.model_used)
         print([(key,val) for key,val in self.inputs_for_model.items()])
         print([(key,val) for key,val in self.outputs.items()])
+        print([(key,val) for key,val in self.relations.items()])
         self.model = tensorflow.keras.models.Model(inputs = [val for key,val in self.inputs_for_model.items()], outputs=[val for key,val in self.outputs.items()])
         print(self.model.summary())
 
@@ -135,7 +145,10 @@ class Neu4mes:
         for new_reltype, new_relvalue in relel.items():
             new_relation = getattr(self,new_reltype)
             if new_relation:
-                return self.createElem(new_relation, new_relvalue, outel)
+                if el not in self.model_used['Relations']:
+                    self.relations[el] = self.createElem(new_relation, new_relvalue, outel)
+                    self.model_used['Relations'][el]=relel
+                return self.relations[el]
             else:
                 print("Relation not defined")    
 
@@ -145,37 +158,44 @@ class Neu4mes:
             el = relvalue[0]
             if type(el) is tuple:
                 if el[0] in self.model_def['Inputs']:
-                    input = self.part(el[0],self.inputs[el[0]],int(el[1]/self.model_def['SampleTime']))
-                    return relation(outel[:2]+'_'+el[0][:2]+'-'+el[0][-3:]+'_'+str(self.elem), input)                
+                    samples = int(el[1]/self.model_def['SampleTime'])
+                    if (el[0],samples) not in self.inputs:
+                        self.inputs[(el[0],samples)] = self.part(el[0],self.inputs[el[0]],samples)
+                    return relation(outel[:2]+'_'+el[0][:2]+str(self.elem), self.inputs[(el[0],samples)])                
                 else:
                     print("Tuple is defined only for Input")   
             else:
                 if el in self.model_def['Inputs']:
-                    input = self.part(el,self.inputs[el],1)
-                    return relation(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+str(self.elem), input)
+                    if (el,1) not in self.inputs:
+                        self.inputs[(el,1)] = self.part(el,self.inputs[el],1)
+                    return relation(outel[:2]+'_'+el[:2]+str(self.elem), self.inputs[(el,1)])
                 else:
                     input = self.createRelation(relation, el, outel)
-                    return relation(outel[:2]+'_'+el[:2]+'-'+el[-3:]+'_'+str(self.elem), input)
+                    return relation(outel[:2]+'_'+el[:2]+str(self.elem), input)
         else:
             inputs = []
-            name = ''
+            name = outel[:2]
             for idx, el in enumerate(relvalue):
                 if type(el) is tuple:
                     if el[0] in self.model_def['Inputs']:
-                        input = self.part(el[0],self.inputs[el[0]],int(el[1]/self.model_def['SampleTime']))
-                        inputs.append(input)
-                        name = el[0][2:]
+                        samples = int(el[1]/self.model_def['SampleTime'])
+                        if (el[0],samples) not in self.inputs:
+                            self.inputs[(el[0],samples)] = self.part(el[0],self.inputs[el[0]],samples)
+                        inputs.append(self.inputs[(el[0],samples)])
+                        name = name +'_'+el[0][:2]+str(self.elem)
                     else:
                         print("Tuple is defined only for Input")  
                 else:
                     if el in self.model_def['Inputs']:
-                        input = self.part(el,self.inputs[el],1)
-                        inputs.append(input)
-                        name = name + el[2:]
+                        if (el[0],1) not in self.inputs:
+                            self.inputs[(el[0],1)] = self.part(el,self.inputs[el],1)
+                        inputs.append(self.inputs[(el[0],1)])
+                        name = name +'_'+ el[:2]+str(self.elem)
                     else:
                         inputs.append(self.createRelation(relation, el, outel))
-                        name = name + el[2:]
-            return relation(outel[:2]+name, inputs)
+                        name = name +'_'+ el[:2]+str(self.elem)
+            
+            return relation(name, inputs)
 
     def loadData(self, format, folder = './data', skiplines = 0):
         path, dirs, files = next(os.walk(folder))
