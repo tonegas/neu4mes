@@ -90,7 +90,6 @@ drag_force = Linear(velocity)+my_relation(0.5)
 #Longitudinal acceleration
 long_acc = Input('accleration')
 
-
 #Definition of the next acceleration predict 
 
 vai = brake_force+drag_force#+brake_force
@@ -119,6 +118,12 @@ data_struct = ['time','altitude','brake','accleration','velocity','gear']
 data_folder = './data/data-linear-oscillator-a/'
 mymodel.loadData(data_struct, folder = data_folder)
 mymodel.trainModel(validation_percentage = 30)
+
+#definisco che long_acc è l'integrale di velocity
+long_acc.s(-1) = velocity
+velocity.s(1) = long_acc
+#così dico che voglio mettere degli stati per fare il training ricorrente
+mymodel.trainModel(validation_percentage = 30, states = [long_acc_estimator])
 
 #data_struct = ['time','velocity','accleration','engine','gear','altitude','brake']
 #data_folder = './data/vehicle_data/'
