@@ -45,7 +45,10 @@ model_def = {
     }
 }
 #Create the motor trasmission
-gear = DiscreteInput('gear', [1,2,3,4,5,6,7,8])
+gear = Input('gear', values=[1,2,3,4,5,6,7,8])
+
+my_relation = lambda tw: Linear(brake.tw(tw))
+
 engine = Input('engine')
 motor_force = LocalModel(engine.tw(2), gear)
 
@@ -55,11 +58,11 @@ gravity_force = Linear(altitude.tw(2))
 
 #Create the brake force contribution
 brake = Input('brake')
-brake_force = -Relu(Linear(brake.tw(1.25)))
+brake_force = my_relation(2)+Linear(brake.tw(0.4))+Linear(brake.tw(0.4)) #-Relu(Linear(brake.tw(1.25)))
 
 #Create the areodinamic drag contribution
 velocity = Input('velocity')
-drag_force = Linear(velocity)
+drag_force = Linear(velocity)+my_relation(0.5)
 
 #The state is a well established variable, so if it used inside two different outputs
 #will not be duplicated.
@@ -89,19 +92,24 @@ long_acc = Input('accleration')
 
 
 #Definition of the next acceleration predict 
-long_acc_estimator = Output(long_acc.z(-1), motor_force+gravity_force+brake_force)
+
+vai = brake_force+drag_force#+brake_force
+long_acc_estimator = Output(long_acc.z(-1), vai)
+#pprint.pprint(long_acc_estimator.json)
+#long_acc_estimator = Output(long_acc.z(-1), motor_force+gravity_force+brake_force)
 #long_acc_estimator2 = Output(altitude.z(-1), drag_force+gravity_force+brake_force)
+#pprint.pprint(long_acc_estimator2.json)
 
 #pprint.pprint(long_acc_estimator.json)
 #pprint.pprint(long_acc_estimator2.json)
 
 mymodel = Neu4mes()
 mymodel.addModel(long_acc_estimator)
-#mymodel.addModel(long_acc_estimator2)
-
 pprint.pprint(mymodel.model_def)
-
+#mymodel.addModel(long_acc_estimator2)
+#pprint.pprint(mymodel.model_def)
 mymodel.neuralizeModel(0.05)
+pprint.pprint(mymodel.model_used)
 
 data_struct = ['time','altitude','brake','accleration','engine','gear']
 data_folder = './data/data-linear-oscillator-a/'
