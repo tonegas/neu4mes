@@ -3,6 +3,7 @@ from Neu4mes.Neu4mes import Neu4mes
 from Neu4mes.Relation import Relation
 from Neu4mes.Input import Input
 from Neu4mes.Linear import Linear
+from Neu4mes.LinearBias import LinearBias
 from Neu4mes.LocalModel import LocalModel
 from Neu4mes.Relu import Relu
 from Neu4mes.Sum import Sum
