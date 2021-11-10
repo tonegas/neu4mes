@@ -19,10 +19,10 @@ pendolo = Neu4mes()
 theta = Input('theta')
 T     = Input('T')
 
-lin_theta = Linear(theta) # is equal to ∆theta[:,-1:] ?
+lin_theta = Linear(theta)
 
 #sin = tensorflow.keras.backend.sin(theta)
-sin_theta = LinearBias(theta.tw(1.5))
+sin_theta = LinearBias(Sin(theta.tw(2)))
 
 torque = Linear(T)
 

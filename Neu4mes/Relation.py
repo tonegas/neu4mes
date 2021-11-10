@@ -11,4 +11,4 @@ class Relation(NeuObj.NeuObj):
     
     def __add__(self, obj): 
         from Neu4mes import Sum
-        return Sum(self, obj)        
+        return Sum(self, obj)

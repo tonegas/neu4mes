@@ -10,10 +10,6 @@ class Minus(Neu4mes.Relation):
         self.json['Relations'][self.name] = {
             'Minus':[obj_name]
         }
-    
-    def createElem(self, name, input):
-        return -input
-
 
 def createMinus(self, name, input):
     return -input
