@@ -3,10 +3,12 @@ from Neu4mes.Neu4mes import Neu4mes
 from Neu4mes.Relation import Relation
 from Neu4mes.Input import Input
 from Neu4mes.Linear import Linear
+from Neu4mes.LinearBias import LinearBias
 from Neu4mes.LocalModel import LocalModel
 from Neu4mes.Relu import Relu
 from Neu4mes.Sum import Sum
 from Neu4mes.Minus import Minus
+from Neu4mes.Trigonometric import Sin, Cos, Tan
 from Neu4mes.Output import Output
 from Neu4mes.NeuObj import NeuObj, merge
 
@@ -14,7 +16,7 @@ from Neu4mes.NeuObj import NeuObj, merge
 __version__ = '0.0.1'
 
 import os, os.path
-from pprint import pp, pprint
+#from pprint import pp, pprint
 import numpy as np
 
 
