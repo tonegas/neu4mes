@@ -9,6 +9,7 @@ from tensorflow.keras import optimizers
 from tensorflow.keras import backend as K
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 import string
 
@@ -58,7 +59,7 @@ class Neu4mes:
             self.model_def = merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
             self.model_def = merge(self.model_def, model_def) 
-        #pprint(self.model_def)
+        pprint(self.model_def)
 
     def neuralizeModel(self, sample_time = 0):
         if sample_time:
@@ -103,7 +104,7 @@ class Neu4mes:
                 self.model_used['Relations'][outel]=relel        
                 #self.relations[outel]=self.outputs[outel]
 
-        pprint(self.model_used)
+        #pprint(self.model_used)
         # print([(key,val) for key,val in self.inputs_for_model.items()])
         # print([(key,val) for key,val in self.outputs.items()])
         # print([(key,val) for key,val in self.relations.items()])
@@ -239,7 +240,7 @@ class Neu4mes:
         for key,data in self.inout_data_time_window.items():
             self.inout_asarray[key]  = np.asarray(data)
 
-    def trainModel(self, validation_percentage = 0):
+    def trainModel(self, validation_percentage = 0, show_results = False):
         # Divide train and test samples
         num_of_sample = len(list(self.inout_asarray.values())[0])
         validation = round(validation_percentage*num_of_sample/100)
@@ -265,16 +266,72 @@ class Neu4mes:
         #print('Batch: ' + str(self.batch_size))
         
         # Configure model for training
-        self.opt = optimizers.Adam(learning_rate=self.learning_rate) #optimizers.Adam(learning_rate=l_rate) #optimizers.RMSprop(learning_rate=lrate, rho=0.4)
-        self.model.compile(optimizer=self.opt, loss='mean_squared_error', metrics=[rmse])
+        self.opt = optimizers.Adam(learning_rate = self.learning_rate) #optimizers.Adam(learning_rate=l_rate) #optimizers.RMSprop(learning_rate=lrate, rho=0.4)
+        self.model.compile(optimizer = self.opt, loss = 'mean_squared_error', metrics=[rmse])
 
         # Train model
         #print('[Fitting]')
         #print(len([self.inout_4train[key] for key in self.model_def['Outputs'].keys()]))
 
         self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
-                            [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
-                            epochs=self.num_of_epochs, batch_size=self.batch_size, verbose=1)
+                                  [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
+                                  epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
+
+        if show_results:
+            # Prediction on validation samples
+            #print('[Prediction]')
+            self.prediction = self.model.predict([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()]) #, callbacks=[NoiseCallback()])
+            self.prediction = np.array(self.prediction)
+            if len(self.prediction.shape) == 2:
+                self.prediction = np.expand_dims(self.prediction, axis=0)
+
+            key = list(self.model_def['Outputs'].keys())
+
+            # Rmse
+            pred_rmse = []
+            for i in range(len(key)):
+                pred_rmse.append( np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key[i]].flatten()))) )
+            pred_rmse = np.array(pred_rmse)
+
+            # Square error   
+            se = []
+            for i in range(len(key)):
+                se.append( np.square(self.prediction[i].flatten() - self.inout_4validation[key[i]].flatten()) )
+            se = np.array(se)
+            self.max_se_idxs = np.argmax(se, axis=1)
+
+            # Plot
+            self.fig, self.ax = plt.subplots(self.prediction.shape[0], 2, gridspec_kw={'width_ratios': [5, 1]})
+            if len(self.ax.shape) == 1:
+                self.ax = np.expand_dims(self.ax, axis=0)
+            #plotsamples = self.prediction.shape[1]
+            plotsamples = 200
+            for i in range(0, self.prediction.shape[0]):
+                # Data
+                self.ax[i,0].plot(self.prediction[i].flatten(), linestyle='dashed')
+                self.ax[i,0].plot(self.inout_4validation[key[i]].flatten())
+                self.ax[i,0].grid('on')
+                self.ax[i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
+                self.ax[i,0].vlines(self.max_se_idxs[i], self.prediction[i][self.max_se_idxs[i]], self.inout_4validation[key[i]][self.max_se_idxs[i]], colors='r', linestyles='dashed')
+                self.ax[i,0].legend(['predicted', 'validation'], prop={'family':'serif'})
+                self.ax[i,0].set_title(key[i], family='serif')
+                # Statitics
+                self.ax[i,1].axis("off")
+                self.ax[i,1].invert_yaxis()
+                text = "Rmse: {:3.4f}".format(pred_rmse[i])
+                self.ax[i,1].text(0, 0, text, family='serif', verticalalignment='top')
+            #plt.subplots_adjust(left=0.125, bottom=0.25) # adjust the main plot to make room for the sliders
+            #axpos = plt.axes([0.125, 0.15, 0.35, 0.02], facecolor='lightgoldenrodyellow')
+            #self.spos = Slider(ax=axpos, label='', valmin=self.max_se_idxs[i]-plotsamples/10, valmax=self.max_se_idxs[i]+plotsamples/10, valinit=self.max_se_idxs[i], valstep=1)
+            self.fig.tight_layout()
+            plt.show()
+       
+    #def __updateSlider(val, i):
+    #    pos = self.spos.val
+    #    plotsamples = self.prediction.shape[1]
+    #    for i in range(self.prediction.shape[0]):
+    #        self.ax[i].axis([pos-plotsamples/10,pos+plotsamples/10,1])
+    #    self.fig.canvas.draw_idle()
 
     def controlDefinition(control):
         pass
@@ -285,7 +342,7 @@ class Neu4mes:
     def trainControl(data):
         pass
 
-    def exportModel(parmas):
+    def exportModel(params):
         pass
 
     def exportControl(params):

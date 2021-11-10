@@ -19,16 +19,18 @@ pendolo = Neu4mes()
 theta = Input('theta')
 T     = Input('T')
 
-lin_theta = Linear(theta)
+lin_theta = Linear(theta.tw(1.5))
 
 #sin = tensorflow.keras.backend.sin(theta)
-sin_theta = LinearBias(Sin(theta.tw(2)))
+sin_theta = LinearBias(Sin(theta.tw(1.5)))
 
 torque = Linear(T)
 
 new_theta = Output(theta.z(-1), lin_theta+sin_theta+torque)
+new_theta2 = Output(T.z(-1), lin_theta+sin_theta+torque)
 
 pendolo.addModel(new_theta)
+#pendolo.addModel(new_theta2)
 
 pendolo.neuralizeModel(0.05)
 
@@ -36,7 +38,7 @@ data_struct = ['time','theta','theta_s','cos_theta','sin_theta','T']
 data_folder = './data/data-pendulum-b/'
 pendolo.loadData(data_struct, folder = data_folder)
 
-pendolo.trainModel(validation_percentage = 30)
+pendolo.trainModel(validation_percentage = 30, show_results = True)
 
 #mymodel.addModel(model_def)
 #mymodel.neuralizeModel()
