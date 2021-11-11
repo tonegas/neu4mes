@@ -45,7 +45,7 @@ def createPart(Neu4mes, name, input, size):
     if Neu4mes.input_n_samples[name] != size:
         crop_value = Neu4mes.input_n_samples[name]-size
         return tensorflow.keras.layers.Reshape((size,))(
-            tensorflow.keras.layers.Cropping1D(cropping=(0, crop_value))(
+            tensorflow.keras.layers.Cropping1D(cropping=(crop_value, 0))(
                 tensorflow.keras.layers.Reshape((Neu4mes.input_n_samples[name],-1))(input)))
     else:
         return input
