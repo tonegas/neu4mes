@@ -301,28 +301,34 @@ class Neu4mes:
             self.max_se_idxs = np.argmax(se, axis=1)
 
             # Plot
-            self.fig, self.ax = plt.subplots(self.prediction.shape[0], 2, gridspec_kw={'width_ratios': [5, 1]})
+            self.fig, self.ax = plt.subplots(2*self.prediction.shape[0], 2,
+                                             gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*self.prediction.shape[0]})
             if len(self.ax.shape) == 1:
                 self.ax = np.expand_dims(self.ax, axis=0)
             #plotsamples = self.prediction.shape[1]
             plotsamples = 200
             for i in range(0, self.prediction.shape[0]):
-                # Data
-                self.ax[i,0].plot(self.prediction[i].flatten(), linestyle='dashed')
-                self.ax[i,0].plot(self.inout_4validation[key[i]].flatten())
-                self.ax[i,0].grid('on')
-                self.ax[i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
-                self.ax[i,0].vlines(self.max_se_idxs[i], self.prediction[i][self.max_se_idxs[i]], self.inout_4validation[key[i]][self.max_se_idxs[i]], colors='r', linestyles='dashed')
-                self.ax[i,0].legend(['predicted', 'validation'], prop={'family':'serif'})
-                self.ax[i,0].set_title(key[i], family='serif')
+                # Zoomed validation data
+                self.ax[2*i,0].plot(self.prediction[i].flatten(), linestyle='dashed')
+                self.ax[2*i,0].plot(self.inout_4validation[key[i]].flatten())
+                self.ax[2*i,0].grid('on')
+                self.ax[2*i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
+                self.ax[2*i,0].vlines(self.max_se_idxs[i], self.prediction[i][self.max_se_idxs[i]], self.inout_4validation[key[i]][self.max_se_idxs[i]], colors='r', linestyles='dashed')
+                self.ax[2*i,0].legend(['predicted', 'validation'], prop={'family':'serif'})
+                self.ax[2*i,0].set_title(key[i], family='serif')
                 # Statitics
-                self.ax[i,1].axis("off")
-                self.ax[i,1].invert_yaxis()
+                self.ax[2*i,1].axis("off")
+                self.ax[2*i,1].invert_yaxis()
                 text = "Rmse: {:3.4f}".format(pred_rmse[i])
-                self.ax[i,1].text(0, 0, text, family='serif', verticalalignment='top')
-            #plt.subplots_adjust(left=0.125, bottom=0.25) # adjust the main plot to make room for the sliders
-            #axpos = plt.axes([0.125, 0.15, 0.35, 0.02], facecolor='lightgoldenrodyellow')
-            #self.spos = Slider(ax=axpos, label='', valmin=self.max_se_idxs[i]-plotsamples/10, valmax=self.max_se_idxs[i]+plotsamples/10, valinit=self.max_se_idxs[i], valstep=1)
+                self.ax[2*i,1].text(0, 0, text, family='serif', verticalalignment='top')
+                # Validation data
+                self.ax[2*i+1,0].plot(self.prediction[i].flatten(), linestyle='dashed')
+                self.ax[2*i+1,0].plot(self.inout_4validation[key[i]].flatten())
+                self.ax[2*i+1,0].grid('on')
+                self.ax[2*i+1,0].legend(['predicted', 'validation'], prop={'family':'serif'})
+                self.ax[2*i+1,0].set_title(key[i], family='serif')
+                # Empty
+                self.ax[2*i+1,1].axis("off")
             self.fig.tight_layout()
             plt.show()
        
