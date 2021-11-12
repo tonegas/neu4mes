@@ -257,10 +257,10 @@ class Neu4mes:
         for key,data in self.inout_asarray.items():
             if len(data.shape) == 1:
                 self.inout_4train[key] = data[0:train]
-                self.inout_4validation[key]  = data[train:train+validation]
+                self.inout_4validation[key] = data[train:train+validation]
             else:
                 self.inout_4train[key] = data[0:train,:]
-                self.inout_4validation[key]  = data[train:train+validation,:]                
+                self.inout_4validation[key] = data[train:train+validation,:]                
 
         #print('Samples: ' + str(train+validation) + '/' + str(num_of_sample) + ' (' + str(train) + ' train + ' + str(validation) + ' validation)')
         #print('Batch: ' + str(self.batch_size))
@@ -286,7 +286,7 @@ class Neu4mes:
         if show_results:
             # Prediction on validation samples
             #print('[Prediction]')
-            self.prediction = self.model.predict([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()]) #, callbacks=[NoiseCallback()])
+            self.prediction = self.model([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()], training=False) #, callbacks=[NoiseCallback()])
             self.prediction = np.array(self.prediction)
             if len(self.prediction.shape) == 2:
                 self.prediction = np.expand_dims(self.prediction, axis=0)
