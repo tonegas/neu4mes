@@ -277,6 +277,12 @@ class Neu4mes:
                                   [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
                                   epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
 
+        rmse_generator = (rmse_i for i, rmse_i in enumerate(self.fit.history) if i in range(len(self.fit.history)-len(self.model.outputs), len(self.fit.history)))
+        rmse_train = []
+        for rmse_i in rmse_generator:
+            rmse_train.append(self.fit.history[rmse_i][-1])
+        rmse_train = np.array(rmse_train)
+
         if show_results:
             # Prediction on validation samples
             #print('[Prediction]')
@@ -288,10 +294,10 @@ class Neu4mes:
             key = list(self.model_def['Outputs'].keys())
 
             # Rmse
-            pred_rmse = []
+            rmse_valid = []
             for i in range(len(key)):
-                pred_rmse.append( np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key[i]].flatten()))) )
-            pred_rmse = np.array(pred_rmse)
+                rmse_valid.append( np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key[i]].flatten()))) )
+            rmse_valid = np.array(rmse_valid)
 
             # Square error   
             se = []
@@ -319,7 +325,7 @@ class Neu4mes:
                 # Statitics
                 self.ax[2*i,1].axis("off")
                 self.ax[2*i,1].invert_yaxis()
-                text = "Rmse: {:3.4f}".format(pred_rmse[i])
+                text = "Rmse training: {:3.6f}\nRmse validation: {:3.6f}".format(rmse_train[i], rmse_valid[i])
                 self.ax[2*i,1].text(0, 0, text, family='serif', verticalalignment='top')
                 # Validation data
                 self.ax[2*i+1,0].plot(self.prediction[i].flatten(), linestyle='dashed')

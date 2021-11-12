@@ -14,7 +14,7 @@ pendolo.addModel(theta_z)
 
 pendolo.neuralizeModel(0.05)
 
-data_struct = ['time','theta','theta_s','cos_theta','sin_theta','torque']
+data_struct = ['time','theta','theta_s','','','torque']
 data_folder = './data/data-pendulum-b/'
 pendolo.loadData(data_struct, folder = data_folder)
 
