@@ -5,6 +5,7 @@ from Neu4mes.NeuObj import NeuObj, merge
 from pprint import pprint 
 import tensorflow.keras.layers
 import tensorflow.keras.models
+import tensorflow as tf
 from tensorflow.keras import optimizers
 from tensorflow.keras import backend as K
 import os
@@ -12,6 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import string
+
+
 
 import random
 def rand(length):
@@ -22,6 +25,35 @@ def rand(length):
 def rmse(y_true, y_pred):
     # Root mean squared error (rmse) for regression
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
+
+class RNNCell(tensorflow.keras.layers.Layer):
+    def __init__(self, model, inputs_size, controls_size, disturbances_size = None, **kwargs):
+        super(RNNCell, self).__init__(**kwargs)
+        self.model = model
+        self.inputs_size = inputs_size
+        self.controls_size = controls_size
+        self.disturbances_size = disturbances_size 
+        self.state_size = inputs_size
+
+    def call(self, inputs, states):
+
+        #[val for key,val in self.inputs_for_model.items()]
+        # print('-------------------------------------')
+        # print(states)
+        # print(inputs)
+        # print('-------------------------------------')
+        inputs=inputs[0]
+        #if type(states) is tuple: #if rnn
+        #    states = states[0]
+        #Controllare l'ordine degli input
+        output = self.model([inputs,states[0],states[1]])
+
+        #TODO devo ciclare su le dimensioni dei vari stati self.state_size[key]
+        #new_states = tf.concat([states[:,1:self.state_size[0]], output], axis=1) 
+        return output, (states)
+
+    def get_config(self):
+        pass
 
 class Neu4mes:
     def __init__(self, model_def = 0):
@@ -53,13 +85,19 @@ class Neu4mes:
         self.inout_4validation = {}
         self.learning_rate = 0.001
         self.num_of_epochs = 200
+        #rnn
+        self.rnn_model = None
+        self.rnn_window = 10
+        self.inputs_for_rnn_model = {}
+        self.rnn_inputs = {}
+        self.init_rnn_state = {}
 
     def addModel(self, model_def):
         if type(model_def) is Output:
             self.model_def = merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
             self.model_def = merge(self.model_def, model_def) 
-        pprint(self.model_def)
+        #pprint(self.model_def)
 
     def neuralizeModel(self, sample_time = 0):
         if sample_time:
@@ -88,6 +126,8 @@ class Neu4mes:
                     (self.inputs_for_model[key],self.inputs[key]) = self.discreteInput(key, self.input_n_samples[key], val['Discrete'])
                 else: 
                     (self.inputs_for_model[key],self.inputs[key]) = self.input(key, self.input_n_samples[key])
+                    (self.inputs_for_rnn_model[key],self.rnn_inputs[key]) = self.inputRNN(key, self.rnn_window, self.input_n_samples[key])
+
                 self.model_used['Inputs'][key]=val
 
         for outel in self.model_def['Outputs']:
@@ -110,6 +150,7 @@ class Neu4mes:
         # print([(key,val) for key,val in self.relations.items()])
         self.model = tensorflow.keras.models.Model(inputs = [val for key,val in self.inputs_for_model.items()], outputs=[val for key,val in self.outputs.items()])
         print(self.model.summary())
+    
 
     def setInput(self, relvalue, outel):
         for el in relvalue:
@@ -240,7 +281,7 @@ class Neu4mes:
         for key,data in self.inout_data_time_window.items():
             self.inout_asarray[key]  = np.asarray(data)
 
-    def trainModel(self, validation_percentage = 0, show_results = False):
+    def trainModel(self, validation_percentage = 0, states = None, show_results = False):
         # Divide train and test samples
         num_of_sample = len(list(self.inout_asarray.values())[0])
         validation = round(validation_percentage*num_of_sample/100)
@@ -273,9 +314,31 @@ class Neu4mes:
         #print('[Fitting]')
         #print(len([self.inout_4train[key] for key in self.model_def['Outputs'].keys()]))
 
-        self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
-                                  [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
-                                  epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
+        # self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
+        #                           [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
+        #                           epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
+        
+        if states is not None:
+            state_keys = [key.signal_name for key in states if type(key) is Output]
+            inputs_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key in state_keys]
+            controls_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
+            rnn_cell = RNNCell(self.model, inputs_size, controls_size)
+            print(state_keys)
+            print(inputs_size)
+            print(controls_size)
+
+            for key in state_keys:
+                self.init_rnn_state[key] = tensorflow.keras.layers.Lambda(lambda x: x[:,0,:], name=key+'_init_state')(self.rnn_inputs[key])
+            print(self.init_rnn_state)
+
+            initial_state_rnn = [self.init_rnn_state[key] for key in state_keys]
+            print(initial_state_rnn)
+            controls = [self.rnn_inputs[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
+            print(controls)
+            out_x_rnn = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(controls), initial_state=initial_state_rnn)
+            print(out_x_rnn)
+            self.rnn_model = tensorflow.keras.models.Model(inputs=[val for key,val in self.inputs_for_rnn_model.items()], outputs=[out_x_rnn])
+            print(self.rnn_model.summary())
 
         if show_results:
             # Prediction on validation samples

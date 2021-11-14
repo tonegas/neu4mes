@@ -6,8 +6,10 @@ class Output(NeuObj.NeuObj):
         super().__init__(relation.json)
         if type(obj) is tuple:
             self.name = obj[0].name+obj[1]
+            self.signal_name = obj[0].name
         elif type(obj) is Neu4mes.Input:
             self.name = obj.name
+            self.signal_name = obj[0].name
         self.json['Outputs'][self.name] = {}
         # print(self.json)
         if relation.name in self.json['Relations']:

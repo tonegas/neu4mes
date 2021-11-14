@@ -1,5 +1,6 @@
 import Neu4mes
 import tensorflow.keras.layers
+import tensorflow.keras.backend as K
 
 #Linear_json
 # 'Relations':{
@@ -19,6 +20,7 @@ class Linear(Neu4mes.Relation):
                 linear_relation_name:[(obj[0].name,obj[1])],
             }
         elif (type(obj) is Neu4mes.Input or
+              issubclass(type(obj),Neu4mes.Input) or
               type(obj) is Neu4mes.Relation or
               issubclass(type(obj), Neu4mes.Relation)):
             super().__init__(obj.json)
