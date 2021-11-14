@@ -244,26 +244,23 @@ class Neu4mes:
         # Divide train and test samples
         num_of_sample = len(list(self.inout_asarray.values())[0])
         validation = round(validation_percentage*num_of_sample/100)
-        train  = num_of_sample-validation
+        training  = num_of_sample-validation
 
-        if train < self.batch_size or validation < self.batch_size:
+        if training < self.batch_size or validation < self.batch_size:
             batch = 1
         else:
             # Samples must be multiplier of batch
-            train = int(train/self.batch_size) * self.batch_size
-            validation  = num_of_sample-train
+            training = int(training/self.batch_size) * self.batch_size
+            validation  = num_of_sample-training
             validation = int(validation/self.batch_size) * self.batch_size
 
         for key,data in self.inout_asarray.items():
             if len(data.shape) == 1:
-                self.inout_4train[key] = data[0:train]
-                self.inout_4validation[key]  = data[train:train+validation]
+                self.inout_4train[key] = data[0:training]
+                self.inout_4validation[key] = data[training:training+validation]
             else:
-                self.inout_4train[key] = data[0:train,:]
-                self.inout_4validation[key]  = data[train:train+validation,:]                
-
-        #print('Samples: ' + str(train+validation) + '/' + str(num_of_sample) + ' (' + str(train) + ' train + ' + str(validation) + ' validation)')
-        #print('Batch: ' + str(self.batch_size))
+                self.inout_4train[key] = data[0:training,:]
+                self.inout_4validation[key] = data[training:training+validation,:]                
         
         # Configure model for training
         self.opt = optimizers.Adam(learning_rate = self.learning_rate) #optimizers.Adam(learning_rate=l_rate) #optimizers.RMSprop(learning_rate=lrate, rho=0.4)
@@ -277,29 +274,41 @@ class Neu4mes:
                                   [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
                                   epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
 
+        # Rmse training
+        rmse_generator = (rmse_i for i, rmse_i in enumerate(self.fit.history) if i in range(len(self.fit.history)-len(self.model.outputs), len(self.fit.history)))
+        rmse_train = []
+        for rmse_i in rmse_generator:
+            rmse_train.append(self.fit.history[rmse_i][-1])
+        rmse_train = np.array(rmse_train)
+
+        # Prediction on validation samples
+        #print('[Prediction]')
+        self.prediction = self.model([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()], training=False) #, callbacks=[NoiseCallback()])
+        self.prediction = np.array(self.prediction)
+        if len(self.prediction.shape) == 2:
+            self.prediction = np.expand_dims(self.prediction, axis=0)
+
+        key_out = list(self.model_def['Outputs'].keys())
+
+        se         = np.empty([len(key_out),validation])
+        mse        = np.empty([len(key_out),])
+        rmse_valid = np.empty([len(key_out),])
+        fvu        = np.empty([len(key_out),])
+        for i in range(len(key_out)):
+            # Square error validation
+            se[i] = np.square(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten())
+            # Mean square error validation
+            mse[i] = np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten()))
+            # Rmse validation
+            rmse_valid[i] = np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten())))
+            # Fraction of variance unexplained (FVU) validation
+            fvu[i] = np.var(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten()) / np.var(self.inout_4validation[key_out[i]].flatten())
+        self.max_se_idxs = np.argmax(se, axis=1)        
+
+        # Akaike’s Information Criterion (AIC) validation
+        aic = validation * np.log(mse) + 2 * self.model.count_params()
+
         if show_results:
-            # Prediction on validation samples
-            #print('[Prediction]')
-            self.prediction = self.model.predict([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()]) #, callbacks=[NoiseCallback()])
-            self.prediction = np.array(self.prediction)
-            if len(self.prediction.shape) == 2:
-                self.prediction = np.expand_dims(self.prediction, axis=0)
-
-            key = list(self.model_def['Outputs'].keys())
-
-            # Rmse
-            pred_rmse = []
-            for i in range(len(key)):
-                pred_rmse.append( np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key[i]].flatten()))) )
-            pred_rmse = np.array(pred_rmse)
-
-            # Square error   
-            se = []
-            for i in range(len(key)):
-                se.append( np.square(self.prediction[i].flatten() - self.inout_4validation[key[i]].flatten()) )
-            se = np.array(se)
-            self.max_se_idxs = np.argmax(se, axis=1)
-
             # Plot
             self.fig, self.ax = plt.subplots(2*self.prediction.shape[0], 2,
                                              gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*self.prediction.shape[0]})
@@ -310,23 +319,24 @@ class Neu4mes:
             for i in range(0, self.prediction.shape[0]):
                 # Zoomed validation data
                 self.ax[2*i,0].plot(self.prediction[i].flatten(), linestyle='dashed')
-                self.ax[2*i,0].plot(self.inout_4validation[key[i]].flatten())
+                self.ax[2*i,0].plot(self.inout_4validation[key_out[i]].flatten())
                 self.ax[2*i,0].grid('on')
                 self.ax[2*i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
-                self.ax[2*i,0].vlines(self.max_se_idxs[i], self.prediction[i][self.max_se_idxs[i]], self.inout_4validation[key[i]][self.max_se_idxs[i]], colors='r', linestyles='dashed')
+                self.ax[2*i,0].vlines(self.max_se_idxs[i], self.prediction[i][self.max_se_idxs[i]], self.inout_4validation[key_out[i]][self.max_se_idxs[i]],
+                                      colors='r', linestyles='dashed')
                 self.ax[2*i,0].legend(['predicted', 'validation'], prop={'family':'serif'})
-                self.ax[2*i,0].set_title(key[i], family='serif')
+                self.ax[2*i,0].set_title(key_out[i], family='serif')
                 # Statitics
                 self.ax[2*i,1].axis("off")
                 self.ax[2*i,1].invert_yaxis()
-                text = "Rmse: {:3.4f}".format(pred_rmse[i])
+                text = "Rmse training: {:3.6f}\nRmse validation: {:3.6f}\nAIC: {:3.6f}\nFVU: {:3.6f}".format(rmse_train[i], rmse_valid[i], aic[i], fvu[i])
                 self.ax[2*i,1].text(0, 0, text, family='serif', verticalalignment='top')
                 # Validation data
                 self.ax[2*i+1,0].plot(self.prediction[i].flatten(), linestyle='dashed')
-                self.ax[2*i+1,0].plot(self.inout_4validation[key[i]].flatten())
+                self.ax[2*i+1,0].plot(self.inout_4validation[key_out[i]].flatten())
                 self.ax[2*i+1,0].grid('on')
                 self.ax[2*i+1,0].legend(['predicted', 'validation'], prop={'family':'serif'})
-                self.ax[2*i+1,0].set_title(key[i], family='serif')
+                self.ax[2*i+1,0].set_title(key_out[i], family='serif')
                 # Empty
                 self.ax[2*i+1,1].axis("off")
             self.fig.tight_layout()
