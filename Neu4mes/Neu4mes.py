@@ -27,13 +27,11 @@ def rmse(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true)))
 
 class RNNCell(tensorflow.keras.layers.Layer):
-    def __init__(self, model, inputs_size, controls_size, disturbances_size = None, **kwargs):
+    def __init__(self, model, states_size, inputs_size, **kwargs):
         super(RNNCell, self).__init__(**kwargs)
         self.model = model
         self.inputs_size = inputs_size
-        self.controls_size = controls_size
-        self.disturbances_size = disturbances_size 
-        self.state_size = inputs_size
+        self.state_size = states_size
 
     def call(self, inputs, states):
 
@@ -320,12 +318,13 @@ class Neu4mes:
         
         if states is not None:
             state_keys = [key.signal_name for key in states if type(key) is Output]
-            inputs_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key in state_keys]
-            controls_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
-            rnn_cell = RNNCell(self.model, inputs_size, controls_size)
+            states_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key in state_keys]
+            inputs_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
+            rnn_cell = RNNCell(self.model, states_size, inputs_size)
+            print(self.inputs_for_rnn_model)
             print(state_keys)
+            print(states_size)
             print(inputs_size)
-            print(controls_size)
 
             for key in state_keys:
                 self.init_rnn_state[key] = tensorflow.keras.layers.Lambda(lambda x: x[:,0,:], name=key+'_init_state')(self.rnn_inputs[key])
@@ -333,9 +332,9 @@ class Neu4mes:
 
             initial_state_rnn = [self.init_rnn_state[key] for key in state_keys]
             print(initial_state_rnn)
-            controls = [self.rnn_inputs[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
-            print(controls)
-            out_x_rnn = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(controls), initial_state=initial_state_rnn)
+            inputs = [self.rnn_inputs[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
+            print(inputs)
+            out_x_rnn = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(inputs), initial_state=initial_state_rnn)
             print(out_x_rnn)
             self.rnn_model = tensorflow.keras.models.Model(inputs=[val for key,val in self.inputs_for_rnn_model.items()], outputs=[out_x_rnn])
             print(self.rnn_model.summary())
