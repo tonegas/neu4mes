@@ -81,6 +81,8 @@ class Neu4mes:
             self.model_def = NeuObj().json
 
         self.elem = 0
+        self.idx_of_rows = [0]
+        self.output_keys = []
         self.input_time_window = {}
         self.input_n_samples = {}
         self.max_n_samples = 0
@@ -306,17 +308,17 @@ class Neu4mes:
                                 inout_rnn.append(self.input_data[(file,key)][j+self.max_n_samples-self.input_n_samples[key]:j+self.max_n_samples])
                         self.inout_rnn_data_time_window[key].append(inout_rnn)
 
-                for key in self.output_relation.keys():
-                    used_key = key
+                for idx,key in enumerate(self.output_relation.keys()):
+                    self.output_keys.append(key)
                     elem_key = key.split('__')
                     if len(elem_key) > 1 and elem_key[1]== '-z1':
-                        used_key = elem_key[0]
+                        self.output_keys[idx] = elem_key[0]
                     else:
                         raise("Operation not implemeted yet!")
-                    for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples-self.rnn_window):
+                    for i in range(0, len(self.input_data[(file,self.output_keys[idx])])-self.max_n_samples-self.rnn_window):
                         inout_rnn = []
                         for j in range(i, i+self.rnn_window):
-                            inout_rnn.append(self.input_data[(file,used_key)][j+self.max_n_samples])
+                            inout_rnn.append(self.input_data[(file,self.output_keys[idx])][j+self.max_n_samples])
                         self.inout_rnn_data_time_window[key].append(inout_rnn)
 
             if 'time' in format:
@@ -337,6 +339,8 @@ class Neu4mes:
                     used_key = elem_key[0]
                 for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples):
                     self.inout_data_time_window[key].append(self.input_data[(file,used_key)][i+self.max_n_samples])
+
+            self.idx_of_rows.append(len(self.inout_data_time_window['time']))
 
         if self.rnn_window:
             for key,data in self.inout_rnn_data_time_window.items():
@@ -401,30 +405,91 @@ class Neu4mes:
         self.fit = self.rnn_model.fit([self.inout_rnn_4train[key] for key in self.model_def['Inputs'].keys()],
                                         [self.inout_rnn_4train[key] for key in self.model_def['Outputs'].keys()],
                                         epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
-                                        
+
+        #print(self.model.get_weights())             
+        #print(self.rnn_model.get_weights())  
+        # first_idx_validation = next(x[0] for x in enumerate(self.idx_of_rows) if x[1] > self.train_idx)
+        # print(self.idx_of_rows)
+        # if show_results:
+        #     print('[Prediction]')
+        #     self.output_rnn = []
+        #     for i in range(first_idx_validation,first_idx_validation+1):# len(self.idx_of_rows)-1):
+        #         print(self.idx_of_rows[i]-self.train_idx)
+        #         input = [np.expand_dims(self.inout_4validation[key][self.idx_of_rows[i]-self.train_idx],axis = 0) for key in self.model_def['Inputs'].keys()]
+        #         for t in range(self.idx_of_rows[i]+1-self.train_idx,self.idx_of_rows[i+1]-self.train_idx): 
+        #             self.rnn_prediction = np.array(self.model(input)) #, callbacks=[NoiseCallback()])
+        #             if len(self.rnn_prediction.shape) == 2:
+        #                 self.rnn_prediction = np.expand_dims(self.rnn_prediction, axis=0)
+
+        #             for idx, key in enumerate(self.model_def['Inputs'].keys()):
+        #                 if key in state_keys:
+        #                     idx_out = self.output_keys.index(key)
+        #                     input[idx] = np.append(input[idx][:,1:],self.rnn_prediction[idx_out], axis = 1)
+        #                     print('------------------------------')
+        #                     print(self.rnn_prediction[idx_out])
+        #                     print(input[idx])
+        #                     print('------------------------------')    
+        #                 else:
+        #                     input[idx] = np.expand_dims(self.inout_4validation[key][t], axis = 0)                
                     
+        #             self.output_rnn.append(self.rnn_prediction)
+
+
+        #     key = list(self.model_def['Outputs'].keys())
+
+        #     # Plot
+        #     self.fig, self.ax = plt.subplots(2*len(key), 2, gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*len(key)})
+        #     if len(self.ax.shape) == 1:
+        #         self.ax = np.expand_dims(self.ax, axis=0)
+        #     #plotsamples = self.prediction.shape[1]
+        #     plotsamples = 200
+        #     for i in range(0, len(key)):
+        #         # Zoomed validation data
+        #         self.ax[2*i,0].plot(self.output_rnn[i].flatten(), linestyle='dashed')
+        #         self.ax[2*i,0].plot(self.inout_4validation[key[i]].flatten())
+        #         self.ax[2*i,0].grid('on')
+        #         # self.ax[2*i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
+        #         # self.ax[2*i,0].vlines(self.max_se_idxs[i], self.output_rnn[i][self.max_se_idxs[i]], self.inout_4validation[key[i]][self.max_se_idxs[i]], colors='r', linestyles='dashed')
+        #         self.ax[2*i,0].legend(['predicted', 'validation'], prop={'family':'serif'})
+        #         self.ax[2*i,0].set_title(key[i], family='serif')
+        #         # Statitics
+        #         self.ax[2*i,1].axis("off")
+        #         self.ax[2*i,1].invert_yaxis()
+        #         # text = "Rmse: {:3.4f}".format(pred_rmse[i])
+        #         # self.ax[2*i,1].text(0, 0, text, family='serif', verticalalignment='top')
+        #         # Validation data
+        #         self.ax[2*i+1,0].plot(self.output_rnn[i].flatten(), linestyle='dashed')
+        #         self.ax[2*i+1,0].plot(self.inout_4validation[key[i]].flatten())
+        #         self.ax[2*i+1,0].grid('on')
+        #         self.ax[2*i+1,0].legend(['predicted', 'validation'], prop={'family':'serif'})
+        #         self.ax[2*i+1,0].set_title(key[i], family='serif')
+        #         # Empty
+        #         self.ax[2*i+1,1].axis("off")
+        #     self.fig.tight_layout()
+        #     plt.show()
+
 
     def trainModel(self, states = None, validation_percentage = 0, show_results = False):
         # Divide train and test samples
         num_of_sample = len(list(self.inout_asarray.values())[0])
         validation = round(validation_percentage*num_of_sample/100)
-        train  = num_of_sample-validation
+        self.train_idx  = num_of_sample-validation
 
-        if train < self.batch_size or validation < self.batch_size:
+        if self.train_idx < self.batch_size or validation < self.batch_size:
             batch = 1
         else:
             # Samples must be multiplier of batch
-            train = int(train/self.batch_size) * self.batch_size
+            train = int(self.train_idx/self.batch_size) * self.batch_size
             validation  = num_of_sample-train
             validation = int(validation/self.batch_size) * self.batch_size
 
         for key,data in self.inout_asarray.items():
             if len(data.shape) == 1:
-                self.inout_4train[key] = data[0:train]
-                self.inout_4validation[key]  = data[train:train+validation]
+                self.inout_4train[key] = data[0:self.train_idx]
+                self.inout_4validation[key]  = data[self.train_idx:self.train_idx+validation]
             else:
-                self.inout_4train[key] = data[0:train,:]
-                self.inout_4validation[key]  = data[train:train+validation,:]                
+                self.inout_4train[key] = data[0:self.train_idx,:]
+                self.inout_4validation[key]  = data[self.train_idx:self.train_idx+validation,:]                
 
         #print('Samples: ' + str(train+validation) + '/' + str(num_of_sample) + ' (' + str(train) + ' train + ' + str(validation) + ' validation)')
         #print('Batch: ' + str(self.batch_size))
@@ -438,16 +503,19 @@ class Neu4mes:
         #print('[Fitting]')
         #print(len([self.inout_4train[key] for key in self.model_def['Outputs'].keys()]))
 
-        self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
-                                  [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
-                                  epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
+        # self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
+        #                           [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
+        #                           epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
         
         self.net_weights = self.model.get_weights()
+
+        if states is not None:
+            self.trainRecurrentModel(states, validation_percentage, show_results)
 
         if show_results:
             # Prediction on validation samples
             #print('[Prediction]')
-            self.prediction = self.model.predict([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()]) #, callbacks=[NoiseCallback()])
+            self.prediction = self.model([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()]) #, callbacks=[NoiseCallback()])
             self.prediction = np.array(self.prediction)
             if len(self.prediction.shape) == 2:
                 self.prediction = np.expand_dims(self.prediction, axis=0)
@@ -498,9 +566,6 @@ class Neu4mes:
                 self.ax[2*i+1,1].axis("off")
             self.fig.tight_layout()
             plt.show()
-
-        if states is not None:
-            self.trainRecurrentModel(validation_percentage, show_results)
        
     #def __updateSlider(val, i):
     #    pos = self.spos.val
