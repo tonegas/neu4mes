@@ -266,7 +266,7 @@ class Neu4mes:
             
             return relation(name+str(self.elem), inputs)
 
-    def loadData(self, format, folder = './data', skiplines = 0):
+    def loadData(self, format, folder = './data', skiplines = 0, delimiters=['\t',';']):
         path, dirs, files = next(os.walk(folder))
         file_count = len(files)
 
@@ -294,9 +294,13 @@ class Neu4mes:
             lines = all_lines.readlines()[skiplines:] # skip first lines to avoid NaNs
 
             for line in range(0, len(lines)):
-                splitline = lines[line].rstrip("\n").split(";")
+                delimiter_string = '|'.join(delimiters)
+                splitline = re.split(delimiter_string,lines[line].rstrip("\n"))
                 for idx, key in enumerate(format):
-                    self.input_data[(file,key)].append(float(splitline[idx]))     
+                    try:
+                        self.input_data[(file,key)].append(float(splitline[idx]))
+                    except ValueError:
+                        self.input_data[(file,key)].append(splitline[idx])  
 
             if self.rnn_window:
                 if 'time' in format:
