@@ -1,4 +1,4 @@
-from Neu4mes import *
+from neu4mes import *
 
 mymodel = Neu4mes()
 model_def = {

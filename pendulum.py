@@ -1,4 +1,4 @@
-from Neu4mes import *
+from neu4mes.neu4mes import *
 
 pendolo = Neu4mes()
 

@@ -1,14 +1,14 @@
-import Neu4mes
+import neu4mes
 import tensorflow.keras.layers
 
 
 sum_relation_name = 'Sum'
 
-class Sum(Neu4mes.Relation):
+class Sum(neu4mes.Relation):
     def __init__(self, obj1, obj2):
         super().__init__(obj1.json)
-        self.json = Neu4mes.merge(obj1.json,obj2.json)
-        self.name = obj1.name+'_sum'+str(Neu4mes.NeuObj.count)
+        self.json = neu4mes.merge(obj1.json,obj2.json)
+        self.name = obj1.name+'_sum'+str(neu4mes.NeuObj.count)
         self.json['Relations'][self.name] = {sum_relation_name:[]}
         if type(obj1) is Sum:
             for el in self.json['Relations'][obj1.name]['Sum']:
@@ -26,4 +26,4 @@ class Sum(Neu4mes.Relation):
 def createSum(self, name, input):
     return tensorflow.keras.layers.Add(name = name)(input)
 
-setattr(Neu4mes.Neu4mes, sum_relation_name, createSum)
+setattr(neu4mes.Neu4mes, sum_relation_name, createSum)

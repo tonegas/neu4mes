@@ -1,9 +1,9 @@
-import Neu4mes
+import neu4mes
 import tensorflow.keras.layers
 import tensorflow as tf
 import numpy as np
 
-class Input(Neu4mes.NeuObj.NeuObj):
+class Input(neu4mes.relation.NeuObj):
     def __init__(self,name,values = None):
         super().__init__()
         self.name = name
@@ -58,7 +58,7 @@ def createPart(Neu4mes, name, input, size):
     else:
         return input
 
-setattr(Neu4mes.Neu4mes, 'discreteInput', createDiscreteInput)
-setattr(Neu4mes.Neu4mes, 'input', createInput)
-setattr(Neu4mes.Neu4mes, 'inputRNN', createInputRNN)
-setattr(Neu4mes.Neu4mes, 'part', createPart)
+setattr(neu4mes.Neu4mes, 'discreteInput', createDiscreteInput)
+setattr(neu4mes.Neu4mes, 'input', createInput)
+setattr(neu4mes.Neu4mes, 'inputRNN', createInputRNN)
+setattr(neu4mes.Neu4mes, 'part', createPart)

@@ -1,6 +1,6 @@
-import Neu4mes
+import neu4mes
 
-class Minus(Neu4mes.Relation):
+class Minus(neu4mes.Relation):
     def __init__(self, obj = None):
         if obj is None:
             return
@@ -14,4 +14,4 @@ class Minus(Neu4mes.Relation):
 def createMinus(self, name, input):
     return -input
 
-setattr(Neu4mes.Neu4mes, 'Minus', createMinus)
+setattr(neu4mes.Neu4mes, 'Minus', createMinus)

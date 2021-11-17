@@ -1,6 +1,5 @@
-import Neu4mes 
-from Neu4mes.Output import Output
-from Neu4mes.NeuObj import NeuObj, merge
+from neu4mes.output import Output
+from neu4mes.relation import NeuObj, merge
 
 from pprint import pprint 
 import tensorflow.keras.layers
@@ -8,6 +7,7 @@ import tensorflow.keras.models
 import tensorflow as tf
 from tensorflow.keras import optimizers
 from tensorflow.keras import backend as K
+import re
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -125,7 +125,7 @@ class Neu4mes:
 
     def neuralizeModel(self, sample_time = 0, prediction_window = None):
         if prediction_window is not None:
-            self.rnn_window = prediction_window
+            self.rnn_window = round(prediction_window/sample_time)
 
         if sample_time:
             self.model_def["SampleTime"] = sample_time

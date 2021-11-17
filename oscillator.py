@@ -1,4 +1,4 @@
-from Neu4mes import *
+from neu4mes import *
 
 massamollasmorzatore = Neu4mes()
 
@@ -14,4 +14,4 @@ data_struct = ['time','x','x_s','force']
 data_folder = './structured_nn-code/data/oscillator-linear/data/'
 massamollasmorzatore.loadData(data_struct, folder = data_folder)
 
-massamollasmorzatore.trainModel(validation_percentage = 30, states = [x_z], show_results = True)
+massamollasmorzatore.trainModel( states = [x_z], validation_percentage = 30, show_results = True)
