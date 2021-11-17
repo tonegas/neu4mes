@@ -15,17 +15,15 @@ else:
 
 from neu4mes.neu4mes import Neu4mes
 
-from neu4mes.input import Input, ControlInput
-from neu4mes.output import Output
-
 from neu4mes.relation import Relation, NeuObj, merge
+from neu4mes.input import Input, ControlInput 
+from neu4mes.output import Output 
+
 from neu4mes.linear import Linear, LinearBias
 from neu4mes.localmodel import LocalModel
-from neu4mes.relu import Relu
-from neu4mes.sum import Sum
-from neu4mes.minus import Minus
+from neu4mes.relu import Relu 
+from neu4mes.arithmetic import Sum, Subtract, Minus
 from neu4mes.trigonometric import Sin, Cos, Tan
-
 
 import os, os.path
 #from pprint import pp, pprint

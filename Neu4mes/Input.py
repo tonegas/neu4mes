@@ -3,7 +3,7 @@ import tensorflow.keras.layers
 import tensorflow as tf
 import numpy as np
 
-class Input(neu4mes.relation.NeuObj):
+class Input(neu4mes.NeuObj):
     def __init__(self,name,values = None):
         super().__init__()
         self.name = name

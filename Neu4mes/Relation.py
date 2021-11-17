@@ -40,3 +40,7 @@ class Relation(NeuObj):
     def __add__(self, obj): 
         from neu4mes import Sum
         return Sum(self, obj)
+
+    def __minus__(self, obj): 
+        from neu4mes import Subtract
+        return Subtract(self, obj)

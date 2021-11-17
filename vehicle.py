@@ -2,67 +2,64 @@ from neu4mes import *
 import pprint
 
 #Vehicle example
-model_def = {
-    'SampleTime':0.05,
-    'Input':{
-        'gear':{
-            'Distrete':[1,2,3,4,5,6,7,8]
-        },
-        'engine':{},
-        'brake':{},
-        'altitude':{},
-        'velocity':{}
-    },
-    'State':{
-        'omega':{}
-    },
-    'Output':{
-        'acceleration':{}
-    },
-    'Relations':{
-        'gravity_force':{
-            'Linear':[('altitide',1)]
-        },
-        'motor_force':{
-            'LocalModel':[('engine',1.25),'gear']
-        },
-        'lin_brake':{
-            'Linear':[('brake',1.25)],
-        },
-        'relu_brake':{
-            'Relu':['lin_brake'],
-        },
-        'brake_force':{
-            'Minus':['relu_brake'],
-        },
-        'omega':{
-            'Prova':['velocity']
-        },
-        'acceleration': {
-            'Sum':['gravity_force','motor_force','brake_force'],
-            'Square':['velocity']
-        }
-    }
-}
+# model_def = {
+#     'SampleTime':0.05,
+#     'Input':{
+#         'gear':{
+#             'Distrete':[1,2,3,4,5,6,7,8]
+#         },
+#         'engine':{},
+#         'brake':{},
+#         'altitude':{},
+#         'velocity':{}
+#     },
+#     'State':{
+#         'omega':{}
+#     },
+#     'Output':{
+#         'acceleration':{}
+#     },
+#     'Relations':{
+#         'gravity_force':{
+#             'Linear':[('altitide',1)]
+#         },
+#         'motor_force':{
+#             'LocalModel':[('engine',1.25),'gear']
+#         },
+#         'lin_brake':{
+#             'Linear':[('brake',1.25)],
+#         },
+#         'relu_brake':{
+#             'Relu':['lin_brake'],
+#         },
+#         'brake_force':{
+#             'Minus':['relu_brake'],
+#         },
+#         'omega':{
+#             'Prova':['velocity']
+#         },
+#         'acceleration': {
+#             'Sum':['gravity_force','motor_force','brake_force'],
+#             'Square':['velocity']
+#         }
+#     }
+# }
 #Create the motor trasmission
 gear = Input('gear', values=[1,2,3,4,5,6,7,8])
-
-my_relation = lambda tw: Linear(brake.tw(tw))
-
 engine = Input('engine')
-motor_force = LocalModel(engine.tw(2), gear)
+motor_force = LocalModel(engine.tw(1), gear)
 
 #Create the concept of the slope
 altitude = Input('altitude')
-gravity_force = Linear(altitude.tw(2))
+gravity_force = Linear(altitude.tw(1))
 
 #Create the brake force contribution
 brake = Input('brake')
-brake_force = my_relation(2)+Linear(brake.tw(0.4))+Linear(brake.tw(0.4)) #-Relu(Linear(brake.tw(1.25)))
+brake_force = -Relu(Linear(brake.tw(1)))
 
 #Create the areodinamic drag contribution
 velocity = Input('velocity')
-drag_force = Linear(velocity)+my_relation(0.5)
+drag_force = Linear(velocity)
 
 #The state is a well established variable, so if it used inside two different outputs
 #will not be duplicated.

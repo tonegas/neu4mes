@@ -1,7 +1,6 @@
-from neu4mes.relation import NeuObj
 import neu4mes
 
-class Output(NeuObj):              
+class Output(neu4mes.NeuObj):              
     def __init__(self, obj, relation):
         super().__init__(relation.json)
         if type(obj) is tuple:

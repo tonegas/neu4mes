@@ -1,6 +1,3 @@
-from neu4mes.output import Output
-from neu4mes.relation import NeuObj, merge
-
 from pprint import pprint 
 import tensorflow.keras.layers
 import tensorflow.keras.models
@@ -14,9 +11,9 @@ import matplotlib.pyplot as plt
 import random
 import string
 
-
-
+import neu4mes 
 import random
+
 def rand(length):
     # choose from all lowercase letter
     letters = string.ascii_lowercase
@@ -72,13 +69,13 @@ class RNNCell(tensorflow.keras.layers.Layer):
 
 class Neu4mes:
     def __init__(self, model_def = 0):
-        self.model_used =  NeuObj().json
-        if type(model_def) is Output:
+        self.model_used =  neu4mes.NeuObj().json
+        if type(model_def) is neu4mes.Output:
             self.model_def = model_def.json
         elif type(model_def) is dict:
             self.model_def = self.model_def
         else:
-            self.model_def = NeuObj().json
+            self.model_def = neu4mes.NeuObj().json
 
         self.elem = 0
         self.idx_of_rows = [0]
@@ -117,10 +114,10 @@ class Neu4mes:
         self.inout_rnn_4validation = {}
 
     def addModel(self, model_def):
-        if type(model_def) is Output:
-            self.model_def = merge(self.model_def, model_def.json)
+        if type(model_def) is neu4mes.Output:
+            self.model_def = neu4mes.merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
-            self.model_def = merge(self.model_def, model_def) 
+            self.model_def = neu4mes.merge(self.model_def, model_def) 
         #pprint(self.model_def)
 
     def neuralizeModel(self, sample_time = 0, prediction_window = None):
@@ -357,7 +354,7 @@ class Neu4mes:
             self.inout_asarray[key]  = np.asarray(data)
 
     def trainRecurrentModel(self, states, validation_percentage = 0, show_results = False):
-        state_keys = [key.signal_name for key in states if type(key) is Output]
+        state_keys = [key.signal_name for key in states if type(key) is neu4mes.Output]
         states_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key in state_keys]
         inputs_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
         state_vector = [1 if key in state_keys else 0 for key in self.model_def['Inputs'].keys()]
@@ -605,19 +602,19 @@ class Neu4mes:
     #        self.ax[i].axis([pos-plotsamples/10,pos+plotsamples/10,1])
     #    self.fig.canvas.draw_idle()
 
-    def controlDefinition(control):
-        pass
+    # def controlDefinition(control):
+    #     pass
 
-    def neuralizeControl():
-        pass
+    # def neuralizeControl():
+    #     pass
 
-    def trainControl(data):
-        pass
+    # def trainControl(data):
+    #     pass
 
-    def exportModel(params):
-        pass
+    # def exportModel(params):
+    #     pass
 
-    def exportControl(params):
-        pass
+    # def exportControl(params):
+    #     pass
 
 
