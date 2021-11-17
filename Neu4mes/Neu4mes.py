@@ -223,6 +223,7 @@ class Neu4mes:
         if len(relvalue) == 1:
             el = relvalue[0]
             if type(el) is tuple:
+                # print(outel[:2]+'_'+el[0][:2]+str(self.elem))
                 if el[0] in self.model_def['Inputs']:
                     samples = int(el[1]/self.model_def['SampleTime'])
                     if (el[0],samples) not in self.inputs:
@@ -231,6 +232,7 @@ class Neu4mes:
                 else:
                     print("Tuple is defined only for Input")   
             else:
+                # print(outel[:2]+'_'+el[:2]+str(self.elem))
                 if el in self.model_def['Inputs']:
                     if (el,1) not in self.inputs:
                         self.inputs[(el,1)] = self.part(el,self.inputs[el],1)
@@ -260,7 +262,8 @@ class Neu4mes:
                     else:
                         inputs.append(self.createRelation(relation, el, outel))
                         name = name +'_'+ el[:2]
-            
+
+            # print(name+str(self.elem))
             return relation(name+str(self.elem), inputs)
 
     def loadData(self, format, folder = './data', skiplines = 0, delimiters=['\t',';']):

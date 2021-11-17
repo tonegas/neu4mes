@@ -85,25 +85,22 @@ drag_force = Linear(velocity)
 # lat_acc_estimator = Output(lat_acc.z(1), omega+drag_force+gravity_force+motor_force)
 
 #Longitudinal acceleration
-long_acc = Input('accleration')
+long_acc = Input('acceleration')
 
 #Definition of the next acceleration predict 
 
-vai = brake_force+drag_force#+brake_force
-long_acc_estimator = Output(long_acc.z(-1), vai)
+# vai = brake_force+drag_force#+brake_force
+# long_acc_estimator = Output(long_acc.z(-1), vai)
 #pprint.pprint(long_acc_estimator.json)
 # long_acc_estimator = Output(long_acc.z(-1), motor_force+gravity_force+brake_force)
-long_acc_estimator2 = Output(altitude.z(-1), drag_force+gravity_force+brake_force)
+long_acc_estimator = Output(long_acc.z(-1), motor_force+drag_force+gravity_force+brake_force)
 # pprint.pprint(long_acc_estimator2.json)
 
-#pprint.pprint(long_acc_estimator.json)
+pprint.pprint(long_acc_estimator.json)
 #pprint.pprint(long_acc_estimator2.json)
 
 mymodel = Neu4mes()
 mymodel.addModel(long_acc_estimator)
-# pprint.pprint(mymodel.model_def)
-mymodel.addModel(long_acc_estimator2)
-pprint.pprint(mymodel.model_def)
 mymodel.neuralizeModel(0.05)
 pprint.pprint(mymodel.model_used)
 # nn = Neu4mes()
@@ -111,7 +108,7 @@ pprint.pprint(mymodel.model_used)
 # nn.neuralizeModel(0.05)
 # pprint.pprint(nn.model_used)
 
-data_struct = ['time','altitude','brake','accleration','velocity','gear']
+data_struct = ['time','altitude','brake','acceleration','velocity','gear']
 data_folder = './data/data-linear-oscillator-a/'
 mymodel.loadData(data_struct, folder = data_folder)
 mymodel.trainModel(validation_percentage = 30)

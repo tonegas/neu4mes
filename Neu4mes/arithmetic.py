@@ -1,4 +1,3 @@
-from tensorflow.python.keras.layers.merge import subtract
 import neu4mes
 import tensorflow.keras.layers
 
