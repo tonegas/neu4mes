@@ -1,19 +1,29 @@
-from Neu4mes.Neu4mes import Neu4mes
+__version__ = '0.0.7'
+# __version__ = '0.0.8'
+# __version__ = '0.1.0' ERC version 
 
-from Neu4mes.Relation import Relation
-from Neu4mes.Input import Input
-from Neu4mes.Linear import Linear
-from Neu4mes.LinearBias import LinearBias
-from Neu4mes.LocalModel import LocalModel
-from Neu4mes.Relu import Relu
-from Neu4mes.Sum import Sum
-from Neu4mes.Minus import Minus
-from Neu4mes.Trigonometric import Sin, Cos, Tan
-from Neu4mes.Output import Output
-from Neu4mes.NeuObj import NeuObj, merge
+import sys
 
+major, minor = sys.version_info.major, sys.version_info.minor
 
-__version__ = '0.0.1'
+if major < 3:
+    sys.exit("Sorry, Python 2 is not supported. You need Python >= 3.6 for "+__package__+".")
+elif minor < 6:
+    sys.exit("Sorry, You need Python >= 3.6 for "+__package__+".")
+else:
+    print(">>>>>>>>>>---"+__package__+"---<<<<<<<<<<")
+
+from neu4mes.neu4mes import Neu4mes
+
+from neu4mes.relation import Relation, NeuObj, merge
+from neu4mes.input import Input, ControlInput 
+from neu4mes.output import Output 
+
+from neu4mes.linear import Linear, LinearBias
+from neu4mes.localmodel import LocalModel
+from neu4mes.relu import Relu 
+from neu4mes.arithmetic import Sum, Subtract, Minus
+from neu4mes.trigonometric import Sin, Cos, Tan
 
 import os, os.path
 #from pprint import pp, pprint

@@ -1,13 +1,14 @@
-from Neu4mes import NeuObj
-import Neu4mes
+import neu4mes
 
-class Output(NeuObj.NeuObj):              
+class Output(neu4mes.NeuObj):              
     def __init__(self, obj, relation):
         super().__init__(relation.json)
         if type(obj) is tuple:
             self.name = obj[0].name+obj[1]
-        elif type(obj) is Neu4mes.Input:
+            self.signal_name = obj[0].name
+        elif type(obj) is neu4mes.Input:
             self.name = obj.name
+            self.signal_name = obj[0].name
         self.json['Outputs'][self.name] = {}
         # print(self.json)
         if relation.name in self.json['Relations']:

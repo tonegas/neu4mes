@@ -1,9 +1,9 @@
-import Neu4mes
+import neu4mes
 import tensorflow.keras.layers
 import tensorflow as tf
 import numpy as np
 
-class Input(Neu4mes.NeuObj.NeuObj):
+class Input(neu4mes.NeuObj):
     def __init__(self,name,values = None):
         super().__init__()
         self.name = name
@@ -33,12 +33,20 @@ class Input(Neu4mes.NeuObj.NeuObj):
         else:
             return self, '__-s'+str(-derivate)
 
+class ControlInput(Input):
+    def __init__(self,name,values = None):
+        super().__init__(name,values)
+
 def createDiscreteInput(Neu4mes, name, size, types):
     input = tensorflow.keras.layers.Input(shape = (size, ), batch_size = None, name = name, dtype='int32')
     return (input,tensorflow.keras.layers.Lambda(lambda x: tf.one_hot(x[:,0], len(set(np.asarray(types)))))(input))
 
 def createInput(Neu4mes, name, size):
     input = tensorflow.keras.layers.Input(shape = (size, ), batch_size = None, name = name)
+    return (input,input)
+
+def createInputRNN(Neu4mes, name, window, size):
+    input = tensorflow.keras.layers.Input(shape = (window, size, ), batch_size = None, name = name)
     return (input,input)
 
 def createPart(Neu4mes, name, input, size):
@@ -50,6 +58,7 @@ def createPart(Neu4mes, name, input, size):
     else:
         return input
 
-setattr(Neu4mes.Neu4mes, 'discreteInput', createDiscreteInput)
-setattr(Neu4mes.Neu4mes, 'input', createInput)
-setattr(Neu4mes.Neu4mes, 'part', createPart)
+setattr(neu4mes.Neu4mes, 'discreteInput', createDiscreteInput)
+setattr(neu4mes.Neu4mes, 'input', createInput)
+setattr(neu4mes.Neu4mes, 'inputRNN', createInputRNN)
+setattr(neu4mes.Neu4mes, 'part', createPart)

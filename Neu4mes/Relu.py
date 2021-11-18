@@ -1,9 +1,9 @@
-import Neu4mes
+import neu4mes
 import tensorflow.keras.layers
 
 relu_relation_name = 'ReLU'
 
-class Relu(Neu4mes.Relation):
+class Relu(neu4mes.Relation):
     def __init__(self, obj = None):
         if obj is None:
             return
@@ -14,13 +14,13 @@ class Relu(Neu4mes.Relation):
             self.json['Relations'][self.name] = {
                 relu_relation_name:[(obj[0].name,obj[1])],
             }
-        elif type(obj) is Neu4mes.Input:
+        elif type(obj) is neu4mes.Input:
             super().__init__(obj.json)
             self.name = obj.name+'_relu'
             self.json['Relations'][self.name] = {
                 relu_relation_name:[obj.name]
             }
-        elif issubclass(type(obj),Neu4mes.Relation):
+        elif issubclass(type(obj),neu4mes.Relation):
             super().__init__(obj.json)
             self.name = obj.name+'_relu'
             self.json['Relations'][self.name] = {
@@ -36,4 +36,4 @@ class Relu(Neu4mes.Relation):
 def createRelu(self, name, input):
     return tensorflow.keras.layers.ReLU(name = name)(input)
 
-setattr(Neu4mes.Neu4mes, relu_relation_name, createRelu)
+setattr(neu4mes.Neu4mes, relu_relation_name, createRelu)
