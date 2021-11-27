@@ -1,4 +1,5 @@
 import types, copy
+import pprint
 
 def merge(source, destination, main = True):
     if main:
@@ -44,3 +45,7 @@ class Relation(NeuObj):
     def __minus__(self, obj): 
         from neu4mes import Subtract
         return Subtract(self, obj)
+    
+    # def __pow__(self, val):
+    #     from neu4mes import Pow
+    #     return Pow(self, val)        

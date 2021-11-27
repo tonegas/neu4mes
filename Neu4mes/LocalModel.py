@@ -24,6 +24,6 @@ class LocalModel(neu4mes.Relation):
 
 def createLocalModel(self, name, input):
     localModels = tensorflow.keras.layers.Dense(units = 8, activation = None, use_bias = None, name = name)(input[0])
-    return tensorflow.keras.layers.Multiply()([localModels,input[1]])
+    return tensorflow.keras.layers.Dot(axes=1)([localModels,input[1]])
 
 setattr(neu4mes.Neu4mes, localmodel_relation_name, createLocalModel)
