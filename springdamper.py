@@ -31,5 +31,5 @@ springDamper.neuralizeModel(0.05)
 data_struct = ['time','x1','x1_s','F']
 data_folder = './data/data-linear-oscillator-a/'
 springDamper.loadData(data_struct, folder = data_folder)
-springDamper.trainModel(validation_percentage = 30)
+springDamper.trainModel( states = [x1_z], validation_percentage = 30, show_results = True)
 
