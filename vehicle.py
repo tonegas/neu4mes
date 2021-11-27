@@ -1,49 +1,6 @@
 from neu4mes import *
-import pprint
+from pprint import pp, pprint
 
-#Vehicle example
-# model_def = {
-#     'SampleTime':0.05,
-#     'Input':{
-#         'gear':{
-#             'Distrete':[1,2,3,4,5,6,7,8]
-#         },
-#         'engine':{},
-#         'brake':{},
-#         'altitude':{},
-#         'velocity':{}
-#     },
-#     'State':{
-#         'omega':{}
-#     },
-#     'Output':{
-#         'acceleration':{}
-#     },
-#     'Relations':{
-#         'gravity_force':{
-#             'Linear':[('altitide',1)]
-#         },
-#         'motor_force':{
-#             'LocalModel':[('engine',1.25),'gear']
-#         },
-#         'lin_brake':{
-#             'Linear':[('brake',1.25)],
-#         },
-#         'relu_brake':{
-#             'Relu':['lin_brake'],
-#         },
-#         'brake_force':{
-#             'Minus':['relu_brake'],
-#         },
-#         'omega':{
-#             'Prova':['velocity']
-#         },
-#         'acceleration': {
-#             'Sum':['gravity_force','motor_force','brake_force'],
-#             'Square':['velocity']
-#         }
-#     }
-# }
 #Create the motor trasmission
 gear = Input('gear', values=[1,2,3,4,5,6,7,8])
 engine = Input('engine')
@@ -51,7 +8,7 @@ motor_force = LocalModel(engine.tw(1), gear)
 
 #Create the concept of the slope
 altitude = Input('altitude')
-gravity_force = Linear(altitude.tw(1))
+gravity_force = Linear(altitude.tw([1,-1]))
 
 #Create the brake force contribution
 brake = Input('brake')
@@ -88,30 +45,16 @@ drag_force = Linear(velocity)
 long_acc = Input('acceleration')
 
 #Definition of the next acceleration predict 
-
-# vai = brake_force+drag_force#+brake_force
-# long_acc_estimator = Output(long_acc.z(-1), vai)
-#pprint.pprint(long_acc_estimator.json)
-# long_acc_estimator = Output(long_acc.z(-1), motor_force+gravity_force+brake_force)
 long_acc_estimator = Output(long_acc.z(-1), motor_force+drag_force+gravity_force+brake_force)
-# pprint.pprint(long_acc_estimator2.json)
 
-pprint.pprint(long_acc_estimator.json)
-#pprint.pprint(long_acc_estimator2.json)
-
-mymodel = Neu4mes()
+mymodel = Neu4mes(verbose=True)
 mymodel.addModel(long_acc_estimator)
 mymodel.neuralizeModel(0.05)
-pprint.pprint(mymodel.model_used)
-# nn = Neu4mes()
-# nn.addModel(mymodel.model_used)
-# nn.neuralizeModel(0.05)
-# pprint.pprint(nn.model_used)
 
-data_struct = ['time','altitude','brake','acceleration','velocity','gear']
-data_folder = './data/data-linear-oscillator-a/'
-mymodel.loadData(data_struct, folder = data_folder)
-mymodel.trainModel(validation_percentage = 30)
+data_struct = ['velocity','engine','brake','gear','travel','altitude','acc','velKal','acceleration']
+data_folder = './vehicle_data/'
+mymodel.loadData(data_struct, folder = data_folder, skiplines = 1)
+mymodel.trainModel(validation_percentage = 30, show_results=True)
 
 #definisco che long_acc è l'integrale di velocity
 # long_acc.s(-1) = velocity 
