@@ -1,182 +1,23 @@
 from neu4mes import *
 
-mymodel = Neu4mes()
-model_def = {
-    'SampleTime':0.05,
-    'Input':{
-        'x1':{
-            'Name':'Mass 1 position'
-        },
-        'F':{
-            'Name':'External force'
-        }
-    },
-    'Output':{
-        'x1__-z1':{     #con z indico il ritardo unitario di una variabile     
-            'Name':'Next mass 1 position'
-        }
-    },
-    'Relations':{
-        'x1__-z1':{
-            'Linear':[('x1',2),'F'],
-        }
-    }
-}
-
-# model_def = {
-#     'SampleTime':0.05,
-#     'Input':{
-#         'x1':{
-#             'Name':'Mass 1 position'
-#         },
-#         'F':{
-#             'Name':'External force'
-#         }
-#     },
-#     'Output':{
-#         'x1_z':{     #con z indico il ritardo unitario di una variabile     
-#             'Name':'Next mass 1 position'
-#         },
-#         'x1_s':{    #con s indico la defivata di un segnale
-#             'Name':'Velocity of mass 1'
-#         }
-#     },
-#     'Relations':{
-#         'x1_z':{
-#             'Linear':[('x1',2),'F'],
-#         },
-#         'x1_s':{
-#             'Linear':[('x1',3),'F'],
-#         },
-#     }
-# }
+input1 = Input('in1')
+input2 = Input('in2')
+output = Input('out')
+rel1 = Linear(input1.tw(0.05))
+rel2 = Linear(input1.tw(0.01))
+rel3 = Linear(input2.tw(0.05))
+rel4 = Linear(input2.tw([0.02,-0.02]))
+fun = Output(output.z(-1),rel1+rel2+rel3+rel4)
 
 
-
-massamolla = Neu4mes()
-x1 = Input('x1')
-F = Input('F')
-x1_z = Output(x1.z(-1), Linear(x1.tw(2))+Linear(F))
-massamolla.addModel(x1_z)
-massamolla.neuralizeModel(0.05)
-data_struct = ['time','x1','x1_s','F']
-data_folder = './data/data-linear-oscillator-a/'
-massamolla.loadData(data_struct, folder = data_folder)
-massamolla.trainModel(validation_percentage = 30)
-
-#mymodel.addModel(model_def)
-#mymodel.neuralizeModel()
-
-# data = {
-#     'time' : [[],[]]
-#     'x1' : [[simulazione 1],[simulazione 2]]
-#     'F'  : [[],[]]
-# }
-data_struct = ['time','x1','x1_s','F']
-data_folder = './data/data-linear-oscillator-a/'
-mymodel.loadData(data_struct, folder = data_folder)
-mymodel.trainModel(validation_percentage = 30)
-#mymodel.showResults()
+test = Neu4mes(verbose=True)
+test.addModel(fun)
+test.neuralizeModel(0.01)
+print(test.inputs)
 
 
-#Examples:
-#1. Vehicle model + control system
-#2. State estimator for lateral velocity
-#3. Signle/double Mass-spring-dumper
-#4. Cart-Pole
-#5. Pedestrian estrimator
-# model_def = {
-#     'SampleTime':0.05,
-#     'Input':{
-#         'x1':{
-#             'Name':'Mass 1 position'
-#         },
-#         'F':{
-#             'Name':'External force'
-#         }
-#     },
-#     'Output':{
-#         'x1_z':{     #con z indico il ritardo unitario di una variabile     
-#             'Name':'Next mass 1 position'
-#         },
-#         'x1_s':{    #con s indico la defivata di un segnale
-#             'Name':'Velocity of mass 1'
-#         }
-#     },
-#     'Relations':{
-#         'x1_z':{
-#             'Linear':[('x1',2),'F'],
-#         },
-#         'x1_s':{
-#             'Linear':[('x1',3),'F'],
-#         },
-#     }
-# }
-# model_def = {
-#     'SampleTime':0.05,
-#     'Input':{
-#         'x1':{
-#             'Name':'Mass 1 position'
-#         },
-#         'x2':{
-#             'Name':'Mass 2 position'
-#         },
-#         'F':{
-#             'Name':'External force'
-#         },
-#         'T':{
-#             'Name':'External tension'
-#         }
-#     },
-#     'Output':{
-#         'x1p':{
-#             'Name':'Next mass 1 position'
-#         },
-#         'x2p':{
-#             'Name':'Next mass 2 position'
-#         }
-#     },
-#     'Relations':{
-#         'x1p':{
-#             'Linear':[('x1',2),'F'],
-#         },
-#         'x2p':{
-#             'Linear':[('x2',2),('F',1),'T'],
-#         },
-#     }
-# }
+# data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time','']
+# data_folder = './tests/data/'
+# test.loadData(data_struct, folder = data_folder, skiplines = 4)
 
-# model_def = {
-#     'Input':{
-#         'omega':{},
-#         'u':{},
-#         'ay':{},
-#         'ax':{}
-#     },
-#     'Output':{
-#         'v':{}
-#     },
-#     'Params':{
-#         'gamma':{},
-#         'beta':{}
-#     },
-#     'State':{
-#         'local_u':{},
-#         'loval_v':{}
-#     },
-#     'Relations':{
-#         'local_v':{
-#             'Function':{
-#                'eq': lambda v, ay, u, omega: mymodel.gamma*v+mymodel.beta*mymodel.Ts*(ay-v*omega)
-#             }
-#         },
-#         'local_u':{
-#             'Function':{
-#                'eq': lambda v, ay, u, omega: mymodel.gamma*v+mymodel.beta*mymodel.Ts*(ay-v*omega)
-#             }
-#         },
-#         'v':{
-#             'LocalModel':[('local_v'),'omega']
-#         }
-#     }
-# }
+print(test.inout_asarray)
