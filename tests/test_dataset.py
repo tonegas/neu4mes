@@ -69,7 +69,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel3 = Linear(input2.tw(0.02))
         fun = Output(output.z(-1),rel1+rel2+rel3)
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes()
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -110,7 +110,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel2 = Linear(input1.tw([0.01,-0.02]))
         fun = Output(output.z(-1),rel1+rel2)
 
-        test = Neu4mes()
+        test = Neu4mes(verbose=True)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -170,7 +170,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel4 = Linear(input2)
         fun = Output(output.z(-1),rel1+rel2+rel3+rel4)
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes()
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -204,3 +204,60 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         self.assertEqual((10,),test.inout_asarray['out__-z1'].shape)
         self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out__-z1'].tolist())
 
+    def test_build_dataset_complex5(self):
+        input1 = Input('in1')
+        output = Input('out')
+        rel1 = Linear(input1.tw(0.05))
+        rel2 = Linear(input1.tw([0.01,-0.01]))
+        rel3 = Linear(input1.tw([0.02,-0.02]))
+        fun = Output(output.z(-1),rel1+rel2+rel3)
+
+        test = Neu4mes()
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        data_folder = './tests/data/'
+        test.loadData(data_struct, folder = data_folder, skiplines = 4)
+        self.assertEqual((9,7),test.inout_asarray['in1'].shape)
+        self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
+                        [0.983,0.982,0.98,0.977,0.973,0.969,0.963],
+                        [0.982,0.98,0.977,0.973,0.969,0.963,0.957],
+                        [0.98,0.977,0.973,0.969,0.963,0.957,0.95],
+                        [0.977,0.973,0.969,0.963,0.957,0.95,0.942],
+                        [0.973,0.969,0.963,0.957,0.95,0.942,0.933],
+                        [0.969,0.963,0.957,0.95,0.942,0.933,0.923],
+                        [0.963,0.957,0.95,0.942,0.933,0.923,0.912],
+                        [0.957,0.95,0.942,0.933,0.923,0.912,0.900]],test.inout_asarray['in1'].tolist())
+
+        self.assertEqual((9,),test.inout_asarray['out__-z1'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out__-z1'].tolist())
+
+    def test_build_dataset_complex6(self):
+        input1 = Input('in1')
+        output = Input('out')
+        rel1 = Linear(input1.tw(0.05))
+        rel2 = Linear(input1.tw([0.01,-0.02]))
+        rel3 = Linear(input1.tw([0.05,-0.01]))
+        fun = Output(output.z(-1),rel1+rel2+rel3)
+
+        test = Neu4mes()
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        data_folder = './tests/data/'
+        test.loadData(data_struct, folder = data_folder, skiplines = 4)
+        self.assertEqual((9,7),test.inout_asarray['in1'].shape)
+        self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
+                        [0.983,0.982,0.98,0.977,0.973,0.969,0.963],
+                        [0.982,0.98,0.977,0.973,0.969,0.963,0.957],
+                        [0.98,0.977,0.973,0.969,0.963,0.957,0.95],
+                        [0.977,0.973,0.969,0.963,0.957,0.95,0.942],
+                        [0.973,0.969,0.963,0.957,0.95,0.942,0.933],
+                        [0.969,0.963,0.957,0.95,0.942,0.933,0.923],
+                        [0.963,0.957,0.95,0.942,0.933,0.923,0.912],
+                        [0.957,0.95,0.942,0.933,0.923,0.912,0.900]],test.inout_asarray['in1'].tolist())
+
+        self.assertEqual((9,),test.inout_asarray['out__-z1'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out__-z1'].tolist())

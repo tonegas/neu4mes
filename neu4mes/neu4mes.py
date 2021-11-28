@@ -239,6 +239,7 @@ class Neu4mes:
                 self.model_used['Outputs'][outel]=self.model_def['Outputs'][outel]   
                 self.model_used['Relations'][outel]=relel    
 
+        self.MP(pprint,{"inputs":self.inputs})
         self.MP(pprint,{"relations":self.relations}) 
         self.MP(pprint,{"outputs":self.outputs})   
         self.MP(pprint,{"output_relation":self.output_relation})    
@@ -306,10 +307,10 @@ class Neu4mes:
                 if el[0] in self.model_def['Inputs']:
                     if type(el[1]) is tuple:
                         n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                        n_forward = int(el[1][0]/self.model_def['SampleTime'])
-                        if (el[0],n_backward,n_forward) not in self.inputs:
-                            self.inputs[(el[0],n_backward,n_forward)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                            input_for_relation = self.inputs[(el[0],n_backward,n_forward)]
+                        n_forward = -int(el[1][1]/self.model_def['SampleTime'])
+                        if (el[0],(n_backward,n_forward)) not in self.inputs:
+                            self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
+                            input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
                     else:
                         n_backward = int(el[1]/self.model_def['SampleTime'])
                         if (el[0],n_backward) not in self.inputs:
@@ -339,10 +340,10 @@ class Neu4mes:
                     if el[0] in self.model_def['Inputs']:
                         if type(el[1]) is tuple:
                             n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                            n_forward = int(el[1][0]/self.model_def['SampleTime'])
-                            if (el[0],n_backward,n_forward) not in self.inputs:
-                                self.inputs[(el[0],n_backward,n_forward)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                                input_for_relation = self.inputs[(el[0],n_backward,n_forward)]
+                            n_forward = -int(el[1][1]/self.model_def['SampleTime'])
+                            if (el[0],(n_backward,n_forward)) not in self.inputs:
+                                self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
+                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
                         else:
                             n_backward = int(el[1]/self.model_def['SampleTime'])
                             if (el[0],n_backward) not in self.inputs:
@@ -356,9 +357,9 @@ class Neu4mes:
                 else:
                     if el in self.model_def['Inputs']:
                         # The relvalue[i] is a part of an input
-                        if (el[0],1) not in self.inputs:
-                            self.inputs[(el[0],1)] = self.part(el,self.inputs[el],1)
-                        inputs.append(self.inputs[(el[0],1)])
+                        if (el,1) not in self.inputs:
+                            self.inputs[(el,1)] = self.part(el,self.inputs[el],1)
+                        inputs.append(self.inputs[(el,1)])
                         name = name +'_'+ el[:2]
                     else:
                         # The relvalue[i] is a relation
