@@ -110,7 +110,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel2 = Linear(input1.tw([0.01,-0.02]))
         fun = Output(output.z(-1),rel1+rel2)
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes()
         test.addModel(fun)
         test.neuralizeModel(0.01)
 

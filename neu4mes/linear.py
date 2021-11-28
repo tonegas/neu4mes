@@ -18,9 +18,16 @@ class Linear(neu4mes.Relation):
             super().__init__(obj[0].json)
             self.name = obj[0].name+'_lin'+str(neu4mes.NeuObj.count)
             if type(obj[1]) is list:
-                self.json['Relations'][self.name] = {
-                    linear_relation_name:[(obj[0].name,(obj[1][0],obj[1][1]))],
-                }            
+                if len(obj) == 2:
+                    self.json['Relations'][self.name] = {
+                        linear_relation_name:[(obj[0].name,(obj[1][0],obj[1][1]))],
+                    }
+                elif len(obj) == 3:
+                    self.json['Relations'][self.name] = {
+                        linear_relation_name:[(obj[0].name,(obj[1][0],obj[1][1]),obj[2])],
+                    }
+                else:
+                    raise Exception('Type is not supported!')
             else:
                 self.json['Relations'][self.name] = {
                     linear_relation_name:[(obj[0].name,obj[1])],
@@ -44,9 +51,16 @@ class LinearBias(neu4mes.Relation):
             super().__init__(obj[0].json)
             self.name = obj[0].name+'_lin_bias'+str(neu4mes.NeuObj.count)
             if type(obj[1]) is list:
-                self.json['Relations'][self.name] = {
-                    linear_bias_relation_name:[(obj[0].name,(obj[1][0],obj[1][1]))],
-                }
+                if len(obj) == 2:
+                    self.json['Relations'][self.name] = {
+                        linear_bias_relation_name:[(obj[0].name,(obj[1][0],obj[1][1]))],
+                    }
+                elif len(obj) == 3:
+                    self.json['Relations'][self.name] = {
+                        linear_bias_relation_name:[(obj[0].name,(obj[1][0],obj[1][1]),obj[2])],
+                    }
+                else:
+                    raise Exception('Type is not supported!')
             else:
                 self.json['Relations'][self.name] = {
                     linear_bias_relation_name:[(obj[0].name,obj[1])],

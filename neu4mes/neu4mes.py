@@ -2,6 +2,7 @@ from pprint import pprint
 import tensorflow.keras.layers
 import tensorflow.keras.models
 import tensorflow as tf
+from tensorflow.python.ops.gen_math_ops import rint
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.FATAL)
 from tensorflow.keras import optimizers
 from tensorflow.keras import backend as K
@@ -116,7 +117,7 @@ class Neu4mes:
         self.inout_4train = {}
         self.inout_4validation = {}
         self.learning_rate = 0.0005
-        self.num_of_epochs = 200
+        self.num_of_epochs = 300
         #rnn
         self.rnn_model = None
         self.rnn_window = None
@@ -305,20 +306,40 @@ class Neu4mes:
             if type(el) is tuple:
                 # The relvalue is a part of an input
                 if el[0] in self.model_def['Inputs']:
-                    if type(el[1]) is tuple:
-                        n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                        n_forward = -int(el[1][1]/self.model_def['SampleTime'])
-                        if (el[0],(n_backward,n_forward)) not in self.inputs:
-                            self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                            input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
+                    if len(el) == 3:
+                        # If three element I get the offset
+                        offset = int(el[2]/self.model_def['SampleTime'])
+                        if type(el[1]) is tuple:
+                            # The time window is backward and forward
+                            n_backward = int(el[1][0]/self.model_def['SampleTime'])
+                            n_forward = -int(el[1][1]/self.model_def['SampleTime'])
+                            if (el[0],(n_backward,n_forward),offset) not in self.inputs:
+                                self.inputs[(el[0],(n_backward,n_forward),offset)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward,offset)
+                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
+                        else:
+                            n_backward = int(el[1]/self.model_def['SampleTime'])
+                            if (el[0],n_backward,offset) not in self.inputs:
+                                self.inputs[(el[0],n_backward,offset)] = self.part(el[0],self.inputs[el[0]],n_backward,0,offset)
+                                input_for_relation = self.inputs[(el[0],n_backward,offset)]               
+                    elif len(el) == 2:
+                        if type(el[1]) is tuple:
+                            # The time window is backward and forward
+                            n_backward = int(el[1][0]/self.model_def['SampleTime'])
+                            n_forward = -int(el[1][1]/self.model_def['SampleTime'])
+                            if (el[0],(n_backward,n_forward)) not in self.inputs:
+                                self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
+                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
+                        else:
+                            n_backward = int(el[1]/self.model_def['SampleTime'])
+                            if (el[0],n_backward) not in self.inputs:
+                                self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
+                                input_for_relation = self.inputs[(el[0],n_backward)]                      
                     else:
-                        n_backward = int(el[1]/self.model_def['SampleTime'])
-                        if (el[0],n_backward) not in self.inputs:
-                            self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
-                            input_for_relation = self.inputs[(el[0],n_backward)]
+                        raise Exception("This tuple has only one element: "+str(el))
+
                     return relation(outel[:2]+'_'+el[0][:2]+str(el_idx), input_for_relation)                
                 else:
-                    print("Tuple is defined only for Input")   
+                    raise Exception("Tuple is defined only for Input")   
             else:
                 if el in self.model_def['Inputs']:
                     # The relvalue is a part of an input
@@ -338,22 +359,41 @@ class Neu4mes:
                 if type(el) is tuple:
                     # The relvalue[i] is a part of an input
                     if el[0] in self.model_def['Inputs']:
-                        if type(el[1]) is tuple:
-                            n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                            n_forward = -int(el[1][1]/self.model_def['SampleTime'])
-                            if (el[0],(n_backward,n_forward)) not in self.inputs:
-                                self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
+                        if len(el) == 3:
+                            # If three element I get the offset
+                            offset = int(el[2]/self.model_def['SampleTime'])
+                            if type(el[1]) is tuple:
+                                # The time window is backward and forward
+                                n_backward = int(el[1][0]/self.model_def['SampleTime'])
+                                n_forward = -int(el[1][1]/self.model_def['SampleTime'])
+                                if (el[0],(n_backward,n_forward),offset) not in self.inputs:
+                                    self.inputs[(el[0],(n_backward,n_forward),offset)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward,offset)
+                                    input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
+                            else:
+                                n_backward = int(el[1]/self.model_def['SampleTime'])
+                                if (el[0],n_backward,offset) not in self.inputs:
+                                    self.inputs[(el[0],n_backward,offset)] = self.part(el[0],self.inputs[el[0]],n_backward,0,offset)
+                                    input_for_relation = self.inputs[(el[0],n_backward,offset)]                          
+                        elif len(el) == 2:
+                            if type(el[1]) is tuple:
+                                # The time window is backward and forward
+                                n_backward = int(el[1][0]/self.model_def['SampleTime'])
+                                n_forward = -int(el[1][1]/self.model_def['SampleTime'])
+                                if (el[0],(n_backward,n_forward)) not in self.inputs:
+                                    self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
+                                    input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
+                            else:
+                                n_backward = int(el[1]/self.model_def['SampleTime'])
+                                if (el[0],n_backward) not in self.inputs:
+                                    self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
+                                    input_for_relation = self.inputs[(el[0],n_backward)]                        
                         else:
-                            n_backward = int(el[1]/self.model_def['SampleTime'])
-                            if (el[0],n_backward) not in self.inputs:
-                                self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
-                                input_for_relation = self.inputs[(el[0],n_backward)]
+                            raise Exception("This tuple has only one element: "+str(el))
 
                         inputs.append(input_for_relation)
                         name = name +'_'+el[0][:2]
                     else:
-                        print("Tuple is defined only for Input")  
+                        raise Exception("Tuple is defined only for Input")  
                 else:
                     if el in self.model_def['Inputs']:
                         # The relvalue[i] is a part of an input

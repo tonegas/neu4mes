@@ -14,8 +14,10 @@ class Input(neu4mes.NeuObj):
                 'Discrete' : values
             }
 
-    def tw(self, tw):
-        return self, tw 
+    def tw(self, tw, offset = None):
+        if offset is not None:
+            return self, tw, offset
+        return self, tw
     
     def z(self, advance):
         if advance > 0:
@@ -49,13 +51,16 @@ def createInputRNN(Neu4mes, name, window, size):
     input = tensorflow.keras.layers.Input(shape = (window, size, ), batch_size = None, name = name)
     return (input,input)
 
-def createPart(Neu4mes, name, input, backward, forward = 0):
+def createPart(Neu4mes, name, input, backward, forward = 0, offset = None):
     if Neu4mes.input_n_samples[name] != backward+forward:
         crop_back = Neu4mes.input_ns_backward[name]-backward
         crop_front = Neu4mes.input_ns_forward[name]-forward
+        if offset is not None:
+            step1 = tensorflow.keras.layers.Reshape((Neu4mes.input_n_samples[name],-1))(input-input[:,Neu4mes.input_ns_backward[name]-offset-1])
+        else:
+            step1 = tensorflow.keras.layers.Reshape((Neu4mes.input_n_samples[name],-1))(input) 
         return tensorflow.keras.layers.Reshape((backward+forward,))(
-            tensorflow.keras.layers.Cropping1D(cropping=(crop_back, crop_front))(
-                tensorflow.keras.layers.Reshape((Neu4mes.input_n_samples[name],-1))(input)))
+                tensorflow.keras.layers.Cropping1D(cropping=(crop_back, crop_front))(step1))
     else:
         return input
 
