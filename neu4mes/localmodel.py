@@ -23,7 +23,7 @@ class LocalModel(neu4mes.Relation):
             raise Exception('Type is not supported!')
 
 def createLocalModel(self, name, input):
-    localModels = tensorflow.keras.layers.Dense(units = 8, activation = None, use_bias = None, name = name)(input[0])
+    localModels = tensorflow.keras.layers.Dense(units = input[1].shape[1], activation = None, use_bias = None, name = name)(input[0])
     return tensorflow.keras.layers.Dot(axes=1)([localModels,input[1]])
 
 setattr(neu4mes.Neu4mes, localmodel_relation_name, createLocalModel)

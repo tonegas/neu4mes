@@ -37,11 +37,11 @@ class ControlInput(Input):
 
 def createDiscreteInput(Neu4mes, name, size, types):
     input = tensorflow.keras.layers.Input(shape = (size, ), batch_size = None, name = name, dtype='int32')
-    return (input,tensorflow.keras.layers.Lambda(lambda x: tf.one_hot(x[:,0], len(set(np.asarray(types)))))(input))
+    return (input,tensorflow.keras.layers.Lambda(lambda x: tf.one_hot(x[:,0]-types[0], len(set(np.asarray(types)))))(input))
 
 def createDiscreteInputRNN(Neu4mes, name, window, size, types):
     input = tensorflow.keras.layers.Input(shape = (window, size, ), batch_size = None, name = name, dtype='int32')
-    return (input,tensorflow.keras.layers.Lambda(lambda x: tf.one_hot(x[:,:,0], len(set(np.asarray(types)))))(input))
+    return (input,tensorflow.keras.layers.Lambda(lambda x: tf.one_hot(x[:,:,0]-types[0], len(set(np.asarray(types)))))(input))
 
 def createInput(Neu4mes, name, size):
     input = tensorflow.keras.layers.Input(shape = (size, ), batch_size = None, name = name)
