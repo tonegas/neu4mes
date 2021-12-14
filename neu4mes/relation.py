@@ -30,6 +30,13 @@ class NeuObj():
                 'Relations': {}
             }
 
+    def __xor__(self, val):
+        from neu4mes import Square
+        if val == 2:
+            return Square(self)  
+        else:
+            raise Exception("Operation not supported yet")
+
 class Relation(NeuObj):      
     def __init__(self,json):
         super().__init__(json)
@@ -44,8 +51,4 @@ class Relation(NeuObj):
 
     def __minus__(self, obj): 
         from neu4mes import Subtract
-        return Subtract(self, obj)
-    
-    # def __pow__(self, val):
-    #     from neu4mes import Pow
-    #     return Pow(self, val)        
+        return Subtract(self, obj)      

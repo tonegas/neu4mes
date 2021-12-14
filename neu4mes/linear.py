@@ -33,9 +33,9 @@ class Linear(neu4mes.Relation):
                     linear_relation_name:[(obj[0].name,obj[1])],
                 }
         elif (type(obj) is neu4mes.Input or
-              issubclass(type(obj),neu4mes.Input) or
-              type(obj) is neu4mes.Relation or
-              issubclass(type(obj), neu4mes.Relation)):
+            issubclass(type(obj),neu4mes.Input) or
+            type(obj) is neu4mes.Relation or
+            issubclass(type(obj), neu4mes.Relation)):
             super().__init__(obj.json)
             self.name = obj.name+'_lin'+str(neu4mes.NeuObj.count)
             self.json['Relations'][self.name] = {
@@ -66,8 +66,8 @@ class LinearBias(neu4mes.Relation):
                     linear_bias_relation_name:[(obj[0].name,obj[1])],
                 }
         elif (type(obj) is neu4mes.Input or
-              type(obj) is neu4mes.Relation or
-              issubclass(type(obj), neu4mes.Relation)):
+            type(obj) is neu4mes.Relation or
+            issubclass(type(obj), neu4mes.Relation)):
             super().__init__(obj.json)
             self.name = obj.name+'_lin_bias'+str(neu4mes.NeuObj.count)
             self.json['Relations'][self.name] = {

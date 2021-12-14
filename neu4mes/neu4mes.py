@@ -2,18 +2,22 @@ from pprint import pprint
 import tensorflow.keras.layers
 import tensorflow.keras.models
 import tensorflow as tf
-from tensorflow.python.ops.gen_math_ops import rint
+#from tensorflow.python.ops.gen_math_ops import rint
+
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.FATAL)
 from tensorflow.keras import optimizers
 from tensorflow.keras import backend as K
 import re
 import os
 import numpy as np
-import matplotlib.pyplot as plt
+
 import random
 import string
 
 import neu4mes 
+from neu4mes.visualizer import StandardVisualizer
+
 import random
 
 def rand(length):
@@ -70,7 +74,7 @@ class RNNCell(tensorflow.keras.layers.Layer):
         pass
 
 class Neu4mes:
-    def __init__(self, model_def = 0, verbose = False):
+    def __init__(self, model_def = 0, verbose = False, visualizer = StandardVisualizer()):
         # Set verbose print inside the class
         self.verbose = verbose
 
@@ -96,64 +100,78 @@ class Neu4mes:
         self.input_n_samples = {}           # maxmimum number of samples for each the input 
 
         self.inputs = {}                    # NN element - processed network inputs
+        self.rnn_inputs = {}                # RNN element - processed network inputs
         self.inputs_for_model = {}          # NN element - clean network inputs
+        self.rnn_inputs_for_model = {}      # RNN element - clean network inputs
+        self.rnn_init_state = {}            # RNN element - for the states of RNN
         self.relations = {}                 # NN element - operations 
         self.outputs = {}                   # NN element - clean network outputs
 
         self.output_relation = {}           # dict with the outputs  
         self.output_keys = []               # clear output signal keys (without delay info string __-z1)
         
-        self.model = 0                      # NN model - Keras model
+        # Models of the framework
+        self.model = None                   # NN model - Keras model
+        self.rnn_model = None               # RNN model - Keras model
+
+        # Optimizer parameters 
+        self.opt = None                     # NN model - Keras Optimizer
+        self.rnn_opt = None                 # RNN model - Keras Optimizer
 
         # Dataset characteristics
         self.input_data = {}                # dict with data divided by file and symbol key: input_data[(file,key)]
         self.inout_data_time_window = {}    # dict with data divided by signal ready for network input
+        self.rnn_inout_data_time_window = {}# dict with data divided by signal ready for RNN network input
         self.inout_asarray = {}             # dict for network input in asarray format
+        self.rnn_inout_asarray = {}         # dict for RNN network input in asarray format
+        self.num_of_samples = None          # number of rows of the file
+        self.num_of_training_sample = 0     # number of rows for training
 
-        self.idx_of_rows = [0] 
+        self.idx_of_rows = [0]              # ??? 
+
+        # Training params
+        self.batch_size = 128                               # batch size
+        self.learning_rate = 0.0005                         # learning rate for NN
+        self.num_of_epochs = 300                            # number of epochs
+        self.rnn_window = None                              # window of the rnn network
+        self.rnn_learning_rate = self.learning_rate/10000   # learning rate for RNN
+        self.rnn_num_of_epochs = 50                         # number of epochs for RNN
         
-        #training
-        self.batch_size = 128
+        # Training dataset
         self.inout_4train = {}
-        self.inout_4validation = {}
-        self.learning_rate = 0.0005
-        self.num_of_epochs = 300
-        #rnn
-        self.rnn_model = None
-        self.rnn_window = None
-        self.inputs_for_rnn_model = {}
-        self.inout_rnn_asarray = {}
-        self.inout_rnn_data_time_window = {}
-        self.rnn_inputs = {}
-        self.init_rnn_state = {}
-        self.learning_rate_rnn = self.learning_rate/10000
-        self.num_of_epochs_rnn = 50
-        self.rnn_opt = None
-        self.inout_rnn_4train = {}
-        self.inout_rnn_4validation = {}
+        self.inout_4test = {}
+        self.rnn_inout_4train = {}
+        self.rnn_inout_4test = {}
+        self.first_idx_test = 0
+
+        # Training performance
+        self.performance = {}
+
+        # Visualizer
+        self.visualizer = visualizer
 
     def MP(self,fun,arg):
         if self.verbose:
             fun(arg)
 
+    """
+    Add a new model to be trained: 
+    :param model_def: can be a json model definition or a Output object 
+    """
     def addModel(self, model_def):
-        """
-        Add a new model to be trained: 
-        :param model_def: can be a json model definition or a Output object 
-        """
         if type(model_def) is neu4mes.Output:
             self.model_def = neu4mes.merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
             self.model_def = neu4mes.merge(self.model_def, model_def) 
         self.MP(pprint,self.model_def)
 
+    """
+    Definition of the network structure through the dependency graph and sampling time. 
+    If a prediction window is also specified, it means that a recurrent network is also to be defined.
+    :param sample_time: the variable defines the rate of the network based on the training set
+    :param prediction_window: the variable defines the prediction horizon in the future
+    """
     def neuralizeModel(self, sample_time = 0, prediction_window = None):
-        """
-        Definition of the network structure through the dependency graph and sampling time. 
-        If a prediction window is also specified, it means that a recurrent network is also to be defined.
-        :param sample_time: the variable defines the rate of the network based on the training set
-        :param prediction_window: the variable defines the prediction horizon in the future
-        """
         # Prediction window is used for the recurrent network
         if prediction_window is not None:
             self.rnn_window = round(prediction_window/sample_time)
@@ -206,10 +224,10 @@ class Neu4mes:
             if key not in self.model_used['Inputs']:
                 if 'Discrete' in val:
                     (self.inputs_for_model[key],self.inputs[key]) = self.discreteInput(key, self.input_n_samples[key], val['Discrete'])
-                    (self.inputs_for_rnn_model[key],self.rnn_inputs[key]) = self.discreteInputRNN(key, self.rnn_window, self.input_n_samples[key], val['Discrete'])
+                    (self.rnn_inputs_for_model[key],self.rnn_inputs[key]) = self.discreteInputRNN(key, self.rnn_window, self.input_n_samples[key], val['Discrete'])
                 else: 
                     (self.inputs_for_model[key],self.inputs[key]) = self.input(key, self.input_n_samples[key])
-                    (self.inputs_for_rnn_model[key],self.rnn_inputs[key]) = self.inputRNN(key, self.rnn_window, self.input_n_samples[key])
+                    (self.rnn_inputs_for_model[key],self.rnn_inputs[key]) = self.inputRNN(key, self.rnn_window, self.input_n_samples[key])
 
                 self.model_used['Inputs'][key]=val
 
@@ -219,7 +237,7 @@ class Neu4mes:
         self.MP(pprint,{"input_ns_forward":self.input_ns_forward})
         self.MP(pprint,{"inputs_for_model":self.inputs_for_model})
         self.MP(pprint,{"inputs":self.inputs})
-        self.MP(pprint,{"inputs_for_rnn_model":self.inputs_for_rnn_model})
+        self.MP(pprint,{"rnn_inputs_for_model":self.rnn_inputs_for_model})
         self.MP(pprint,{"rnn_inputs":self.rnn_inputs})
 
         # Building the elements of the network
@@ -459,7 +477,7 @@ class Neu4mes:
         if self.rnn_window:
             # Create a vector of all the signals in the file + output_relation keys for rnn 
             for key in format+list(self.output_relation.keys()):
-                self.inout_rnn_data_time_window[key] = []
+                self.rnn_inout_data_time_window[key] = []
 
         # Read each file
         for file in files:
@@ -530,18 +548,23 @@ class Neu4mes:
                                 inout_rnn.append(self.input_data[(file,key)][j+self.max_n_samples-1])
                             else:
                                 inout_rnn.append(self.input_data[(file,key)][j+self.max_n_samples-self.input_n_samples[key]:j+self.max_n_samples])
-                        self.inout_rnn_data_time_window[key].append(inout_rnn)
+                        self.rnn_inout_data_time_window[key].append(inout_rnn)
 
                 for idx,key in enumerate(self.output_relation.keys()):
                     for i in range(0, len(self.input_data[(file,self.output_keys[idx])])-self.max_n_samples-self.rnn_window):
                         inout_rnn = []
                         for j in range(i, i+self.rnn_window):
                             inout_rnn.append(self.input_data[(file,self.output_keys[idx])][j+self.max_n_samples])
-                        self.inout_rnn_data_time_window[key].append(inout_rnn)
+                        self.rnn_inout_data_time_window[key].append(inout_rnn)
 
         # Build the asarray for numpy
         for key,data in self.inout_data_time_window.items():
             self.inout_asarray[key]  = np.asarray(data)
+        
+        # Definition of number of samples
+        if self.num_of_samples == None: 
+            keys = list(self.output_relation.keys())
+            self.num_of_samples = len(self.inout_asarray[keys[0]])
 
         # RNN network
         # Build the asarray for numpy
@@ -549,120 +572,197 @@ class Neu4mes:
             for key,data in self.inout_rnn_data_time_window.items():
                 self.inout_rnn_asarray[key]  = np.asarray(data)
 
+    #
+    # Function for cheking the state is an Output
+    #
+    def __checkStates(self, states):
+        state_keys = None
+        if states:
+            state_keys = [key.signal_name if type(key) is neu4mes.Output else Exception("A state is not an Output object") for key in states ]
+        return state_keys
 
-    def trainModel(self, states = None, validation_percentage = 0, show_results = False):
+    #
+    # Function that get specific parameters for training 
+    #
+    def __getTrainParams(self, training_params):
+        if bool(training_params):
+            # Modify the batch_size
+            self.batch_size = (training_params['batch_size'] if 'batch_size' in training_params else self.batch_size) 
+            self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate) 
+            self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs) 
+            self.rnn_learning_rate = (training_params['rnn_learning_rate'] if 'rnn_learning_rate' in training_params else self.rnn_learning_rate) 
+            self.rnn_num_of_epochs = (training_params['rnn_num_of_epochs'] if 'rnn_num_of_epochs' in training_params else self.rnn_num_of_epochs) 
+    
+    """
+    Analysis of the results 
+    :param show_results: it is a boolean for enable the plot of the results
+    """
+    def resultAnalysis(self, show_results):
+        self.net_weights = self.model.get_weights()
+
+        # Rmse training
+        rmse_generator = (rmse_i for i, rmse_i in enumerate(self.fit.history) if i in range(len(self.fit.history)-len(self.model.outputs), len(self.fit.history)))
+        self.performance['rmse_train'] = []
+        for rmse_i in rmse_generator:
+            self.performance['rmse_train'].append(self.fit.history[rmse_i][-1])
+        self.performance['rmse_train'] = np.array(self.performance['rmse_train'])
+
+        # Prediction on test samples
+        self.prediction = self.model([self.inout_4test[key] for key in self.model_def['Inputs'].keys()], training=False) #, callbacks=[NoiseCallback()])
+        self.prediction = np.array(self.prediction)
+        if len(self.prediction.shape) == 2:
+            self.prediction = np.expand_dims(self.prediction, axis=0)
+
+        # List of keys
+        output_keys = list(self.model_def['Outputs'].keys())
+
+        # Performance parameters
+        self.performance['se'] = np.empty([len(output_keys),self.num_of_test_sample])
+        self.performance['mse'] = np.empty([len(output_keys),])
+        self.performance['rmse_test'] = np.empty([len(output_keys),])
+        self.performance['fvu'] = np.empty([len(output_keys),])
+        for i in range(len(output_keys)):
+            # Square error test
+            self.performance['se'][i] = np.square(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten())
+            # Mean square error test
+            self.performance['mse'][i] = np.mean(np.square(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten()))
+            # Rmse test
+            self.performance['rmse_test'][i] = np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten())))
+            # Fraction of variance unexplained (FVU) test
+            self.performance['fvu'][i] = np.var(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten()) / np.var(self.inout_4test[output_keys[i]].flatten())
+        
+        # Index of worst results
+        self.performance['max_se_idxs'] = np.argmax(self.performance['se'], axis=1)        
+
+        # Akaike’s Information Criterion (AIC) test
+        self.performance['aic'] = self.num_of_test_sample * np.log(self.performance['mse']) + 2 * self.model.count_params()
+
+        # Show results 
+        if show_results:
+            self.visualizer.showResults(self, output_keys, performance = self.performance)
+
+    """
+    Training of the model. 
+    :param states: it is a list of a states, the state must be an Output object
+    :param training_params: dict that contains the parameters of training (batch_size, learning rate, etc..)
+    :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
+    :param show_results: it is a boolean for enable the plot of the results
+    """
+    def trainModel(self, states = None, training_params = {}, test_percentage = 0,  show_results = False):
+        # Check input
+        state_keys = self.__checkStates(states)
+        self.__getTrainParams(training_params)
+
         # Divide train and test samples
-        num_of_sample = len(list(self.inout_asarray.values())[0])
-        validation = round(validation_percentage*num_of_sample/100)
-        self.train_idx  = num_of_sample-validation
+        self.num_of_test_sample = round(test_percentage*self.num_of_samples/100)
+        self.num_of_training_sample  = self.num_of_samples-self.num_of_test_sample
 
-        if self.train_idx < self.batch_size or validation < self.batch_size:
-            batch = 1
+        # Definition of the batch size with respect of the test dimensions
+        if self.num_of_training_sample < self.batch_size or self.num_of_test_sample < self.batch_size:
+            self.batch_size = 1
         else:
             # Samples must be multiplier of batch
-            self.train_idx = int(self.train_idx/self.batch_size) * self.batch_size
-            validation  = num_of_sample-self.train_idx
-            validation = int(validation/self.batch_size) * self.batch_size
-
+            self.num_of_training_sample = int(self.num_of_training_sample/self.batch_size) * self.batch_size
+            self.num_of_test_sample = int((self.num_of_samples-self.num_of_training_sample)/self.batch_size) * self.batch_size
+        
+        # Building the dataset structures training and test set
         for key,data in self.inout_asarray.items():
             if len(data.shape) == 1:
-                self.inout_4train[key] = data[0:self.train_idx]
-                self.inout_4validation[key]  = data[self.train_idx:self.train_idx+validation]
+                self.inout_4train[key] = data[0:self.num_of_training_sample]
+                self.inout_4test[key]  = data[self.num_of_training_sample:self.num_of_training_sample+self.num_of_test_sample]
             else:
-                self.inout_4train[key] = data[0:self.train_idx,:]
-                self.inout_4validation[key]  = data[self.train_idx:self.train_idx+validation,:]                
+                self.inout_4train[key] = data[0:self.num_of_training_sample,:]
+                self.inout_4test[key]  = data[self.num_of_training_sample:self.num_of_training_sample+self.num_of_test_sample,:]                
 
-        #print('Samples: ' + str(train+validation) + '/' + str(num_of_sample) + ' (' + str(train) + ' train + ' + str(validation) + ' validation)')
-        #print('Batch: ' + str(self.batch_size))
+        # Print information 
+        self.MP(print, 'Samples: {}/{} (train size: {}, test size: {})'.format(self.num_of_training_sample+self.num_of_test_sample,self.num_of_samples,self.num_of_training_sample,self.num_of_test_sample)) 
+        self.MP(print, 'Batch: {}'.format(self.batch_size))
         
         # Configure model for training
         self.opt = optimizers.Adam(learning_rate = self.learning_rate) #optimizers.Adam(learning_rate=l_rate) #optimizers.RMSprop(learning_rate=lrate, rho=0.4)
         self.model.compile(optimizer = self.opt, loss = 'mean_squared_error', metrics=[rmse])
 
-        # print(self.inout_4train['x'].shape)
-        # Train model
-        #print('[Fitting]')
-        #print(len([self.inout_4train[key] for key in self.model_def['Outputs'].keys()]))
-
+        # Fitting of the network
         self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
                                   [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
                                   epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
         
-        self.net_weights = self.model.get_weights()
-
-        # Rmse training
-        rmse_generator = (rmse_i for i, rmse_i in enumerate(self.fit.history) if i in range(len(self.fit.history)-len(self.model.outputs), len(self.fit.history)))
-        rmse_train = []
-        for rmse_i in rmse_generator:
-            rmse_train.append(self.fit.history[rmse_i][-1])
-        rmse_train = np.array(rmse_train)
-
-        # Prediction on validation samples
-        #print('[Prediction]')
-        self.prediction = self.model([self.inout_4validation[key] for key in self.model_def['Inputs'].keys()], training=False) #, callbacks=[NoiseCallback()])
-        self.prediction = np.array(self.prediction)
-        if len(self.prediction.shape) == 2:
-            self.prediction = np.expand_dims(self.prediction, axis=0)
-
-        key_out = list(self.model_def['Outputs'].keys())
-
-        se         = np.empty([len(key_out),validation])
-        mse        = np.empty([len(key_out),])
-        rmse_valid = np.empty([len(key_out),])
-        fvu        = np.empty([len(key_out),])
-        for i in range(len(key_out)):
-            # Square error validation
-            se[i] = np.square(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten())
-            # Mean square error validation
-            mse[i] = np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten()))
-            # Rmse validation
-            rmse_valid[i] = np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten())))
-            # Fraction of variance unexplained (FVU) validation
-            fvu[i] = np.var(self.prediction[i].flatten() - self.inout_4validation[key_out[i]].flatten()) / np.var(self.inout_4validation[key_out[i]].flatten())
-        self.max_se_idxs = np.argmax(se, axis=1)        
-
-        # Akaike’s Information Criterion (AIC) validation
-        aic = validation * np.log(mse) + 2 * self.model.count_params()
-
-        if show_results:
-            # Plot
-            self.fig, self.ax = plt.subplots(2*self.prediction.shape[0], 2,
-                                             gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*self.prediction.shape[0]})
-            if len(self.ax.shape) == 1:
-                self.ax = np.expand_dims(self.ax, axis=0)
-            #plotsamples = self.prediction.shape[1]
-            plotsamples = 200
-            for i in range(0, self.prediction.shape[0]):
-                # Zoomed validation data
-                self.ax[2*i,0].plot(self.prediction[i].flatten(), linestyle='dashed')
-                self.ax[2*i,0].plot(self.inout_4validation[key_out[i]].flatten())
-                self.ax[2*i,0].grid('on')
-                self.ax[2*i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
-                self.ax[2*i,0].vlines(self.max_se_idxs[i], self.prediction[i][self.max_se_idxs[i]], self.inout_4validation[key_out[i]][self.max_se_idxs[i]],
-                                      colors='r', linestyles='dashed')
-                self.ax[2*i,0].legend(['predicted', 'validation'], prop={'family':'serif'})
-                self.ax[2*i,0].set_title(key_out[i], family='serif')
-                # Statitics
-                self.ax[2*i,1].axis("off")
-                self.ax[2*i,1].invert_yaxis()
-                text = "Rmse training: {:3.6f}\nRmse validation: {:3.6f}\nAIC: {:3.6f}\nFVU: {:3.6f}".format(rmse_train[i], rmse_valid[i], aic[i], fvu[i])
-                self.ax[2*i,1].text(0, 0, text, family='serif', verticalalignment='top')
-                # Validation data
-                self.ax[2*i+1,0].plot(self.prediction[i].flatten(), linestyle='dashed')
-                self.ax[2*i+1,0].plot(self.inout_4validation[key_out[i]].flatten())
-                self.ax[2*i+1,0].grid('on')
-                self.ax[2*i+1,0].legend(['predicted', 'validation'], prop={'family':'serif'})
-                self.ax[2*i+1,0].set_title(key_out[i], family='serif')
-                # Empty
-                self.ax[2*i+1,1].axis("off")
-            self.fig.tight_layout()
-            plt.show()
-       
+        # Analysis of the Result
+        self.resultAnalysis(show_results)
+        
+        # Recurrent training enabling
         if states is not None:
-            self.trainRecurrentModel(states, validation_percentage, show_results)
+            self.trainRecurrentModel(states, test_percentage, show_results)
 
-    def trainRecurrentModel(self, states, validation_percentage = 0, show_results = False):
-        state_keys = [key.signal_name for key in states if type(key) is neu4mes.Output]
+    """
+    Analysis of the results for recurrent network
+    :param show_results: it is a boolean for enable the plot of the results
+    """
+    def resultRecurrentAnalysis(self, state_keys, show_results):
+        # Get the first index from all the data
+        self.first_idx_test = next(x[0] for x in enumerate(self.idx_of_rows) if x[1] > self.num_of_training_sample)
+
+        # define output for each window
+        rnn_output = []
+        for i in range(self.first_idx_test, len(self.idx_of_rows)-1):
+            first_idx = self.idx_of_rows[i]-self.num_of_training_sample
+            last_idx = self.idx_of_rows[i+1]-self.num_of_training_sample
+            # print(last_idx-first_idx)
+            # print(len(self.inout_4test[key][first_idx:-1]))
+            # print(first_idx)
+            # print(last_idx)
+            # print(self.idx_of_rows[i]-self.num_of_training_sample)
+            input = [np.expand_dims(self.inout_4test[key][first_idx],axis = 0) for key in self.model_def['Inputs'].keys()]
+            # print([self.idx_of_rows[i]+1-self.num_of_training_sample,self.idx_of_rows[i+1]-self.num_of_training_sample])
+            for t in range(first_idx+1,last_idx+1): 
+                # print(t)
+                self.rnn_prediction = np.array(self.model(input)) #, callbacks=[NoiseCallback()])
+                # print(self.rnn_prediction)
+                if len(self.rnn_prediction.shape) == 2:
+                    self.rnn_prediction = np.expand_dims(self.rnn_prediction, axis=0)
+
+                if t != last_idx:
+                    for idx, key in enumerate(self.model_def['Inputs'].keys()):
+                        # print('------------------------------')
+                        if key in state_keys:
+                            idx_out = self.output_keys.index(key)
+                            input[idx] = np.append(input[idx][:,1:],self.rnn_prediction[idx_out], axis = 1)
+                            
+                            # print(self.rnn_prediction[idx_out])
+                            # print(input[idx])
+                            
+                        else:
+                            input[idx] = np.expand_dims(self.inout_4test[key][t], axis = 0)  
+                    # print('------------------------------')                
+                
+                rnn_output.append(self.rnn_prediction)
+        
+        key = list(self.model_def['Outputs'].keys())
+        # print(state_keys)
+        # print(rnn_output)
+        rnn_output = np.asarray(rnn_output)
+        # print(rnn_output.shape)
+        # print(len(self.output_keys))
+        rnn_output = np.transpose(rnn_output.reshape((-1,len(self.output_keys))))
+        # print(rnn_output.shape)
+        # print(rnn_output[0].shape)
+        #print(rnn_output)
+        # print(self.inout_4test[key[0]].shape)
+        # print(self.inout_4test[key[0]][self.idx_of_rows[first_idx_test]-self.num_of_training_sample:].shape)
+        # print(self.inout_4test[key[0]][self.idx_of_rows[first_idx_test]-self.num_of_training_sample-1:-1].flatten().shape)
+
+        # Analysis of the Result
+        self.visualizer.showRecurrentResults(self, self.output_keys, performance = self.performance)
+
+    """
+    Reccurrent training of the model. 
+    :param states: it is a list of a states, the state must be an Output object
+    :param training_params: dict that contains the parameters of training (batch_size, learning rate, etc..)
+    :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
+    :param show_results: it is a boolean for enable the plot of the results
+    """
+    def trainRecurrentModel(self, states, training_params = {}, test_percentage = 0, show_results = False):
+        state_keys = self.__checkStates(states)
         states_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key in state_keys]
         inputs_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
         state_vector = [1 if key in state_keys else 0 for key in self.model_def['Inputs'].keys()]
@@ -673,145 +773,56 @@ class Neu4mes:
         # print(inputs_size)
 
         for key in state_keys:
-            self.init_rnn_state[key] = tensorflow.keras.layers.Lambda(lambda x: x[:,0,:], name=key+'_init_state')(self.rnn_inputs[key])
+            self.rnn_init_state[key] = tensorflow.keras.layers.Lambda(lambda x: x[:,0,:], name=key+'_init_state')(self.rnn_inputs[key])
         # print(self.init_rnn_state)
 
-        initial_state_rnn = [self.init_rnn_state[key] for key in state_keys]
+        rnn_initial_state = [self.rnn_init_state[key] for key in state_keys]
         # print(initial_state_rnn)
         inputs = [self.rnn_inputs[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
         # print(inputs)
-        out_x_rnn = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(inputs), initial_state=initial_state_rnn)
+        out_x_rnn = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(inputs), initial_state=rnn_initial_state)
         # splited_out = tensorflow.keras.layers.Lambda(lambda tensor: tf.split(tensor, num_or_size_splits=len(states_size), axis = 2))(out_x_rnn)
         splited_out = []
         for idx in range(len(self.model_def['Outputs'])):
             splited_out.append(out_x_rnn[:,:,idx])
 
-        self.rnn_model = tensorflow.keras.models.Model(inputs=[val for key,val in self.inputs_for_rnn_model.items()], outputs=splited_out)
+        self.rnn_model = tensorflow.keras.models.Model(inputs=[val for key,val in self.rnn_inputs_for_model.items()], outputs=splited_out)
         print(self.rnn_model.summary())
 
-        self.rnn_opt = optimizers.Adam(learning_rate = self.learning_rate_rnn)
+        self.rnn_opt = optimizers.Adam(learning_rate = self.rnn_learning_rate)
         self.rnn_model.compile(optimizer = self.opt, loss = 'mean_squared_error', metrics=[rmse])
         self.rnn_model.set_weights(self.net_weights)
 
         # Divide train and test samples
         num_of_sample = len(list(self.inout_rnn_asarray.values())[0])
-        validation = round(validation_percentage*num_of_sample/100)
-        training  = num_of_sample-validation
+        test = round(test_percentage*num_of_sample/100)
+        training  = num_of_sample-test
 
-        if training < self.batch_size or validation < self.batch_size:
+        if training < self.batch_size or test < self.batch_size:
             batch = 1
         else:
             # Samples must be multiplier of batch
             training = int(training/self.batch_size) * self.batch_size
-            validation  = num_of_sample-training
-            validation = int(validation/self.batch_size) * self.batch_size
+            test  = num_of_sample-training
+            test = int(test/self.batch_size) * self.batch_size
 
-        for key,data in self.inout_rnn_asarray.items():
+        for key,data in self.rnn_inout_asarray.items():
             if len(data.shape) == 1:
-                self.inout_rnn_4train[key] = data[0:training]
-                self.inout_rnn_4validation[key]  = data[training:training+validation]
+                self.rnn_inout_4train[key] = data[0:training]
+                self.rnn_inout_4test[key]  = data[training:training+test]
             else:
-                self.inout_rnn_4train[key] = data[0:training,:]
-                self.inout_rnn_4validation[key]  = data[training:training+validation,:]
+                self.rnn_inout_4train[key] = data[0:training,:]
+                self.rnn_inout_4test[key]  = data[training:training+test,:]
 
-        self.fit = self.rnn_model.fit([self.inout_rnn_4train[key] for key in self.model_def['Inputs'].keys()],
-                                        [self.inout_rnn_4train[key] for key in self.model_def['Outputs'].keys()],
-                                        epochs = self.num_of_epochs_rnn, batch_size = self.batch_size, verbose=1)
+        self.fit = self.rnn_model.fit([self.rnn_inout_4train[key] for key in self.model_def['Inputs'].keys()],
+                                        [self.rnn_inout_4train[key] for key in self.model_def['Outputs'].keys()],
+                                        epochs = self.rnn_num_of_epochs, batch_size = self.batch_size, verbose=1)
 
         # print(self.model.get_weights())             
         # print(self.rnn_model.get_weights())  
-        first_idx_validation = next(x[0] for x in enumerate(self.idx_of_rows) if x[1] > self.train_idx)
-        # print(first_idx_validation)
+        # print(first_idx_test)
         if show_results:
-            print('[Prediction]')
-            self.output_rnn = []
-            for i in range(first_idx_validation, len(self.idx_of_rows)-1):
-                first_idx = self.idx_of_rows[i]-self.train_idx
-                last_idx = self.idx_of_rows[i+1]-self.train_idx
-                # print(last_idx-first_idx)
-                # print(len(self.inout_4validation[key][first_idx:-1]))
-                # print(first_idx)
-                # print(last_idx)
-                # print(self.idx_of_rows[i]-self.train_idx)
-                input = [np.expand_dims(self.inout_4validation[key][first_idx],axis = 0) for key in self.model_def['Inputs'].keys()]
-                # print([self.idx_of_rows[i]+1-self.train_idx,self.idx_of_rows[i+1]-self.train_idx])
-                for t in range(first_idx+1,last_idx+1): 
-                    # print(t)
-                    self.rnn_prediction = np.array(self.model(input)) #, callbacks=[NoiseCallback()])
-                    # print(self.rnn_prediction)
-                    if len(self.rnn_prediction.shape) == 2:
-                        self.rnn_prediction = np.expand_dims(self.rnn_prediction, axis=0)
-
-                    if t != last_idx:
-                        for idx, key in enumerate(self.model_def['Inputs'].keys()):
-                            # print('------------------------------')
-                            if key in state_keys:
-                                idx_out = self.output_keys.index(key)
-                                input[idx] = np.append(input[idx][:,1:],self.rnn_prediction[idx_out], axis = 1)
-                                
-                                # print(self.rnn_prediction[idx_out])
-                                # print(input[idx])
-                                
-                            else:
-                                input[idx] = np.expand_dims(self.inout_4validation[key][t], axis = 0)  
-                        # print('------------------------------')                
-                    
-                    self.output_rnn.append(self.rnn_prediction)
-            
-            key = list(self.model_def['Outputs'].keys())
-            # print(state_keys)
-            # print(self.output_rnn)
-            self.output_rnn = np.asarray(self.output_rnn)
-            # print(self.output_rnn.shape)
-            # print(len(self.output_keys))
-            self.output_rnn = np.transpose(self.output_rnn.reshape((-1,len(self.output_keys))))
-            # print(self.output_rnn.shape)
-            # print(self.output_rnn[0].shape)
-            #print(self.output_rnn)
-            # print(self.inout_4validation[key[0]].shape)
-            # print(self.inout_4validation[key[0]][self.idx_of_rows[first_idx_validation]-self.train_idx:].shape)
-            # print(self.inout_4validation[key[0]][self.idx_of_rows[first_idx_validation]-self.train_idx-1:-1].flatten().shape)
-
-            
-
-            # Plot
-            self.fig, self.ax = plt.subplots(2*len(key), 2, gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*len(key)})
-            if len(self.ax.shape) == 1:
-                self.ax = np.expand_dims(self.ax, axis=0)
-            #plotsamples = self.prediction.shape[1]
-            plotsamples = 200
-            for i in range(0, len(key)):
-                # Zoomed validation data
-                self.ax[2*i,0].plot(self.output_rnn[i].flatten(), linestyle='dashed')
-                self.ax[2*i,0].plot(self.inout_4validation[key[i]][self.idx_of_rows[first_idx_validation]-self.train_idx:].flatten())
-                self.ax[2*i,0].grid('on')
-                # self.ax[2*i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
-                # self.ax[2*i,0].vlines(self.max_se_idxs[i], self.output_rnn[i][self.max_se_idxs[i]], self.inout_4validation[key[i]][self.max_se_idxs[i]], colors='r', linestyles='dashed')
-                self.ax[2*i,0].legend(['predicted', 'validation'], prop={'family':'serif'})
-                self.ax[2*i,0].set_title(key[i], family='serif')
-                # Statitics
-                self.ax[2*i,1].axis("off")
-                self.ax[2*i,1].invert_yaxis()
-                # text = "Rmse: {:3.4f}".format(pred_rmse[i])
-                # self.ax[2*i,1].text(0, 0, text, family='serif', verticalalignment='top')
-                # Validation data
-                self.ax[2*i+1,0].plot(self.output_rnn[i].flatten(), linestyle='dashed')
-                self.ax[2*i+1,0].plot(self.inout_4validation[key[i]][self.idx_of_rows[first_idx_validation]-self.train_idx:-1].flatten())
-                self.ax[2*i+1,0].grid('on')
-                self.ax[2*i+1,0].legend(['predicted', 'validation'], prop={'family':'serif'})
-                self.ax[2*i+1,0].set_title(key[i], family='serif')
-                # Empty
-                self.ax[2*i+1,1].axis("off")
-            self.fig.tight_layout()
-            plt.show()
-
-
-    #def __updateSlider(val, i):
-    #    pos = self.spos.val
-    #    plotsamples = self.prediction.shape[1]
-    #    for i in range(self.prediction.shape[0]):
-    #        self.ax[i].axis([pos-plotsamples/10,pos+plotsamples/10,1])
-    #    self.fig.canvas.draw_idle()
+            self.resultRecurrentAnalysis(self, state_keys, show_results)
 
     # def controlDefinition(control):
     #     pass

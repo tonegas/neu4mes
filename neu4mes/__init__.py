@@ -22,7 +22,7 @@ from neu4mes.output import Output
 from neu4mes.linear import Linear, LinearBias
 from neu4mes.localmodel import LocalModel
 from neu4mes.relu import Relu 
-from neu4mes.arithmetic import Sum, Subtract, Minus
+from neu4mes.arithmetic import Sum, Subtract, Minus, Square
 from neu4mes.trigonometric import Sin, Cos, Tan
 
 import os, os.path

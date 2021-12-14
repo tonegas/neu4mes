@@ -7,7 +7,7 @@ import tensorflow.keras.backend as K
 sum_relation_name = 'Sum'
 minus_relation_name = 'Minus'
 subtract_relation_name = 'Subtract'
-# pow_relation_name = 'Pow'
+square_relation_name = 'Square'
 
 class Sum(neu4mes.Relation):
     def __init__(self, obj1, obj2):
@@ -56,16 +56,16 @@ class Minus(neu4mes.Relation):
             minus_relation_name:[obj_name]
         }
 
-# class Pow(neu4mes.Relation):
-#     def __init__(self, obj, val):
-#         if obj is None:
-#             return
-#         super().__init__(obj.json)
-#         obj_name = obj.name
-#         self.name = obj.name+'_pow'
-#         self.json['Relations'][self.name] = {
-#             pow_relation_name:[(obj_name,val)]
-#         }
+class Square(neu4mes.Relation):
+    def __init__(self, obj):
+        if obj is None:
+            return
+        super().__init__(obj.json)
+        obj_name = obj.name
+        self.name = obj.name+'_square'
+        self.json['Relations'][self.name] = {
+            square_relation_name:[obj_name]
+        }
 
 def createMinus(self, name, input):
     return -input
@@ -76,10 +76,10 @@ def createSum(self, name, input):
 def createSubtract(self, name, input):
     return tensorflow.keras.layers.Subtract(name = name)(input)
 
-# def createPow(self, name, input):
-#     return K.pow(name = name)(input[0],input[1])
+def createSquare(self, name, input):
+    return K.pow(input,2)
 
 setattr(neu4mes.Neu4mes, minus_relation_name, createMinus)
 setattr(neu4mes.Neu4mes, sum_relation_name, createSum)
 setattr(neu4mes.Neu4mes, subtract_relation_name, createSubtract)
-# setattr(neu4mes.Neu4mes, pow_relation_name, createPow)
+setattr(neu4mes.Neu4mes, square_relation_name, createSquare)

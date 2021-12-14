@@ -261,3 +261,4 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         self.assertEqual((9,),test.inout_asarray['out__-z1'].shape)
         self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out__-z1'].tolist())
+

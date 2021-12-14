@@ -18,7 +18,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in1': 5} , test.input_n_samples)
         
         self.assertEqual([None,5] ,list(test.inputs_for_model['in1'].shape))
-        self.assertEqual([None,None,5] ,list(test.inputs_for_rnn_model['in1'].shape))
+        self.assertEqual([None,None,5] ,list(test.rnn_inputs_for_model['in1'].shape))
 
 
     def test_network_building_discrete_input_and_local_model(self):
@@ -65,8 +65,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         
         self.assertEqual([None,5] ,list(test.inputs_for_model['in1'].shape))
         self.assertEqual([None,7] ,list(test.inputs_for_model['in2'].shape))
-        self.assertEqual([None,None,5] ,list(test.inputs_for_rnn_model['in1'].shape))
-        self.assertEqual([None,None,7] ,list(test.inputs_for_rnn_model['in2'].shape))
+        self.assertEqual([None,None,5] ,list(test.rnn_inputs_for_model['in1'].shape))
+        self.assertEqual([None,None,7] ,list(test.rnn_inputs_for_model['in2'].shape))
         self.assertEqual([None,5] ,list(test.inputs['in1'].shape))
         self.assertEqual([None,7] ,list(test.inputs['in2'].shape))    
         self.assertEqual([None,5] ,list(test.inputs[('in1',5)].shape))
@@ -104,7 +104,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 8} , test.input_n_samples)
         
         self.assertEqual([None,8] ,list(test.inputs_for_model['in2'].shape))
-        self.assertEqual([None,None,8] ,list(test.inputs_for_rnn_model['in2'].shape))
+        self.assertEqual([None,None,8] ,list(test.rnn_inputs_for_model['in2'].shape))
         self.assertEqual([None,8] ,list(test.inputs['in2'].shape))    
         self.assertEqual([None,5] ,list(test.inputs[('in2',5)].shape))
         self.assertEqual([None,4] ,list(test.inputs[('in2',(2,2))].shape))
@@ -136,7 +136,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 8} , test.input_n_samples)
         
         self.assertEqual([None,8] ,list(test.inputs_for_model['in2'].shape))
-        self.assertEqual([None,None,8] ,list(test.inputs_for_rnn_model['in2'].shape))
+        self.assertEqual([None,None,8] ,list(test.rnn_inputs_for_model['in2'].shape))
         self.assertEqual([None,8] ,list(test.inputs['in2'].shape))    
         self.assertEqual([None,5] ,list(test.inputs[('in2',5)].shape))
         self.assertEqual([None,4] ,list(test.inputs[('in2',(1,3))].shape))
