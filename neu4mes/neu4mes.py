@@ -113,6 +113,7 @@ class Neu4mes:
         # Models of the framework
         self.model = None                   # NN model - Keras model
         self.rnn_model = None               # RNN model - Keras model
+        self.net_weights = None             # NN weights
 
         # Optimizer parameters 
         self.opt = None                     # NN model - Keras Optimizer
@@ -127,28 +128,29 @@ class Neu4mes:
         self.num_of_samples = None          # number of rows of the file
         self.num_of_training_sample = 0     # number of rows for training
 
-        self.idx_of_rows = [0]              # ??? 
+        self.idx_of_rows = [0]              # Index identifying each file start 
+        self.first_idx_test = 0             # Index identifying the first test 
 
         # Training params
         self.batch_size = 128                               # batch size
         self.learning_rate = 0.0005                         # learning rate for NN
         self.num_of_epochs = 300                            # number of epochs
-        self.rnn_window = None                              # window of the rnn network
+        self.rnn_batch_size = self.batch_size               # batch size for RNN
+        self.rnn_window = None                              # window of the RNN
         self.rnn_learning_rate = self.learning_rate/10000   # learning rate for RNN
         self.rnn_num_of_epochs = 50                         # number of epochs for RNN
         
         # Training dataset
-        self.inout_4train = {}
-        self.inout_4test = {}
-        self.rnn_inout_4train = {}
-        self.rnn_inout_4test = {}
-        self.first_idx_test = 0
+        self.inout_4train = {}                              # Dataset for training NN
+        self.inout_4test = {}                               # Dataset for test NN
+        self.rnn_inout_4train = {}                          # Dataset for training RNN
+        self.rnn_inout_4test = {}                           # Dataset for test RNN
 
         # Training performance
-        self.performance = {}
+        self.performance = {}                               # Dict with performance parameters for NN
 
         # Visualizer
-        self.visualizer = visualizer
+        self.visualizer = visualizer                        # Class for visualizing data
 
     def MP(self,fun,arg):
         if self.verbose:
@@ -175,6 +177,7 @@ class Neu4mes:
         # Prediction window is used for the recurrent network
         if prediction_window is not None:
             self.rnn_window = round(prediction_window/sample_time)
+            assert prediction_window >= sample_time
 
         # Sample time is used to define the number of sample for each time window
         if sample_time:
@@ -459,6 +462,8 @@ class Neu4mes:
     def loadData(self, format, folder = './data', skiplines = 0, delimiters=['\t',';',',']):
         path, dirs, files = next(os.walk(folder))
         file_count = len(files)
+
+        self.MP(print, "Total number of files: {}".format(file_count))
         
         # Get the list of the output keys
         for idx,key in enumerate(self.output_relation.keys()):
@@ -525,6 +530,7 @@ class Neu4mes:
                 for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples+add_sample_forward):
                     self.inout_data_time_window[key].append(self.input_data[(file,used_key)][i+self.max_n_samples-self.max_samples_forward])
             
+            # Index identifying each file start 
             self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
 
             # RNN network
@@ -538,7 +544,7 @@ class Neu4mes:
                         for j in range(i, i+self.rnn_window):
                             inout_rnn.append(self.input_data[(file,'time')][j:j+self.max_n_samples])
 
-                        self.inout_rnn_data_time_window['time'].append(inout_rnn)
+                        self.rnn_inout_data_time_window['time'].append(inout_rnn)
                 
                 for key in self.input_n_samples.keys():
                     for i in range(0, len(self.input_data[(file,key)])-self.max_n_samples-self.rnn_window):
@@ -567,10 +573,12 @@ class Neu4mes:
             self.num_of_samples = len(self.inout_asarray[keys[0]])
 
         # RNN network
-        # Build the asarray for numpy
+        # Build the asarray for numpy and definition of the number of samples
         if self.rnn_window:
-            for key,data in self.inout_rnn_data_time_window.items():
-                self.inout_rnn_asarray[key]  = np.asarray(data)
+            for key,data in self.rnn_inout_data_time_window.items():
+                self.rnn_inout_asarray[key]  = np.asarray(data)
+            keys = list(self.output_relation.keys())
+            self.rnn_num_of_samples = len(self.rnn_inout_asarray[keys[0]])
 
     #
     # Function for cheking the state is an Output
@@ -586,20 +594,17 @@ class Neu4mes:
     #
     def __getTrainParams(self, training_params):
         if bool(training_params):
-            # Modify the batch_size
             self.batch_size = (training_params['batch_size'] if 'batch_size' in training_params else self.batch_size) 
             self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate) 
             self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs) 
+            self.rnn_batch_size = (training_params['rnn_batch_size'] if 'rnn_batch_size' in training_params else self.rnn_batch_size) 
             self.rnn_learning_rate = (training_params['rnn_learning_rate'] if 'rnn_learning_rate' in training_params else self.rnn_learning_rate) 
             self.rnn_num_of_epochs = (training_params['rnn_num_of_epochs'] if 'rnn_num_of_epochs' in training_params else self.rnn_num_of_epochs) 
     
     """
     Analysis of the results 
-    :param show_results: it is a boolean for enable the plot of the results
     """
-    def resultAnalysis(self, show_results):
-        self.net_weights = self.model.get_weights()
-
+    def resultAnalysis(self):
         # Rmse training
         rmse_generator = (rmse_i for i, rmse_i in enumerate(self.fit.history) if i in range(len(self.fit.history)-len(self.model.outputs), len(self.fit.history)))
         self.performance['rmse_train'] = []
@@ -608,8 +613,8 @@ class Neu4mes:
         self.performance['rmse_train'] = np.array(self.performance['rmse_train'])
 
         # Prediction on test samples
-        self.prediction = self.model([self.inout_4test[key] for key in self.model_def['Inputs'].keys()], training=False) #, callbacks=[NoiseCallback()])
-        self.prediction = np.array(self.prediction)
+        prediction = self.model([self.inout_4test[key] for key in self.model_def['Inputs'].keys()], training=False) #, callbacks=[NoiseCallback()])
+        self.prediction = np.array(prediction)
         if len(self.prediction.shape) == 2:
             self.prediction = np.expand_dims(self.prediction, axis=0)
 
@@ -637,9 +642,7 @@ class Neu4mes:
         # Akaike’s Information Criterion (AIC) test
         self.performance['aic'] = self.num_of_test_sample * np.log(self.performance['mse']) + 2 * self.model.count_params()
 
-        # Show results 
-        if show_results:
-            self.visualizer.showResults(self, output_keys, performance = self.performance)
+        self.visualizer.showResults(self, output_keys, performance = self.performance)
 
     """
     Training of the model. 
@@ -686,70 +689,54 @@ class Neu4mes:
         self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
                                   [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
                                   epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
-        
-        # Analysis of the Result
-        self.resultAnalysis(show_results)
+        self.net_weights = self.model.get_weights()
+
+        # Show the analysis of the Result
+        if show_results:
+            self.resultAnalysis()
         
         # Recurrent training enabling
         if states is not None:
-            self.trainRecurrentModel(states, test_percentage, show_results)
+            self.trainRecurrentModel(states, test_percentage = test_percentage, show_results = show_results)
 
     """
     Analysis of the results for recurrent network
-    :param show_results: it is a boolean for enable the plot of the results
+    :param states: it is a list of a states, the state must be an Output object
     """
-    def resultRecurrentAnalysis(self, state_keys, show_results):
+    def resultRecurrentAnalysis(self, states):
+        # Check input
+        state_keys = self.__checkStates(states)
+
         # Get the first index from all the data
         self.first_idx_test = next(x[0] for x in enumerate(self.idx_of_rows) if x[1] > self.num_of_training_sample)
 
-        # define output for each window
-        rnn_output = []
+        # Define output for each window
+        rnn_prediction = []
         for i in range(self.first_idx_test, len(self.idx_of_rows)-1):
             first_idx = self.idx_of_rows[i]-self.num_of_training_sample
             last_idx = self.idx_of_rows[i+1]-self.num_of_training_sample
-            # print(last_idx-first_idx)
-            # print(len(self.inout_4test[key][first_idx:-1]))
-            # print(first_idx)
-            # print(last_idx)
-            # print(self.idx_of_rows[i]-self.num_of_training_sample)
             input = [np.expand_dims(self.inout_4test[key][first_idx],axis = 0) for key in self.model_def['Inputs'].keys()]
-            # print([self.idx_of_rows[i]+1-self.num_of_training_sample,self.idx_of_rows[i+1]-self.num_of_training_sample])
+
             for t in range(first_idx+1,last_idx+1): 
-                # print(t)
-                self.rnn_prediction = np.array(self.model(input)) #, callbacks=[NoiseCallback()])
-                # print(self.rnn_prediction)
-                if len(self.rnn_prediction.shape) == 2:
-                    self.rnn_prediction = np.expand_dims(self.rnn_prediction, axis=0)
+                rnn_output = np.array(self.model(input)) #, callbacks=[NoiseCallback()])
+                if len(rnn_output.shape) == 2:
+                    rnn_output = np.expand_dims(rnn_output, axis=0)
 
                 if t != last_idx:
                     for idx, key in enumerate(self.model_def['Inputs'].keys()):
-                        # print('------------------------------')
                         if key in state_keys:
                             idx_out = self.output_keys.index(key)
-                            input[idx] = np.append(input[idx][:,1:],self.rnn_prediction[idx_out], axis = 1)
-                            
-                            # print(self.rnn_prediction[idx_out])
-                            # print(input[idx])
-                            
+                            input[idx] = np.append(input[idx][:,1:],rnn_output[idx_out], axis = 1)
                         else:
-                            input[idx] = np.expand_dims(self.inout_4test[key][t], axis = 0)  
-                    # print('------------------------------')                
+                            input[idx] = np.expand_dims(self.inout_4test[key][t], axis = 0)               
                 
-                rnn_output.append(self.rnn_prediction)
+                rnn_prediction.append(rnn_output)
         
         key = list(self.model_def['Outputs'].keys())
-        # print(state_keys)
-        # print(rnn_output)
-        rnn_output = np.asarray(rnn_output)
-        # print(rnn_output.shape)
-        # print(len(self.output_keys))
-        rnn_output = np.transpose(rnn_output.reshape((-1,len(self.output_keys))))
-        # print(rnn_output.shape)
-        # print(rnn_output[0].shape)
-        #print(rnn_output)
-        # print(self.inout_4test[key[0]].shape)
-        # print(self.inout_4test[key[0]][self.idx_of_rows[first_idx_test]-self.num_of_training_sample:].shape)
-        # print(self.inout_4test[key[0]][self.idx_of_rows[first_idx_test]-self.num_of_training_sample-1:-1].flatten().shape)
+        rnn_prediction = np.asarray(rnn_prediction)
+
+        # Final prediction for whole test set
+        self.rnn_prediction = np.transpose(rnn_prediction.reshape((-1,len(self.output_keys))))
 
         # Analysis of the Result
         self.visualizer.showRecurrentResults(self, self.output_keys, performance = self.performance)
@@ -762,67 +749,88 @@ class Neu4mes:
     :param show_results: it is a boolean for enable the plot of the results
     """
     def trainRecurrentModel(self, states, training_params = {}, test_percentage = 0, show_results = False):
+        # Check input
         state_keys = self.__checkStates(states)
+        self.__getTrainParams(training_params)
+
+        # Definition of sizes
         states_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key in state_keys]
         inputs_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
+        # This boolean vector representing if the input is also a state
         state_vector = [1 if key in state_keys else 0 for key in self.model_def['Inputs'].keys()]
+        # Creation of the RNN cell
         rnn_cell = RNNCell(self.model, state_vector, states_size, inputs_size)
-        # print(self.inputs_for_rnn_model)
-        # print(state_keys)
-        # print(states_size)
-        # print(inputs_size)
+        
+        self.MP(print, 'state_keys: {}'.format(state_keys))
+        self.MP(print, 'inputs_size: {}'.format(inputs_size))
+        self.MP(print, 'states_size: {}'.format(states_size))
+        self.MP(print, 'state_vector: {}'.format(state_vector))
 
+        # Inizialization of the initial state for the states
         for key in state_keys:
             self.rnn_init_state[key] = tensorflow.keras.layers.Lambda(lambda x: x[:,0,:], name=key+'_init_state')(self.rnn_inputs[key])
-        # print(self.init_rnn_state)
-
         rnn_initial_state = [self.rnn_init_state[key] for key in state_keys]
-        # print(initial_state_rnn)
+
+        # Definition of the input of a recurrent cell network
         inputs = [self.rnn_inputs[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
-        # print(inputs)
-        out_x_rnn = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(inputs), initial_state=rnn_initial_state)
+
+        # Creation of the RNN node
+        rnn_out = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(inputs), initial_state=rnn_initial_state)
+
+        self.MP(pprint,{"rnn_init_state":self.rnn_init_state})
+        self.MP(pprint,{"rnn_initial_state":rnn_initial_state})        
+        self.MP(pprint,{"inputs":inputs})
+
         # splited_out = tensorflow.keras.layers.Lambda(lambda tensor: tf.split(tensor, num_or_size_splits=len(states_size), axis = 2))(out_x_rnn)
         splited_out = []
         for idx in range(len(self.model_def['Outputs'])):
-            splited_out.append(out_x_rnn[:,:,idx])
+            splited_out.append(rnn_out[:,:,idx])
 
+        self.MP(pprint,{"splited_out":splited_out})
+        
+        # Creation of the RNN model
         self.rnn_model = tensorflow.keras.models.Model(inputs=[val for key,val in self.rnn_inputs_for_model.items()], outputs=splited_out)
         print(self.rnn_model.summary())
 
-        self.rnn_opt = optimizers.Adam(learning_rate = self.rnn_learning_rate)
-        self.rnn_model.compile(optimizer = self.opt, loss = 'mean_squared_error', metrics=[rmse])
-        self.rnn_model.set_weights(self.net_weights)
-
         # Divide train and test samples
-        num_of_sample = len(list(self.inout_rnn_asarray.values())[0])
-        test = round(test_percentage*num_of_sample/100)
-        training  = num_of_sample-test
+        self.rnn_num_of_test_sample = round(test_percentage*self.rnn_num_of_samples/100)
+        self.rnn_num_of_training_sample = self.rnn_num_of_samples-self.rnn_num_of_test_sample
 
-        if training < self.batch_size or test < self.batch_size:
-            batch = 1
+        # Definition of the batch size with respect of the test dimensions
+        if self.rnn_num_of_training_sample < self.rnn_batch_size or self.rnn_num_of_test_sample < self.rnn_batch_size:
+            self.rnn_batch_size = 1
         else:
             # Samples must be multiplier of batch
-            training = int(training/self.batch_size) * self.batch_size
-            test  = num_of_sample-training
-            test = int(test/self.batch_size) * self.batch_size
+            self.rnn_num_of_training_sample = int(self.rnn_num_of_training_sample/self.rnn_batch_size) * self.rnn_batch_size
+            self.rnn_num_of_test_sample = int((self.rnn_num_of_samples - self.rnn_num_of_training_sample)/self.rnn_batch_size) * self.rnn_batch_size
 
+        # Building the dataset structures training and test set
         for key,data in self.rnn_inout_asarray.items():
             if len(data.shape) == 1:
-                self.rnn_inout_4train[key] = data[0:training]
-                self.rnn_inout_4test[key]  = data[training:training+test]
+                self.rnn_inout_4train[key] = data[0:self.rnn_num_of_training_sample]
+                self.rnn_inout_4test[key]  = data[self.rnn_num_of_training_sample:self.rnn_num_of_training_sample+self.rnn_num_of_test_sample]
             else:
-                self.rnn_inout_4train[key] = data[0:training,:]
-                self.rnn_inout_4test[key]  = data[training:training+test,:]
+                self.rnn_inout_4train[key] = data[0:self.rnn_num_of_training_sample,:]
+                self.rnn_inout_4test[key]  = data[self.rnn_num_of_training_sample:self.rnn_num_of_training_sample+self.rnn_num_of_test_sample,:]       
 
+        # Print information 
+        self.MP(print, 'RNN Samples: {}/{} (train size: {}, test size: {})'.format(self.rnn_num_of_training_sample+self.rnn_num_of_test_sample,self.rnn_num_of_samples,self.rnn_num_of_training_sample,self.rnn_num_of_test_sample)) 
+        self.MP(print, 'RNN Batch: {}'.format(self.rnn_batch_size))
+        
+        # Configure rnn model for training
+        self.rnn_opt = optimizers.Adam(learning_rate = self.rnn_learning_rate)
+        self.rnn_model.compile(optimizer = self.rnn_opt, loss = 'mean_squared_error', metrics=[rmse])
+        if self.net_weights:
+            self.rnn_model.set_weights(self.net_weights)
+
+        # Fitting of the network
         self.fit = self.rnn_model.fit([self.rnn_inout_4train[key] for key in self.model_def['Inputs'].keys()],
-                                        [self.rnn_inout_4train[key] for key in self.model_def['Outputs'].keys()],
-                                        epochs = self.rnn_num_of_epochs, batch_size = self.batch_size, verbose=1)
+                                    [self.rnn_inout_4train[key] for key in self.model_def['Outputs'].keys()],
+                                    epochs = self.rnn_num_of_epochs, batch_size = self.rnn_batch_size, verbose=1)
 
-        # print(self.model.get_weights())             
-        # print(self.rnn_model.get_weights())  
-        # print(first_idx_test)
+        # Show the analysis of the Result
         if show_results:
-            self.resultRecurrentAnalysis(self, state_keys, show_results)
+            self.resultRecurrentAnalysis(states)
 
     # def controlDefinition(control):
     #     pass

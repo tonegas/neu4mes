@@ -52,7 +52,7 @@ class StandardVisualizer(Visualizer):
         plotsamples = 200
         for i in range(0, len(output_keys)):
             # Zoomed test data
-            self.ax[2*i,0].plot(neu4mes.rnn_output[i].flatten(), linestyle='dashed')
+            self.ax[2*i,0].plot(neu4mes.rnn_prediction[i].flatten(), linestyle='dashed')
             self.ax[2*i,0].plot(neu4mes.inout_4test[output_keys[i]][neu4mes.idx_of_rows[neu4mes.first_idx_test]-neu4mes.num_of_training_sample:].flatten())
             self.ax[2*i,0].grid('on')
             # self.ax[2*i,0].set_xlim((self.max_se_idxs[i]-plotsamples, self.max_se_idxs[i]+plotsamples))
@@ -65,7 +65,7 @@ class StandardVisualizer(Visualizer):
             # text = "Rmse: {:3.4f}".format(pred_rmse[i])
             # self.ax[2*i,1].text(0, 0, text, family='serif', verticalalignment='top')
             # test data
-            self.ax[2*i+1,0].plot(neu4mes.rnn_output[i].flatten(), linestyle='dashed')
+            self.ax[2*i+1,0].plot(neu4mes.rnn_prediction[i].flatten(), linestyle='dashed')
             self.ax[2*i+1,0].plot(neu4mes.inout_4test[output_keys[i]][neu4mes.idx_of_rows[neu4mes.first_idx_test]-neu4mes.num_of_training_sample:-1].flatten())
             self.ax[2*i+1,0].grid('on')
             self.ax[2*i+1,0].legend(['predicted', 'test'], prop={'family':'serif'})
