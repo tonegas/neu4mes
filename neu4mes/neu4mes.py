@@ -16,7 +16,7 @@ import random
 import string
 
 import neu4mes 
-from neu4mes.visualizer import StandardVisualizer
+from neu4mes.visualizer import TextVisualizer
 
 import random
 
@@ -74,7 +74,7 @@ class RNNCell(tensorflow.keras.layers.Layer):
         pass
 
 class Neu4mes:
-    def __init__(self, model_def = 0, verbose = False, visualizer = StandardVisualizer()):
+    def __init__(self, model_def = 0, verbose = False, visualizer = TextVisualizer()):
         # Set verbose print inside the class
         self.verbose = verbose
 

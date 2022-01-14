@@ -1,15 +1,23 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 class Visualizer():
     def showResults(self, neu4mes, output_keys, performance = None):
         pass
 
+class TextVisualizer(Visualizer):
+    def showResults(self, neu4mes, output_keys, performance = None):
+        for i in range(0, neu4mes.prediction.shape[0]):
+            text = "Rmse training: {:3.6f}\nRmse test: {:3.6f}\nAIC: {:3.6f}\nFVU: {:3.6f}".format(neu4mes.performance['rmse_train'][i], neu4mes.performance['rmse_test'][i], neu4mes.performance['aic'][i], neu4mes.performance['fvu'][i])
+            print(text)
 
 class StandardVisualizer(Visualizer):
+    def __init__(self):
+        import matplotlib.pyplot as plt
+        self.plt = plt
+
     def showResults(self, neu4mes, output_keys, performance = None):
         # Plot
-        self.fig, self.ax = plt.subplots(2*len(output_keys), 2,
+        self.fig, self.ax = self.plt.subplots(2*len(output_keys), 2,
                                         gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*len(output_keys)})
         if len(self.ax.shape) == 1:
             self.ax = np.expand_dims(self.ax, axis=0)
@@ -40,11 +48,11 @@ class StandardVisualizer(Visualizer):
             # Empty
             self.ax[2*i+1,1].axis("off")
         self.fig.tight_layout()
-        plt.show()
+        self.plt.show()
 
     def showRecurrentResults(self, neu4mes, output_keys, performance = None):
         # Plot
-        self.fig, self.ax = plt.subplots(2*len(output_keys), 2, gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*len(output_keys)})
+        self.fig, self.ax = self.plt.subplots(2*len(output_keys), 2, gridspec_kw={'width_ratios': [5, 1], 'height_ratios': [2, 1]*len(output_keys)})
         if len(self.ax.shape) == 1:
             self.ax = np.expand_dims(self.ax, axis=0)
 
@@ -73,7 +81,7 @@ class StandardVisualizer(Visualizer):
             # Empty
             self.ax[2*i+1,1].axis("off")
         self.fig.tight_layout()
-        plt.show()
+        self.plt.show()
 
     #def __updateSlider(val, i):
     #    pos = self.spos.val
