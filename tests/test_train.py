@@ -3,11 +3,7 @@ import numpy as np
 from neu4mes import *
 
 import os
-is_travis = 'TRAVIS' in os.environ
-if is_travis:
-    data_folder = '/home/travis/build/tonegas/neu4mes/tests/data/'
-else:
-    data_folder = './tests/data/'
+data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
 class Neu4mesTrainingTest(unittest.TestCase):
     def test_build_dataset_batch(self):
