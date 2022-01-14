@@ -22,6 +22,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=['coverage', 'keras', 'tensorflow','numpy','PyYAML']
+    install_requires=[ 'keras', 'tensorflow','numpy','PyYAML']
     python_requires='>3.6'
 )
