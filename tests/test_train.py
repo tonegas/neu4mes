@@ -100,7 +100,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
 
-    def test_build_dataset_batch3(self):
+    def test_build_dataset_batch4(self):
         input1 = Input('in1')
         output = Input('out')
         rel1 = Linear(input1.tw(0.05))
