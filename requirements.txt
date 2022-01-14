@@ -1,5 +1,5 @@
 coverage==6.2
-keras==2.7.0
+keras==2.6.0
 tensorflow==2.6.2
 numpy==1.19.5
 PyYAML==6.0
