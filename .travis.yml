@@ -1,13 +1,10 @@
 language: python
 python:
   - "3.6"
-  - "3.7-dev"
-  - "nightly"
 install:
-  - "pip install coverage"
-  - "pip install python-coveralls"
+  - pip install -r requirements.txt
 script:
-  - "python -m unittest discover -s tests"
-  - "coverage run --omit=*.virtualenvs*,*virtualenv* -m unittest discover tests"
+  - python -m unittest discover -s tests
+  - coverage run --omit=*.virtualenvs*,*virtualenv* -m unittest discover tests
 after_success:
-    coveralls
+  - coveralls

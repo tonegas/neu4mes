@@ -10,16 +10,18 @@ setuptools.setup(
     version=__version__,
     author="Gastone Pietro Rosati Papini",
     author_email="tonegas@gmail.com",
-    description="The final framework neural network for mechanics modeling and control",
+    description="Mechanics-informed neural network framework for modeling and control mechanical system",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tonegas/neu4mes",
     packages=setuptools.find_packages(),
     platforms='any',
+    packages=["neu4mes"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    install_requires=['coverage', 'keras', 'tensorflow','numpy','PyYAML']
     python_requires='>3.6'
 )
