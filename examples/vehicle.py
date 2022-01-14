@@ -8,15 +8,16 @@ motor_force = LocalModel(engine.tw(1), gear)
 
 #Create the concept of the slope
 altitude = Input('altitude')
-gravity_force = Linear(altitude.tw([1,-1]))
+gravity_force = Linear(altitude.tw([5,-5], offset = 0))
 
-#Create the brake force contribution
+# Create the brake force contribution
+# Total of 25 samples
 brake = Input('brake')
-brake_force = -Relu(Linear(brake.tw(1)))
+brake_force = -Relu(Linear(brake.tw(1.25)))
 
 #Create the areodinamic drag contribution
 velocity = Input('velocity')
-drag_force = Linear(velocity)
+drag_force = Linear(velocity^2)
 
 #The state is a well established variable, so if it used inside two different outputs
 #will not be duplicated.
@@ -54,7 +55,7 @@ mymodel.neuralizeModel(0.05)
 data_struct = ['velocity','engine','brake','gear','travel','altitude','acc','velKal','acceleration']
 data_folder = './vehicle_data/'
 mymodel.loadData(data_struct, folder = data_folder, skiplines = 1)
-mymodel.trainModel(validation_percentage = 30, show_results=True)
+mymodel.trainModel(test_percentage = 30, show_results=True)
 
 #definisco che long_acc è l'integrale di velocity
 # long_acc.s(-1) = velocity 

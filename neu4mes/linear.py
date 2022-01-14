@@ -80,7 +80,7 @@ def createLinear(self, name, input):
     return tensorflow.keras.layers.Dense(units = 1, activation = None, use_bias = None, name = name)(input)
 
 def createLinearBias(self, name, input):
-    return tensorflow.keras.layers.Dense(units = 1, activation = None, use_bias = True, name = name)(input)
+    return tensorflow.keras.layers.Dense(units = 1, activation = None, use_bias = None, name = name)(input)
 
 setattr(neu4mes.Neu4mes, linear_relation_name, createLinear)
 setattr(neu4mes.Neu4mes, linear_bias_relation_name, createLinearBias)
