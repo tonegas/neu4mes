@@ -174,3 +174,20 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         test_layer = Model(inputs=test.inputs_for_model['in2'], outputs=test.inputs[('in2',(4,2),-2)])
         self.assertEqual([[-5.,-4.,-3.,-2.,-1.,0.]],test_layer.predict(in2).tolist())
+        
+    def test_network_building_relu(self):
+        input2 = Input('in1')
+        output = Input('out')
+        rel1 = Relu(Linear(input2.tw(0.05)))
+        fun = Output(output.z(-1),rel1)
+
+        test = Neu4mes()
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        in1 = [[0,0,0,0,0]]
+
+        test_layer = Model(inputs=test.inputs_for_model['in1'], outputs=test.outputs['out__-z1'])
+        weights = test_layer.get_weights()
+
+        self.assertEqual([[0.0]],test_layer.predict(in1).tolist())
