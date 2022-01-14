@@ -12,11 +12,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         relation = Linear(input.tw(0.05))
         fun = Output(output.z(-1),relation)
 
-        print('----------------------------------------------------------------')
-        print(data_folder)
-        print('----------------------------------------------------------------')
-
-
         test = Neu4mes()
         test.addModel(fun)
         test.neuralizeModel(0.01)
