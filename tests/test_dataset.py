@@ -2,6 +2,13 @@ import unittest, logging
 import numpy as np
 from neu4mes import *
 
+import os
+is_travis = 'TRAVIS' in os.environ
+if is_travis:
+    data_folder = '/home/travis/build/tonegas/neu4mes/tests/data/'
+else:
+    data_folder = './tests/data/'
+
 class Neu4mesCreateDatasetTest(unittest.TestCase):
     def test_build_dataset_simple(self):
         input = Input('in')
@@ -14,7 +21,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((10,5),test.inout_asarray['in'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977],
@@ -43,7 +49,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((10,5),test.inout_asarray['in'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977],
@@ -74,7 +79,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977],
@@ -115,7 +119,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((9,7),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
@@ -143,7 +146,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((10,6),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973],
@@ -175,7 +177,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((10,6),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973],
@@ -217,7 +218,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((9,7),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
@@ -246,7 +246,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        data_folder = './tests/data/'
         test.loadData(data_struct, folder = data_folder, skiplines = 4)
         self.assertEqual((9,7),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
