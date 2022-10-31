@@ -1,7 +1,17 @@
+# Compiled python file
 *.pyc
+
+# Data
 data/
 !tests/data/
-env/
-structured_nn-code
+
+# IDE
+.idea/
+
+# Env and temp
+venv/
 tmp/
+
+# Covarege
 .coverage
+
