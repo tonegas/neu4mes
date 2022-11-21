@@ -2,9 +2,9 @@
 
 # -- Project information
 
-project = 'Lumache'
-copyright = '2021, Graziella'
-author = 'Graziella'
+project = 'Neu4mes'
+copyright = '2022, Gastone Pietro Rosati Papini, Sebastiano Taddei'
+authors = ['Gastone Pietro Rosati Papini', 'Sebastiano Taddei']
 
 release = '0.1'
 version = '0.1.0'
