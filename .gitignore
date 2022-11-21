@@ -5,3 +5,4 @@ env/
 structured_nn-code
 tmp/
 .coverage
+.vscode/
