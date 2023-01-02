@@ -9,7 +9,7 @@ python:
 build:
   os: "ubuntu-20.04"
   tools:
-    python: "3.8"
+    python: "3.10.6"
     
 sphinx:
   fail_on_warning: true
