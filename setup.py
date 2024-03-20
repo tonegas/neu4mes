@@ -16,12 +16,11 @@ setuptools.setup(
     url="https://github.com/tonegas/neu4mes",
     packages=setuptools.find_packages(),
     platforms='any',
-    packages=["neu4mes"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
     install_requires=[ 'keras', 'tensorflow','numpy','pyyaml'],
-    python_requires='>3.6'
+    python_requires='>3.10'
 )
