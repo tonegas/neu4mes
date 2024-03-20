@@ -1,5 +1,5 @@
 # Neu4mes 
-[![License MIT](https://go-shields.herokuapp.com/license-MIT-blue.png)]()  [![Travis-CI Status](https://app.travis-ci.com/tonegas/neu4mes.svg?branch=master)](https://travis-ci.org/tonegas/neu4mes)  [![Coverage Status](https://coveralls.io/repos/github/tonegas/neu4mes/badge.svg?branch=master)](https://coveralls.io/github/tonegas/neu4mes?branch=master)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  [![Travis-CI Status](https://app.travis-ci.com/tonegas/neu4mes.svg?branch=master)](https://travis-ci.org/tonegas/neu4mes)  [![Coverage Status](https://coveralls.io/repos/github/tonegas/neu4mes/badge.svg?branch=master)](https://coveralls.io/github/tonegas/neu4mes?branch=master)
 ## Mechanics-informed neural network framework for modeling and control mechanical system
 Mechanics-informed neural networks (MINNs) are a new neural networks concept. These networks base their structure on mechanical and control theory laws. 
 
