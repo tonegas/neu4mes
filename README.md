@@ -54,7 +54,9 @@ The structured neural model is defined by a list of inputs by a list of outputs 
 
 Let's assume we want to model one of the best-known linear mechanical systems, the mass-spring-damper system.
 
-![Image](img/massspringdamper.png "linearsys")
+<p align="center">
+<img src="img/massspringdamper.png" width="250" alt="linearsys" >
+</p>
 
 The system is defined as the following equation:
 ```math
