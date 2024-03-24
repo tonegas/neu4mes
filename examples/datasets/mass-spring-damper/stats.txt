@@ -1,0 +1,11 @@
+simulations;100
+elapsed_time;6.194
+total_samples;40100
+param_time;20.000
+param_sampling_time;0.050
+m;1.000
+k;3.000
+c;0.175
+x_0;0.0;1.0
+v_0;0.0;0.5
+u;-3.0;3.0

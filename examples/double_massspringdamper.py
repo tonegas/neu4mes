@@ -1,6 +1,10 @@
-from neu4mes import *
+# Double mass spring damper
 
-massamollasmorzatore = Neu4mes()
+from neu4mes import *
+from neu4mes.visualizer import StandardVisualizer
+
+
+massamollasmorzatore = Neu4mes(visualizer = StandardVisualizer())
 
 x = Input('x')
 y = Input('y')
@@ -16,7 +20,7 @@ massamollasmorzatore.addModel(x_z)
 massamollasmorzatore.neuralizeModel(0.05, prediction_window = 50)
 
 data_struct = ['time','x','y','force','force2']
-data_folder = './structured_nn-code/data/pendulum-b/data/'
+data_folder = './datasets/pendulum/data/'
 massamollasmorzatore.loadData(data_struct, folder = data_folder)
 
-massamollasmorzatore.trainModel(states = [x_z], validation_percentage = 10, show_results = True)
+massamollasmorzatore.trainModel(states = [x_z], test_percentage = 10, show_results = True)

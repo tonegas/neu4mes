@@ -34,9 +34,8 @@ The realized neural controller will be exported using C language or ONNX, and it
 </details>
 
 <!-- GETTING STARTED -->
-## Getting Started
 <a name="settingstarted"></a>
-
+## Getting Started
 ### Prerequisites
 
 You can install the dependencies of the neu4mes framework from PyPI via:
@@ -46,10 +45,11 @@ You can install the dependencies of the neu4mes framework from PyPI via:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Basic Functionalities
 <a name="basicfunctionalities"></a>
-### Build the structured neural model
+## Basic Functionalities
 <a name="structuredneuralmodel"></a>
+### Build the structured neural model
+
 The structured neural model is defined by a list of inputs by a list of outputs and by a list of relationships that link the inputs to the outputs.
 
 Let's assume we want to model one of the best-known linear mechanical systems, the mass-spring-damper system.
@@ -97,35 +97,35 @@ if we choose $N_x = 3$ and $h_x$ equal to the characteristic polynomial and $h_f
 Our formulation is more general and can take into account the noise of the measured variable using a bigger time window.
 The estimator can also be seen as the composition of the force contributions due to the position and velocity of the mass plus the contribution of external forces.
 
-### Neuralize the structured neural model
 <a name="neuralizemodel"></a>
+### Neuralize the structured neural model
 
 Let's now try to train our observer using the data we have.
 We perform:
 ```python
-massSpringDamper = Neu4mes()
-massSpringDamper.addModel(x_z)
-massSpringDamper.neuralizeModel(0.01)
+mass_spring_damper = Neu4mes()
+mass_spring_damper.addModel(x_z)
+mass_spring_damper.neuralizeModel(0.01)
 ```
 Let's create a **neu4mes** object and add our estimator to the list of models that to be estimated using the `addModel` function.
 The function `neuralizeModel` is used to perform the discretization. The parameter of the function is the sampling time and it will be chosen based on the data we have available.
 
-### Load the dataset
 <a name="loaddataset"></a>
+### Load the dataset
 
 ```python
 data_struct = ['time','x','x_s','F']
-data_folder = './datasets/springdamper/data/'
-massSpringDamper.loadData(data_struct, folder = data_folder)
+data_folder = './datasets/massspringdamper/data/'
+mass_spring_damper.loadData(data_struct, folder = data_folder)
 ```
 Finally, the dataset is loaded. **neu4mes** loads all the files that are in a folder.
 
-### Train the structured neural network
 <a name="trainmodel"></a>
+### Train the structured neural network
 Using that files the training is performed on the model.
 
 ```python
-massSpringDamper.trainModel()
+mass_spring_damper.trainModel()
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
