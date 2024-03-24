@@ -9,10 +9,10 @@ The framework's goal is to allow the users fast modeling and control of a mechan
 
 The workflow that the framework inspires you to have is as follows:
 
-A conceptual representation of your mechanical system will be used to obtain a neural network of the SNN type, which has an optimal structure to model the considered mechanical device. 
+Using a conceptual representation of your mechanical system the framework uses the structured neural network for modelling the considered mechanical device. 
 Providing suitable experimental data, the framework will realize an effective training of the neural models by appropriately choosing all the hyper-parameters.
 The framework will allow the user to synthesize and train a structured neural network that will be used as a control system in a few simple steps and without the need to perform new experiments. 
-The realized neural controller will be exported independently from any external library in the C language or ONNX, and it will be ready to use.
+The realized neural controller will be exported using C language or ONNX, and it will be ready to use.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -127,13 +127,3 @@ massSpringDamper.trainModel()
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-1) Scegliere un nome per la libreria
-3) Sistemare il readme e documentare il framework 
-4) Aggiungere un features che ti permette di costruire un vettore usando un vettore del dataset. 
-5) Poi vedere se puoi aggiungere l'interpolazione automatica di una variabile rispetto all'altra 
-6) Fare che puoi eliminare delle righe del dataset quando una specifica variabile ha un certo valore.
-6) Finire il porting a pytorch
-3) 
