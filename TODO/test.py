@@ -16,7 +16,7 @@ test.addModel(fun)
 test.neuralizeModel(0.5, prediction_window = 0.5)
 
 data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time','']
-data_folder = './tests/data/'
+data_folder = '../tests/data/'
 test.loadData(data_struct, folder = data_folder, skiplines = 4)
 
 training_params = {}
