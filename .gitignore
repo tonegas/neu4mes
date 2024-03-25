@@ -2,7 +2,6 @@
 *.pyc
 
 # Data
-data/
 !tests/data/
 
 # IDE
