@@ -1,3 +1,4 @@
+import time
 from neu4mes import *
 from neu4mes.visualizer import StandardVisualizer
 
@@ -17,5 +18,7 @@ data_folder = './datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(data_struct, folder = data_folder)
 
 # Neural network train
-mass_spring_damper.trainModel(test_percentage = 30, show_results = True)
-
+start = time.time()
+mass_spring_damper.trainModel(test_percentage = 10, show_results = True)
+end = time.time()
+print(end - start)

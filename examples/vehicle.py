@@ -1,3 +1,4 @@
+import time
 from neu4mes import *
 from neu4mes.visualizer import StandardVisualizer
 
@@ -34,4 +35,7 @@ data_folder = './datasets/vehicle_data/'
 mymodel.loadData(data_struct, folder = data_folder, skiplines = 1)
 
 # Neural network train
+start = time.time()
 mymodel.trainModel(test_percentage = 30, show_results=True)
+end = time.time()
+print(end - start)

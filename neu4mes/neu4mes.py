@@ -137,8 +137,8 @@ class Neu4mes:
         self.num_of_epochs = 300                            # number of epochs
         self.rnn_batch_size = self.batch_size               # batch size for RNN
         self.rnn_window = None                              # window of the RNN
-        self.rnn_learning_rate = self.learning_rate/10000   # learning rate for RNN
-        self.rnn_num_of_epochs = 50                         # number of epochs for RNN
+        self.rnn_learning_rate = self.learning_rate/50000   # learning rate for RNN
+        self.rnn_num_of_epochs = 300                        # number of epochs for RNN
         
         # Training dataset
         self.inout_4train = {}                              # Dataset for training NN
@@ -666,7 +666,7 @@ class Neu4mes:
         else:
             # Samples must be multiplier of batch
             self.num_of_training_sample = int(self.num_of_training_sample/self.batch_size) * self.batch_size
-            self.num_of_test_sample = int((self.num_of_samples-self.num_of_training_sample)/self.batch_size) * self.batch_size
+            self.num_of_test_sample = self.num_of_samples-self.num_of_training_sample
         
         # Building the dataset structures training and test set
         for key,data in self.inout_asarray.items():
@@ -682,7 +682,7 @@ class Neu4mes:
         self.MP(print, 'Batch: {}'.format(self.batch_size))
         
         # Configure model for training
-        self.opt = optimizers.Adam(learning_rate = self.learning_rate) #optimizers.Adam(learning_rate=l_rate) #optimizers.RMSprop(learning_rate=lrate, rho=0.4)
+        self.opt = optimizers.legacy.Adam(learning_rate = self.learning_rate) #optimizers.Adam(learning_rate=l_rate) #optimizers.RMSprop(learning_rate=lrate, rho=0.4)
         self.model.compile(optimizer = self.opt, loss = 'mean_squared_error', metrics=[rmse])
 
         # Fitting of the network
@@ -707,7 +707,7 @@ class Neu4mes:
         # Check input
         state_keys = self.__checkStates(states)
 
-        # Get the first index from all the data
+        # Get the first simulation for of the test data
         self.first_idx_test = next(x[0] for x in enumerate(self.idx_of_rows) if x[1] > self.num_of_training_sample)
 
         # Define output for each window
@@ -728,8 +728,8 @@ class Neu4mes:
                             idx_out = self.output_keys.index(key)
                             input[idx] = np.append(input[idx][:,1:],rnn_output[idx_out], axis = 1)
                         else:
-                            input[idx] = np.expand_dims(self.inout_4test[key][t], axis = 0)               
-                
+                            input[idx] = np.expand_dims(self.inout_4test[key][t], axis = 0)
+
                 rnn_prediction.append(rnn_output)
         
         key = list(self.model_def['Outputs'].keys())
@@ -739,7 +739,7 @@ class Neu4mes:
         self.rnn_prediction = np.transpose(rnn_prediction.reshape((-1,len(self.output_keys))))
 
         # Analysis of the Result
-        self.visualizer.showRecurrentResults(self, self.output_keys, performance = self.performance)
+        self.visualizer.showRecurrentResults(self, key, performance = self.performance)
 
     """
     Reccurrent training of the model. 
@@ -818,7 +818,7 @@ class Neu4mes:
         self.MP(print, 'RNN Batch: {}'.format(self.rnn_batch_size))
         
         # Configure rnn model for training
-        self.rnn_opt = optimizers.Adam(learning_rate = self.rnn_learning_rate)
+        self.rnn_opt = optimizers.legacy.Adam(learning_rate = self.rnn_learning_rate)
         self.rnn_model.compile(optimizer = self.rnn_opt, loss = 'mean_squared_error', metrics=[rmse])
         if self.net_weights:
             self.rnn_model.set_weights(self.net_weights)
