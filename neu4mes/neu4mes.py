@@ -336,12 +336,12 @@ class Neu4mes:
                             n_forward = -int(el[1][1]/self.model_def['SampleTime'])
                             if (el[0],(n_backward,n_forward),offset) not in self.inputs:
                                 self.inputs[(el[0],(n_backward,n_forward),offset)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward,offset)
-                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
+                            input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
                         else:
                             n_backward = int(el[1]/self.model_def['SampleTime'])
                             if (el[0],n_backward,offset) not in self.inputs:
                                 self.inputs[(el[0],n_backward,offset)] = self.part(el[0],self.inputs[el[0]],n_backward,0,offset)
-                                input_for_relation = self.inputs[(el[0],n_backward,offset)]               
+                            input_for_relation = self.inputs[(el[0],n_backward,offset)]
                     elif len(el) == 2:
                         if type(el[1]) is tuple:
                             # The time window is backward and forward
@@ -349,12 +349,13 @@ class Neu4mes:
                             n_forward = -int(el[1][1]/self.model_def['SampleTime'])
                             if (el[0],(n_backward,n_forward)) not in self.inputs:
                                 self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
+                            input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
                         else:
                             n_backward = int(el[1]/self.model_def['SampleTime'])
                             if (el[0],n_backward) not in self.inputs:
                                 self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
-                                input_for_relation = self.inputs[(el[0],n_backward)]                      
+                            input_for_relation = self.inputs[(el[0],n_backward)]
+
                     else:
                         raise Exception("This tuple has only one element: "+str(el))
 
@@ -389,12 +390,12 @@ class Neu4mes:
                                 n_forward = -int(el[1][1]/self.model_def['SampleTime'])
                                 if (el[0],(n_backward,n_forward),offset) not in self.inputs:
                                     self.inputs[(el[0],(n_backward,n_forward),offset)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward,offset)
-                                    input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
+                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
                             else:
                                 n_backward = int(el[1]/self.model_def['SampleTime'])
                                 if (el[0],n_backward,offset) not in self.inputs:
                                     self.inputs[(el[0],n_backward,offset)] = self.part(el[0],self.inputs[el[0]],n_backward,0,offset)
-                                    input_for_relation = self.inputs[(el[0],n_backward,offset)]                          
+                                input_for_relation = self.inputs[(el[0],n_backward,offset)]
                         elif len(el) == 2:
                             if type(el[1]) is tuple:
                                 # The time window is backward and forward
@@ -402,12 +403,12 @@ class Neu4mes:
                                 n_forward = -int(el[1][1]/self.model_def['SampleTime'])
                                 if (el[0],(n_backward,n_forward)) not in self.inputs:
                                     self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                                    input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
+                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
                             else:
                                 n_backward = int(el[1]/self.model_def['SampleTime'])
                                 if (el[0],n_backward) not in self.inputs:
                                     self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
-                                    input_for_relation = self.inputs[(el[0],n_backward)]                        
+                                input_for_relation = self.inputs[(el[0],n_backward)]
                         else:
                             raise Exception("This tuple has only one element: "+str(el))
 
