@@ -31,7 +31,7 @@ mymodel.neuralizeModel(0.05)
 
 # Data load
 data_struct = ['velocity','engine','brake','gear','travel','altitude','acc','velKal','acceleration']
-data_folder = './datasets/vehicle_data/'
+data_folder = './examples/datasets/vehicle_data/'
 mymodel.loadData(data_struct, folder = data_folder, skiplines = 1)
 
 # Neural network train
