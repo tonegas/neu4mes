@@ -1,6 +1,7 @@
-__version__ = '0.0.7'
-# __version__ = '0.0.8'
-# __version__ = '0.1.0' ERC version 
+# __version__ = '0.0.7'
+# __version__ = '0.0.8' Preliminary version
+# __version__ = '0.1.0' ERC version
+__version__ = '0.3.0'   #Pytorch version
 
 import sys
 
@@ -15,23 +16,15 @@ else:
 
 from neu4mes.neu4mes import Neu4mes
 
-from neu4mes.relation import Relation, NeuObj, merge
-from neu4mes.input import Input, ControlInput 
-from neu4mes.output import Output 
+from neu4mes.relation import ToStream, NeuObj, merge
+from neu4mes.input import Input
+from neu4mes.output import Output
 
-from neu4mes.linear import Linear, LinearBias
-from neu4mes.localmodel import LocalModel
-from neu4mes.relu import Relu 
-from neu4mes.arithmetic import Sum, Subtract, Minus, Square
+from neu4mes.activation import Relu
+from neu4mes.fir import Fir
+from neu4mes.arithmetic import Add, Sub, Neg, Square
 from neu4mes.trigonometric import Sin, Cos, Tan
 
 import os, os.path
-#from pprint import pp, pprint
+from pprint import pp, pprint
 import numpy as np
-
-
-from tensorflow.keras import optimizers
-from tensorflow.keras import backend as K
-from tensorflow.keras.models import Model
-import tensorflow.keras.layers #import Layer, Dense, Add, Lambda, RNN
-from tensorflow.python.training.tracking import data_structures

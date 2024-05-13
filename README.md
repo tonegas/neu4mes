@@ -69,7 +69,7 @@ In the neu4mes framework we can build an estimator in this form:
 ```python
 x = Input('x')
 F = Input('F')
-x_z = Output(x.z(-1), Linear(x.tw(1))+Linear(F))
+x_z = Output(x.z(-1), Fir(x.tw(1))+Fir(F))
 ```
 
 The first thing we define the input variable of the system.
@@ -83,7 +83,7 @@ Let's explain some of the functions used:
 In our case `z(-1)` indicates the unit advance.
 2. The `tw(...)` function is used to extract a time window from a signal. 
 In particular we extract a time window of 1 second.
-3. The `Linear(...)` function to build an FIR filter with the tunable parameters on our input variable.
+3. The `Fir(...)` function to build an FIR filter with the tunable parameters on our input variable.
 
 So we are creating an estimator for the variable `x` at the instant following the observation (the future position of the mass) by building an 
 observer that has a mathematical structure equal to the one shown below:
