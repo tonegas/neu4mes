@@ -12,6 +12,7 @@ square_relation_name = 'Square'
 
 class Add(Stream, ToStream):
     def __init__(self, obj1, obj2):
+        assert obj1.dim == obj2.dim
         super().__init__(add_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         if ((type(obj1) is Input or type(obj1) is Stream) and
                 (type(obj2) is Input or type(obj2) is Stream)):

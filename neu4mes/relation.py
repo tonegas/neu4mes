@@ -11,10 +11,7 @@ def merge(source, destination, main = True):
             node = result.setdefault(key, {})
             merge(value, node, False)
         else:
-            if key in result and isinstance(result[key], list):
-                result[key] = list(set(result[key] + value))
-            else:
-                result[key] = value
+            result[key] = value
 
     return result
 
@@ -30,10 +27,10 @@ class NeuObj():
             self.json = {
                 'SampleTime': 0,
                 'Inputs' : {},
+                'Functions' : {},
                 'Parameters' : {},
                 'Outputs': {},
                 'Relations': {},
-                #'Objects': {}
             }
             #self.json['Objects'][name] = self
 
