@@ -2,9 +2,9 @@ import numpy as np
 
 from neu4mes.relation import NeuObj, Stream
 
-class Input(NeuObj,Stream):
-    def __init__(self,name,values = None):
-        NeuObj.__init__(self,name)
+class Input(NeuObj, Stream):
+    def __init__(self, name, values = None):
+        NeuObj.__init__(self, name)
         self.json['Inputs'][self.name] = {}
         self.dim = {'dim_in':1}
         if values:
@@ -12,7 +12,7 @@ class Input(NeuObj,Stream):
             self.json['Inputs'][self.name] = {
                 'Discrete' : values
             }
-        Stream.__init__(self, name, self.json,self.dim)
+        Stream.__init__(self, name, self.json, self.dim)
 
     def tw(self, tw, offset = None):
          if offset is not None:

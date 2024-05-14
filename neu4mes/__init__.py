@@ -24,6 +24,7 @@ from neu4mes.activation import Relu
 from neu4mes.fir import Fir
 from neu4mes.arithmetic import Add, Sub, Neg, Square
 from neu4mes.trigonometric import Sin, Cos, Tan
+from neu4mes.parameter import Parameter
 
 import os, os.path
 from pprint import pp, pprint
