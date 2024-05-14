@@ -69,7 +69,7 @@ class ToStream():
         return Stream(out.name,out.json,out.dim,0)
 
 class AutoToStream():
-    def __new__(cls, *args):
+    def __new__(cls, *args,  **kwargs):
         if len(args) > 0 and (issubclass(type(args[0]),NeuObj) or type(args[0]) is Stream):
             instance = super().__new__(cls)
             instance.__init__()

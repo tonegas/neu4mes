@@ -21,8 +21,8 @@ class Fir(NeuObj, AutoToStream):
         else:
             assert type(parameter) is Parameter, 'input parameter must be of type Parameter'
             assert parameter.dim['dim'] == self.output_dimension, 'output_dimension must be equal to dim of the parameter'
-            super(NeuObj).__init__(parameter.name)
-            self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
+            super().__init__(parameter.name)
+            self.json['Parameters'][self.name] = copy.deepcopy(parameter.dim)
 
     def __call__(self, obj):
         stream_name = fir_relation_name + str(Stream.count)
