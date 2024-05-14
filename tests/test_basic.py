@@ -32,8 +32,8 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1}, out.dim)
         out = Fir(7)(input)
         self.assertEqual({'dim': 7}, out.dim)
-        # out = Fuzzify(5)(input)
-        # self.assertEqual({'dim': 5}, out.dim)
+        out = Fuzzify(5)(input)
+        self.assertEqual({'dim': 5}, out.dim)
         out = ParamFun(myFun)(input)
         self.assertEqual({'dim': 1}, out.dim)
         out = ParamFun(myFun,5)(input)
@@ -41,25 +41,25 @@ class Neu4mesJson(unittest.TestCase):
         with self.assertRaises(AssertionError):
             out = Fir(Fir(7)(input))
         #
-        # with self.assertRaises(AssertionError):
-        #     out = Part(input,0,4)
-        # inpart = ParamFun(myFun, 5)(input)
-        # out = Part(inpart,0,4)
-        # self.assertEqual({'dim': 4}, out.dim)
-        # out = Part(inpart,0,1)
-        # self.assertEqual({'dim': 1}, out.dim)
-        # out = Part(inpart,1,3)
-        # self.assertEqual({'dim': 2}, out.dim)
-        # out = Select(inpart,0)
-        # self.assertEqual({'dim': 1}, out.dim)
-        # with self.assertRaises(AssertionError):
-        #     out = Select(inpart,5)
-        # with self.assertRaises(AssertionError):
-        #     out = Select(inpart,-1)
-        # with self.assertRaises(AssertionError):
-        #     out = TimePart(inpart,-1,0)
-        # with self.assertRaises(AssertionError):
-        #     out = TimeSelect(inpart,-1)
+        with self.assertRaises(AssertionError):
+            out = Part(input,0,4)
+        inpart = ParamFun(myFun, 5)(input)
+        out = Part(inpart,0,4)
+        self.assertEqual({'dim': 4}, out.dim)
+        out = Part(inpart,0,1)
+        self.assertEqual({'dim': 1}, out.dim)
+        out = Part(inpart,1,3)
+        self.assertEqual({'dim': 2}, out.dim)
+        out = Select(inpart,0)
+        self.assertEqual({'dim': 1}, out.dim)
+        with self.assertRaises(AssertionError):
+            out = Select(inpart,5)
+        with self.assertRaises(AssertionError):
+            out = Select(inpart,-1)
+        with self.assertRaises(AssertionError):
+            out = TimePart(inpart,-1,0)
+        with self.assertRaises(AssertionError):
+            out = TimeSelect(inpart,-1)
 
     def test_scalar_input_tw_dimensions(self):
         input = Input('in')
@@ -69,41 +69,41 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1}, out.dim)
         out = Fir(5)(input.tw(1))
         self.assertEqual({'dim': 5}, out.dim)
-        #out = Fuzzify(5)(input.tw(2))
-        # self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
-        # out = Fuzzify(5,range=[-1,5])(input.tw(2))
-        # self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
-        # out = Fuzzify(2,centers=[-1,5])(input.tw(2))
-        #self.assertEqual({'dim': 2, 'tw': 2}, out.dim)
+        out = Fuzzify(5)(input.tw(2))
+        self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
+        out = Fuzzify(5,range=[-1,5])(input.tw(2))
+        self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
+        out = Fuzzify(2,centers=[-1,5])(input.tw(2))
+        self.assertEqual({'dim': 2, 'tw': 2}, out.dim)
         out = ParamFun(myFun)(input.tw(1))
         self.assertEqual({'dim': 1, 'tw' : 1}, out.dim)
         out = ParamFun(myFun,5)(input.tw(2))
         self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
         with self.assertRaises(AssertionError):
             out = ParamFun(myFun,5)(input.tw(2),input.tw(1))
-        #
-        # inpart = ParamFun(myFun, 5)(input.tw(2))
-        # out = Part(inpart,0,4)
-        # self.assertEqual({'dim': 4,'tw': 2}, out.dim)
-        # out = Part(inpart,0,1)
-        # self.assertEqual({'dim': 1,'tw': 2}, out.dim)
-        # out = Part(inpart,1,3)
-        # self.assertEqual({'dim': 2,'tw': 2}, out.dim)
-        # out = Select(inpart,0)
-        # self.assertEqual({'dim': 1,'tw': 2}, out.dim)
-        # with self.assertRaises(AssertionError):
-        #     out = Select(inpart,5)
-        # with self.assertRaises(AssertionError):
-        #     out = Select(inpart,-1)
-        # out = TimePart(inpart,-1,0)
-        # self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
-        # out = TimeSelect(inpart,-1)
-        # self.assertEqual({'dim': 5}, out.dim)
-        # with self.assertRaises(AssertionError):
-        #     out = TimeSelect(inpart,-3)
-        # twinput = input.tw([-2,4])
-        # out = TimePart(twinput, -1, 0)
-        # self.assertEqual({'dim': 1, 'tw': 1}, out.dim)
+
+        inpart = ParamFun(myFun, 5)(input.tw(2))
+        out = Part(inpart,0,4)
+        self.assertEqual({'dim': 4,'tw': 2}, out.dim)
+        out = Part(inpart,0,1)
+        self.assertEqual({'dim': 1,'tw': 2}, out.dim)
+        out = Part(inpart,1,3)
+        self.assertEqual({'dim': 2,'tw': 2}, out.dim)
+        out = Select(inpart,0)
+        self.assertEqual({'dim': 1,'tw': 2}, out.dim)
+        with self.assertRaises(AssertionError):
+            out = Select(inpart,5)
+        with self.assertRaises(AssertionError):
+            out = Select(inpart,-1)
+        out = TimePart(inpart,-1,0)
+        self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
+        out = TimeSelect(inpart,-1)
+        self.assertEqual({'dim': 5}, out.dim)
+        with self.assertRaises(AssertionError):
+            out = TimeSelect(inpart,-3)
+        twinput = input.tw([-2,4])
+        out = TimePart(twinput, -1, 0)
+        self.assertEqual({'dim': 1, 'tw': 1}, out.dim)
 
     def test_vector_input_dimensions(self):
         input = Input('in', dimensions = 5)
@@ -115,8 +115,8 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
         with self.assertRaises(AssertionError):
             Fir(7)(input)
-        # with self.assertRaises(AssertionError):
-        #     Fuzzify(7)(input)
+        with self.assertRaises(AssertionError):
+            Fuzzify(7)(input)
         out = ParamFun(myFun)(input.tw(1))
         self.assertEqual({'dim': 1, 'tw' : 1}, out.dim)
         out = ParamFun(myFun,5)(input.tw(2))
