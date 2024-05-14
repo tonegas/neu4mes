@@ -11,6 +11,7 @@ out = Output(x.z(-1),fuz(x))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
+#
 
 print("------------------------EXAMPLE 2------------------------")
 # Example 2
@@ -21,6 +22,7 @@ out = Output(x.z(-1),fuz(x))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
+#
 
 print("------------------------EXAMPLE 3------------------------")
 # Example 3
@@ -32,6 +34,7 @@ out = Output(x.z(-1),fuz(x))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
+#
 
 print("------------------------EXAMPLE 4------------------------")
 # Example 4
@@ -44,6 +47,7 @@ out = Output(x.z(-1),fuz(x))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
+#
 
 print("------------------------EXAMPLE 5------------------------")
 # Example 5
@@ -57,6 +61,7 @@ out = Output(x.z(-1),fuz(x))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
+#
 
 print("------------------------EXAMPLE 6------------------------")
 # Example 6
@@ -70,6 +75,7 @@ out = Output(x.z(-1),fuz(x.tw(1))+fuz(F.tw(1)))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
+#
 
 #TODO fare delle membership funtion usando le funzioni parametriche
 # def myFun(in1,p1):

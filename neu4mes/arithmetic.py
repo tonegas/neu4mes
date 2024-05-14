@@ -7,6 +7,7 @@ from neu4mes.input import Input
 
 add_relation_name = 'Add'
 sub_relation_name = 'Sub'
+mul_relation_name = 'Mul'
 neg_relation_name = 'Neg'
 square_relation_name = 'Square'
 
@@ -24,6 +25,14 @@ class Sub(Stream, ToStream):
         if ((type(obj1) is Input or type(obj1) is Stream) and
                 (type(obj2) is Input or type(obj2) is Stream)):
             self.json['Relations'][self.name] = [sub_relation_name,[obj1.name,obj2.name]]
+
+class Mul(Stream, ToStream):
+    def __init__(self, obj1, obj2):
+        assert obj1.dim == obj2.dim
+        super().__init__(mul_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
+        if ((type(obj1) is Input or type(obj1) is Stream) and
+                (type(obj2) is Input or type(obj2) is Stream)):
+            self.json['Relations'][self.name] = [mul_relation_name,[obj1.name,obj2.name]]
 
 class Neg(Stream, ToStream):
     def __init__(self, obj):
@@ -55,6 +64,9 @@ class Sum_Layer(nn.Module):
 def createSum(name, *inputs):
     return Sum_Layer()
 
+def createMul(name, *inputs):
+    pass
+
 class Diff_Layer(nn.Module):
     def __init__(self):
         super(Diff_Layer, self).__init__()
@@ -77,5 +89,6 @@ def createSquare(self, *inputs):
 
 setattr(Model, neg_relation_name, createMinus)
 setattr(Model, add_relation_name, createSum)
+setattr(Model, mul_relation_name, createMul)
 setattr(Model, sub_relation_name, createSubtract)
 setattr(Model, square_relation_name, createSquare)

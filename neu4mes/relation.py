@@ -47,6 +47,10 @@ class Relation():
         from neu4mes.arithmetic import Neg
         return Neg(self)
 
+    def __mul__(self, obj):
+        from neu4mes.arithmetic import Mul
+        return Mul(self, obj)
+
     def __xor__(self, val):
         from neu4mes.arithmetic import Square
         if val == 2:

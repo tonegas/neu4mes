@@ -22,11 +22,12 @@ from neu4mes.output import Output
 
 from neu4mes.activation import Relu
 from neu4mes.fir import Fir
-from neu4mes.arithmetic import Add, Sub, Neg, Square
+from neu4mes.arithmetic import Add, Sub, Mul, Neg, Square
 from neu4mes.trigonometric import Sin, Cos, Tan
 from neu4mes.parametricfunction import ParamFun
 from neu4mes.fuzzify import Fuzzify
 from neu4mes.part import TimePart, Part, Select, TimeSelect
+from neu4mes.localmodel import LocalModel
 from neu4mes.parameter import Parameter
 
 

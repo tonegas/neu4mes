@@ -68,13 +68,21 @@ class TimeSelect(Stream, ToStream):
         if (type(obj) is Input or type(obj) is Stream):
             self.json['Relations'][self.name] = [timeselect_relation_name,[obj.name],i]
 
-class Part_Layer(nn.Module):
-    def __init__(self):
-        super(Part_Layer, self).__init__()
-    def forward(self, x):
-        return torch.pow(x,2)
 
 def createPart(self, *inputs):
-    return Part_Layer()
+    pass
+
+def createSelect(self, *inputs):
+    pass
+
+def createTimePart(self, *inputs):
+    pass
+
+def createTimeSelect(self, *inputs):
+    pass
 
 setattr(Model, part_relation_name, createPart)
+setattr(Model, select_relation_name, createSelect)
+setattr(Model, timepart_relation_name, createTimePart)
+setattr(Model, timeselect_relation_name, createTimeSelect)
+
