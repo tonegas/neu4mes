@@ -46,7 +46,7 @@ class Fir(NeuObj, AutoToStream):
         stream_json = merge(self.json,obj.json)
         if type(obj) is Input or type(obj) is Stream:
             stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
-            return Stream(stream_name, stream_json,{'dim_in':self.output_dimension})
+            return Stream(stream_name, stream_json,{'dim':self.output_dimension})
         else:
             raise Exception('Type is not supported!')
 

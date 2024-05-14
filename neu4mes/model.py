@@ -36,20 +36,14 @@ class Model(nn.Module):
                     #self.relation_forward[relation] = func(self.n_samples[input_var[0]], len(self.inputs[input_var[1]]['Discrete']))
                     #self.n_samples[relation] = len(self.inputs[input_var[1]]['Discrete'])
                 elif rel_name == 'Fir':  ## Linear module requires 2 inputs: input_size and output_size
-                    if set(['dim_in', 'dim_out']).issubset(self.params[inputs[2]].keys()):
-                        self.relation_forward[relation] = func(self.params[inputs[2]]['dim_in'], self.params[inputs[2]]['dim_out'])
-                    elif 'tw_in' in self.params[inputs[2]].keys():
-                        if type(self.params[inputs[2]]['tw_in']) is list:  ## Backward + forward
-                            dim_in = int(abs(self.params[inputs[2]]['tw_in'][0]) / self.sample_time) + int(abs(self.params[inputs[2]]['tw_in'][1]) / self.sample_time)
+                    if 'tw' in self.params[inputs[2]].keys():
+                        if type(self.params[inputs[2]]['tw']) is list:  ## Backward + forward
+                            dim_in = int(abs(self.params[inputs[2]]['tw'][0]) / self.sample_time) + int(abs(self.params[inputs[2]]['tw'][1]) / self.sample_time)
                         else:
-                            dim_in =  int(self.params[inputs[2]]['tw_in'] / self.sample_time)
-                        self.relation_forward[relation] = func(dim_in, self.params[inputs[2]]['dim_out'])
-                    elif 'tw_out' in self.params[inputs[2]].keys():
-                        if type(self.params[inputs[2]]['tw_out']) is list:  ## Backward + forward
-                            dim_out = int(abs(self.params[inputs[2]]['tw_out'][0]) / self.sample_time) + int(abs(self.params[inputs[2]]['tw_out'][1]) / self.sample_time)
-                        else:
-                            dim_out =  int(self.params[inputs[2]]['tw_out'] / self.sample_time)
-                        self.relation_forward[relation] = func(self.params[inputs[2]]['dim_in'], dim_out)
+                            dim_in =  int(self.params[inputs[2]]['tw'] / self.sample_time)
+                        self.relation_forward[relation] = func(dim_in, self.params[inputs[2]]['dim'])
+                    else:
+                        self.relation_forward[relation] = func(1, self.params[inputs[2]]['dim'])
 
                 else: ## Functions that takes no parameters
                     self.relation_forward[relation] = func()
