@@ -14,6 +14,7 @@ from neu4mes.dataset import Neu4MesDataset
 from neu4mes.loss import CustomRMSE
 from neu4mes.output import Output
 from neu4mes.model import Model
+from neu4mes.relation import Stream
 
 class Neu4mes:
     def __init__(self, model_def = 0, verbose = False, visualizer = TextVisualizer()):
@@ -113,6 +114,17 @@ class Neu4mes:
         elif type(model_def) is dict:
             self.model_def = merge(self.model_def, model_def)
         #self.MP(pprint,self.model_def)
+
+    # TODO da modificare perchè adesso serve solo per far funzionare i test
+    def minimizeError(self, stream1, stream2):
+        ss = Stream(stream2.name, stream2.json, stream2.dim)
+        self.model_def = merge(self.model_def, ss.json)
+        key = stream1.name
+        elem_key = key.split('__')
+        if len(elem_key) > 1 and elem_key[1] == '-z1':
+            self.model_def['Outputs'][key] = {}
+        self.model_def['Relations'][key] = self.model_def['Relations'][stream2.name]
+
 
     """
     Definition of the network structure through the dependency graph and sampling time.

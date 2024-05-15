@@ -10,10 +10,9 @@ T     = Input('torque')
 lin_theta = Fir(theta.tw(1.5))
 sin_theta = Fir(Sin(theta))
 torque = Fir(T)
-theta_z = Output(theta.z(-1), lin_theta+sin_theta+torque)
 
 # Add the neural model to the neu4mes structure and neuralization of the model
-pendolum.addModel(theta_z)
+pendolum.minimizeError(theta.z(-1), lin_theta+sin_theta+torque)
 pendolum.neuralizeModel(0.05)
 
 # Data load
