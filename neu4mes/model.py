@@ -63,7 +63,7 @@ class Model(nn.Module):
     def forward(self, kwargs):
         available_inputs = {}
         inputs_keys = list(self.inputs.keys())
-        while not set(self.outputs.keys()).issubset(inputs_keys):
+        while not set(self.outputs.values()).issubset(inputs_keys):
             for output in self.relations.keys():
                 ## if i have all the variables i can calculate the relation
                 if (output not in inputs_keys) and (set(self.relation_inputs[output]).issubset(inputs_keys)):
@@ -86,7 +86,7 @@ class Model(nn.Module):
                     inputs_keys.append(output)
 
         ## Return a dictionary with all the outputs final values
-        result_dict = {key: available_inputs[key] for key in self.outputs.keys()}
+        result_dict = {key: available_inputs[key] for key in self.outputs.values()}
         return result_dict
 
     '''

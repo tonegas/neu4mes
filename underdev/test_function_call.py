@@ -1,3 +1,8 @@
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
+
 from neu4mes import *
 # Cose da sistemare per far andare questo file
 # 1. Modificare il discorso degli Output
@@ -16,9 +21,11 @@ example1.addModel(est_x_k1)
 example1.neuralizeModel(0.05)
 
 # Posso fare queste chiamate
-example1({'F':5,'x':[1,2,3,4,5,6,7,8,9,10]}) # x ed F sono passate alla funzione
+results = example1(inputs={'F':[5],'x':[1,2,3,4,5,6,7,8,9,10]}) # x ed F sono passate alla funzione
 # il ritorno dovrebbe essere una cosa del genere
 # {'xk1': 3.231} adesso è un numero casuale dopo il traning sarà un numero sensato
+for output, result in results.items():
+    print(f'prediction for {output}: {result}')
 
 # La funzione prende in ingresso due Stream
 # Adesso facciamo che funziona come prima e non gestisce due reti poi faremo anche la cosa che gestisce due reti

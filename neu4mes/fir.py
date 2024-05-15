@@ -53,6 +53,15 @@ class Fir(NeuObj, AutoToStream):
 def createLinear(self, input_size, output_size):
     return nn.Linear(in_features=input_size, out_features=output_size, bias=False)
 
+'''
+def createLinear(self, input_size, output_size, weights=None):
+    layer = nn.Linear(in_features=input_size, out_features=output_size, bias=False)
+    if weights:
+        layer.weight = weights
+        layer.requires_grad_(False)
+    return layer
+'''
+
 def createLinearBias(self, input_size, output_size):
     return nn.Linear(in_features=input_size, out_features=output_size, bias=True)
 

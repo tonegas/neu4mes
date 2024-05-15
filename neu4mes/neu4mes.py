@@ -100,6 +100,18 @@ class Neu4mes:
         # Visualizer
         self.visualizer = visualizer                        # Class for visualizing data
 
+    def __call__(self, inputs):
+        X = {}
+        for key, val in inputs.items():
+            X[key] = torch.from_numpy(np.array(val)).to(torch.float32)
+            if X[key].ndim == 1: ## add the batch dimension
+                X[key] = X[key].unsqueeze(0)
+        result = self.model(X)
+        result_dict = {}
+        for key, value in self.model_def['Outputs'].items():
+            result_dict[key] = result[value].squeeze().detach().numpy()
+        return result_dict
+
     def MP(self,fun,arg):
         if self.verbose:
             fun(arg)
