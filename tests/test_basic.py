@@ -12,17 +12,17 @@ def myFun(K1,K2,p1,p2):
 class Neu4mesJson(unittest.TestCase):
     def test_input(self):
         input = Input('in')
-        self.assertEqual({'Inputs': {'in': {'dim': 1}}, 'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {}, 'SampleTime': 0},input.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [0,0]}}, 'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {}, 'SampleTime': 0},input.json)
         
         input = Input('in', values=[2,3,4])
-        self.assertEqual({'Inputs': {'in': {'dim': 1, 'discrete': [2,3,4]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {}, 'SampleTime': 0},input.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'discrete': [2,3,4], 'tw': [0,0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {}, 'SampleTime': 0},input.json)
 
     def test_aritmetic(self):
         input = Input('in')
         out = input+input
-        self.assertEqual({'Inputs': {'in': {'dim': 1}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add1': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [0,0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add1': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)
         out = input.tw(1) + input.tw(1)
-        self.assertEqual({'Inputs': {'in': {'dim': 1}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add4': ['Add', [('in', 1), ('in', 1)]]}, 'SampleTime': 0},out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add4': ['Add', [('in', [-1,0]), ('in', [-1,0])]]}, 'SampleTime': 0},out.json)
 
     def test_scalar_input_dimensions(self):
         input = Input('in')

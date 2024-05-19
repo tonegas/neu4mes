@@ -155,43 +155,55 @@ class Neu4mes:
             self.model_def["SampleTime"] = sample_time
         self.MP(pprint,self.model_def)
 
-        # Set the maximum time window for each input
-        for name, params in self.model_def['Relations'].items():
-            #if name not in self.model_def['Outputs'].keys():
-            relation_params = params[1]
-            for rel in relation_params:
-                if type(rel) is tuple:
-                    if rel[0] in self.model_def['Inputs'].keys():
-                        tw = rel[1]
-                        if type(tw) is list: ## backward + forward
-                            assert tw[0] < tw[1], 'The first element of a time window must be less that the second (Ex: [-2, 2])'
-                            if rel[0] in self.input_tw_backward.keys(): ## Update if grater
-                                self.input_tw_backward[rel[0]] = max(abs(tw[0]), self.input_tw_backward[rel[0]])
-                                self.input_tw_forward[rel[0]] = max(tw[1], self.input_tw_forward[rel[0]])
-                            else:
-                                self.input_tw_backward[rel[0]] = abs(tw[0])
-                                self.input_tw_forward[rel[0]] = tw[1]
-                        else: ## Only backward
+        for key, value in self.model_def['Inputs'].items():
+            self.input_tw_backward[key] = abs(value['tw'][0])
+            self.input_tw_forward[key] = value['tw'][1]
+            if value['tw'] == [0,0]:
+                self.input_tw_backward[key] = self.model_def['SampleTime']
+            self.input_ns_backward[key] = int(self.input_tw_backward[key] / self.model_def['SampleTime'])
+            self.input_ns_forward[key] = int(self.input_tw_forward[key] / self.model_def['SampleTime'])
+            self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
 
-                            if rel[0] in self.input_tw_backward.keys(): ## Update if grater
-                                self.input_tw_backward[rel[0]] = max(tw, self.input_tw_backward[rel[0]])
-                                self.input_tw_forward[rel[0]] = max(0, self.input_tw_forward[rel[0]])
-                            else:
-                                self.input_tw_backward[rel[0]] = tw
-                                self.input_tw_forward[rel[0]] = 0
+        # # Set the maximum time window for each input
+        # for name, params in self.model_def['Relations'].items():
+        #     #if name not in self.model_def['Outputs'].keys():
+        #     relation_params = params[1]
+        #     for rel in relation_params:
+        #         if type(rel) is tuple:
+        #             if rel[0] in self.model_def['Inputs'].keys():
+        #                 tw = rel[1]
+        #                 if type(tw) is list: ## backward + forward
+        #                     assert tw[0] < tw[1], 'The first element of a time window must be less that the second (Ex: [-2, 2])'
+        #                     if rel[0] in self.input_tw_backward.keys(): ## Update if grater
+        #                         self.input_tw_backward[rel[0]] = max(abs(tw[0]), self.input_tw_backward[rel[0]])
+        #                         self.input_tw_forward[rel[0]] = max(tw[1], self.input_tw_forward[rel[0]])
+        #                     else:
+        #                         self.input_tw_backward[rel[0]] = abs(tw[0])
+        #                         self.input_tw_forward[rel[0]] = tw[1]
+        #                 else: ## Only backward
+        #
+        #                     if rel[0] in self.input_tw_backward.keys(): ## Update if grater
+        #                         self.input_tw_backward[rel[0]] = max(tw, self.input_tw_backward[rel[0]])
+        #                         self.input_tw_forward[rel[0]] = max(0, self.input_tw_forward[rel[0]])
+        #                     else:
+        #                         self.input_tw_backward[rel[0]] = tw
+        #                         self.input_tw_forward[rel[0]] = 0
+        #
+        #                 self.input_ns_backward[rel[0]] = int(self.input_tw_backward[rel[0]] / self.model_def['SampleTime'])
+        #                 self.input_ns_forward[rel[0]] = int(self.input_tw_forward[rel[0]] / self.model_def['SampleTime'])
+        #                 self.input_n_samples[rel[0]] = self.input_ns_backward[rel[0]] + self.input_ns_forward[rel[0]]
+        #         else:
+        #             if rel in self.model_def['Inputs'].keys(): ## instantaneous input
+        #                 if rel not in self.input_tw_backward.keys():
+        #                     self.input_tw_backward[rel] = self.model_def['SampleTime']
+        #                     self.input_tw_forward[rel] = 0
+        #
+        #                     self.input_ns_backward[rel] = 1
+        #                     self.input_ns_forward[rel] = 0
+        #                     self.input_n_samples[rel] = self.input_ns_backward[rel] + self.input_ns_forward[rel]
 
-                        self.input_ns_backward[rel[0]] = int(self.input_tw_backward[rel[0]] / self.model_def['SampleTime'])
-                        self.input_ns_forward[rel[0]] = int(self.input_tw_forward[rel[0]] / self.model_def['SampleTime'])
-                        self.input_n_samples[rel[0]] = self.input_ns_backward[rel[0]] + self.input_ns_forward[rel[0]]
-                else:
-                    if rel in self.model_def['Inputs'].keys(): ## instantaneous input
-                        if rel not in self.input_tw_backward.keys():
-                            self.input_tw_backward[rel] = self.model_def['SampleTime']
-                            self.input_tw_forward[rel] = 0
-
-                            self.input_ns_backward[rel] = 1
-                            self.input_ns_forward[rel] = 0
-                            self.input_n_samples[rel] = self.input_ns_backward[rel] + self.input_ns_forward[rel]
+        # assert self.input_tw_backward_prova == self.input_tw_backward, 'OK'
+        # assert self.input_tw_forward_prova == self.input_tw_forward, 'OK'
 
         self.max_samples_backward = max(self.input_ns_backward.values())
         self.max_samples_forward = max(self.input_ns_forward.values())
@@ -217,22 +229,12 @@ class Neu4mes:
 
                         if len(input_name) == 3: ## we have the offset
                             offset = int(abs(input_name[1][0])/sample_time) + int(input_name[2] / sample_time)
+                            input_samples[input_name[0]] = {'backward': backward, 'forward': forward, 'offset': offset}
                         else:
-                            offset = None
+                            input_samples[input_name[0]] = {'backward':backward, 'forward': forward}
 
-                    else: ## we have only the backward window
-                        if input_name[0] in self.model_def['Inputs']:
-                            backward = self.input_ns_backward[input_name[0]] - int(abs(input_name[1])/sample_time)
-                            forward = self.input_ns_backward[input_name[0]] + 0
-
-                        if len(input_name) == 3: ## we have the offset
-                            offset = int(abs(input_name[1])/sample_time) + int(input_name[2] / sample_time)
-                        else:
-                            offset = None
-                    
-                    input_samples[input_name[0]] = {'backward':backward, 'forward':forward, 'offset':offset}
                 else: ## we have no window
-                    input_samples[input_name] = {'backward':0, 'forward':1, 'offset':None}
+                    input_samples[input_name] = {'backward':0, 'forward':1}
 
             self.relation_samples[name] = input_samples
 

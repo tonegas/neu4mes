@@ -1,11 +1,13 @@
 import copy
 
+import numpy as np
+
 from neu4mes.relation import NeuObj, Stream
 
 class Input(NeuObj, Stream):
     def __init__(self, name, dimensions = 1, values = None):
         NeuObj.__init__(self, name)
-        self.json['Inputs'][self.name] = {'dim': dimensions }
+        self.json['Inputs'][self.name] = {'dim': dimensions, 'tw': [0, 0]}
         self.dim = {'dim': dimensions}
         if values:
             self.values = values
@@ -14,13 +16,14 @@ class Input(NeuObj, Stream):
 
     def tw(self, tw, offset = None):
         dim = copy.deepcopy(self.dim)
-        if tw is list:
-            assert tw[0] <= tw[1], 'first element of the time interval must be less than the second element'
-            # TODO set the max tw in the Input condidering all the input
+        if type(tw) is list:
+            self.json['Inputs'][self.name]['tw'] = tw
+        else:
+            self.json['Inputs'][self.name]['tw'][0] = -tw
         dim['tw'] = tw
         if offset is not None:
-            return Stream((self.name, tw, offset), self.json, dim)
-        return Stream((self.name, tw), self.json, dim)
+            return Stream((self.name, self.json['Inputs'][self.name]['tw'], offset), self.json, dim)
+        return Stream((self.name, self.json['Inputs'][self.name]['tw']), self.json, dim)
 
     def z(self, advance):
         if advance > 0:
