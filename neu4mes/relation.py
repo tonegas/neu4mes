@@ -11,11 +11,12 @@ def merge(source, destination, main = True):
             node = result.setdefault(key, {})
             merge(value, node, False)
         else:
-            if key in result and key == 'tw' and type(result[key]) is list:
-                if result[key][0] > value[0]:
-                    result[key][0] = value[0]
-                if result[key][1] < value[1]:
-                    result[key][1] = value[1]
+            if key in result and type(result[key]) is list:
+                if key == 'tw' or key == 'sw':
+                    if result[key][0] > value[0]:
+                        result[key][0] = value[0]
+                    if result[key][1] < value[1]:
+                        result[key][1] = value[1]
             else:
                 result[key] = value
 

@@ -48,6 +48,7 @@ class Neu4mes:
         self.relations = {}                 # NN element - operations
         self.relation_samples = {}          # N samples for each relation
         self.outputs = {}                   # NN element - clean network outputs
+        self.minimize = []
 
         self.output_relation = {}           # dict with the outputs
         self.output_keys = []               # clear output signal keys (without delay info string __-z1)
@@ -109,7 +110,7 @@ class Neu4mes:
         result = self.model(X)
         result_dict = {}
         for key, value in self.model_def['Outputs'].items():
-            result_dict[key] = result[value].squeeze().detach().numpy()
+            result_dict[key] = result[value].squeeze().detach().numpy().tolist()
         return result_dict
 
     def MP(self,fun,arg):
@@ -129,14 +130,11 @@ class Neu4mes:
 
     # TODO da modificare perchè adesso serve solo per far funzionare i test
     def minimizeError(self, stream1, stream2):
-        ss = Stream(stream2.name, stream2.json, stream2.dim)
-        self.model_def = merge(self.model_def, ss.json)
-        key = stream1.name
-        elem_key = key.split('__')
-        if len(elem_key) > 1 and elem_key[1] == '-z1':
-            self.model_def['Outputs'][key] = {}
-        self.model_def['Relations'][key] = self.model_def['Relations'][stream2.name]
-
+        self.model_def = merge(self.model_def, stream1.json)
+        self.model_def = merge(self.model_def, stream2.json)
+        self.model_def['Outputs']['A'] = stream1.name
+        self.model_def['Outputs']['B'] = stream2.name
+        self.minimize.append((stream1.name,stream2.name))
 
     """
     Definition of the network structure through the dependency graph and sampling time.
@@ -155,13 +153,14 @@ class Neu4mes:
             self.model_def["SampleTime"] = sample_time
         self.MP(pprint,self.model_def)
 
+
         for key, value in self.model_def['Inputs'].items():
             self.input_tw_backward[key] = abs(value['tw'][0])
             self.input_tw_forward[key] = value['tw'][1]
             if value['tw'] == [0,0]:
-                self.input_tw_backward[key] = self.model_def['SampleTime']
-            self.input_ns_backward[key] = int(self.input_tw_backward[key] / self.model_def['SampleTime'])
-            self.input_ns_forward[key] = int(self.input_tw_forward[key] / self.model_def['SampleTime'])
+                self.input_tw_backward[key] = sample_time
+            self.input_ns_backward[key] = max(int(self.input_tw_backward[key] / sample_time),abs(value['sw'][0]))
+            self.input_ns_forward[key] = max(int(self.input_tw_forward[key] / sample_time),abs(value['sw'][1]))
             self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
 
         # # Set the maximum time window for each input
@@ -219,16 +218,18 @@ class Neu4mes:
             input_samples = {}
             for input_name in inputs[1]:
                 if type(input_name) is tuple: ## we have a window
-                    if type(input_name[1]) is list: ## we have the forward and backward window
+                    window = 'tw' if 'tw' in input_name[1] else 'sw'
+                    aux_sample_time = sample_time if 'tw' in input_name[1] else 1
+                    if type(input_name[1][window]) is list: ## we have the forward and backward window
                         if input_name[0] in self.model_def['Inputs']:
-                            backward = self.input_ns_backward[input_name[0]] - int(abs(input_name[1][0])/sample_time)
-                            forward = self.input_ns_backward[input_name[0]] + int(abs(input_name[1][1])/sample_time)
+                            backward = self.input_ns_backward[input_name[0]] - int(abs(input_name[1][window][0])/aux_sample_time)
+                            forward = self.input_ns_backward[input_name[0]] + int(abs(input_name[1][window][1])/aux_sample_time)
                         else:
-                            backward = int(abs(input_name[1][0])/sample_time)
-                            forward = int(abs(input_name[1][1])/sample_time)
+                            backward = int(abs(input_name[1][window][0])/aux_sample_time)
+                            forward = int(abs(input_name[1][window][1])/aux_sample_time)
 
-                        if len(input_name) == 3: ## we have the offset
-                            offset = int(abs(input_name[1][0])/sample_time) + int(input_name[2] / sample_time)
+                        if 'offset' in input_name[1]: ## we have the offset
+                            offset = int(abs(input_name[1][window][0])/aux_sample_time) + int(input_name[1]['offset'] / aux_sample_time)
                             input_samples[input_name[0]] = {'backward': backward, 'forward': forward, 'offset': offset}
                         else:
                             input_samples[input_name[0]] = {'backward':backward, 'forward': forward}

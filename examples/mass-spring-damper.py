@@ -5,12 +5,12 @@ from neu4mes.visualizer import StandardVisualizer
 # Create neural model
 x = Input('x')
 F = Input('F')
-#x_z = Output('x_k', Fir(x.tw(2))+Fir(F))
+x_z = Output('x_k', Fir(x.tw(2))+Fir(F))
 
 
 # Add the neural model to the neu4mes structure and neuralization of the model
 mass_spring_damper = Neu4mes(verbose = True,  visualizer = StandardVisualizer())
-#mass_spring_damper.addModel(x_z)
+mass_spring_damper.addModel(x_z)
 mass_spring_damper.minimizeError(x.z(-1), Fir(x.tw(2))+Fir(F))
 mass_spring_damper.neuralizeModel(0.05)
 

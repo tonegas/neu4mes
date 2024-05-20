@@ -32,18 +32,14 @@ class Model(nn.Module):
             if func:
                 if rel_name == 'LocalModel': # TODO: Work in progress
                     pass
-                    #self.relation_forward[relation] = func(self.n_samples[input_var[0]], len(self.inputs[input_var[1]]['Discrete']))
-                    #self.n_samples[relation] = len(self.inputs[input_var[1]]['Discrete'])
                 elif rel_name == 'Fir':  ## Linear module requires 2 inputs: input_size and output_size
-                    if 'tw' in self.params[inputs[2]].keys():
-                        if type(self.params[inputs[2]]['tw']) is list:  ## Backward + forward
-                            dim_in = int(abs(self.params[inputs[2]]['tw'][0]) / self.sample_time) + int(abs(self.params[inputs[2]]['tw'][1]) / self.sample_time)
-                        else:
-                            dim_in =  int(self.params[inputs[2]]['tw'] / self.sample_time)
+                    window = 'tw' if 'tw' in self.params[inputs[2]].keys() else ('sw' if 'sw' in self.params[inputs[2]].keys() else None)
+                    aux_sample_time = self.sample_time if 'tw' == window else 1
+                    if window:
+                        dim_in =  int(self.params[inputs[2]][window] / aux_sample_time)
                         self.relation_forward[relation] = func(dim_in, self.params[inputs[2]]['dim'])
                     else:
                         self.relation_forward[relation] = func(1, self.params[inputs[2]]['dim'])
-
                 else: ## Functions that takes no parameters
                     self.relation_forward[relation] = func()
                 self.relation_inputs[relation] = input_var

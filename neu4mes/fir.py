@@ -29,19 +29,15 @@ class Fir(NeuObj, AutoToStream):
         #TODO remove this limit the input can have different dimension
         #The output dimensions will be equal to the input dimension
         assert 'dim' in obj.dim and obj.dim['dim'] == 1, 'Input dimension must be scalar'
-        if 'tw' in obj.dim:
-            if type(obj.dim['tw']) is list:
-                assert obj.dim['tw'][0] <= obj.dim['tw'][1], 'first element of the time interval must be less than the second element'
-                tw = obj.dim['tw'][1] - obj.dim['tw'][0]
-            else:
-                tw = obj.dim['tw']
+        window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
+        if window:
             if self.parameter:
-                assert self.json['Parameters'][self.name]['tw'] == tw, 'Time window of the input dimension must be the same of the parameter'
+                assert self.json['Parameters'][self.name][window] == obj.dim[window], 'Time window of the input dimension must be the same of the parameter'
             else:
-                self.json['Parameters'][self.name]['tw'] = tw
+                self.json['Parameters'][self.name][window] = obj.dim[window]
         else:
             if self.parameter:
-                assert 'tw' not in self.json['Parameters'][self.name], 'The parameter have a time window and the input no'
+                assert window not in self.json['Parameters'][self.name], 'The parameter have a time window and the input no'
 
         stream_json = merge(self.json,obj.json)
         if type(obj) is Input or type(obj) is Stream:
