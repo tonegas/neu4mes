@@ -15,12 +15,19 @@ class Model(nn.Module):
         self.relation_inputs = {}
         self.relation_parameters = {}
 
-        for relation, inputs in self.relations.items():
-            rel_name = inputs[0]
+        for relation, inputs in (self.relations|self.outputs).items():
+            if relation in self.relations:
+                rel_name = inputs[0]
+                ## collect the inputs needed for the relation
+                input_var = [i[0] if type(i) is tuple else i for i in inputs[1]]
+            else:
+                if type(inputs) is tuple:
+                    self.relation_inputs[relation] = [inputs[0]]
+                else:
+                    self.relation_inputs[relation] = [inputs]
+                continue
 
-            ## collect the inputs needed for the relation
-            input_var = [i[0] if type(i) is tuple else i for i in inputs[1]]
-            
+
             ## Check shared layers
             if len(inputs) >= 3:
                 if inputs[2] in self.relation_parameters.keys(): ## we have a shared layer
@@ -59,8 +66,9 @@ class Model(nn.Module):
     def forward(self, kwargs):
         available_inputs = {}
         inputs_keys = list(self.inputs.keys())
-        while not set(self.outputs.values()).issubset(inputs_keys):
-            for output in self.relations.keys():
+        outputs_list = set([elem[0] if type(elem) is tuple else elem for elem in self.outputs.values()])
+        while not outputs_list.issubset(inputs_keys):
+            for output in (self.relations|self.outputs).keys():
                 ## if i have all the variables i can calculate the relation
                 if (output not in inputs_keys) and (set(self.relation_inputs[output]).issubset(inputs_keys)):
                     ## Layer_inputs: Selects the portion of the window from the complete vector that needs to be used for the current layer
@@ -71,18 +79,25 @@ class Model(nn.Module):
                             temp = kwargs[key][:,self.samples[output][key]['backward']:self.samples[output][key]['forward']]
                         else:
                             temp = available_inputs[key]
-                        if self.samples[output][key]['offset'] is not None:
+                        if 'offset' in self.samples[output][key]:
                             temp = temp - temp[:, self.samples[output][key]['offset']:self.samples[output][key]['offset']+1]
                         layer_inputs.append(temp)
 
-                    if len(layer_inputs) <= 1: ## i have a single forward pass
-                        available_inputs[output] = self.relation_forward[output](layer_inputs[0])
-                    else:
-                        available_inputs[output] = self.relation_forward[output](layer_inputs)
-                    inputs_keys.append(output)
+                        if output in self.outputs.keys():
+                            if key in self.inputs.keys():
+                                available_inputs[output] = layer_inputs[0]
+                            else:
+                                available_inputs[output] = available_inputs[key]
+
+                    if output not in self.outputs.keys():
+                        if len(layer_inputs) <= 1: ## i have a single forward pass
+                            available_inputs[output] = self.relation_forward[output](layer_inputs[0])
+                        else:
+                            available_inputs[output] = self.relation_forward[output](layer_inputs)
+                        inputs_keys.append(output)
 
         ## Return a dictionary with all the outputs final values
-        result_dict = {key: available_inputs[key] for key in self.outputs.values()}
+        result_dict = {key: available_inputs[key] for key in self.outputs.keys()}
         return result_dict
 
     '''

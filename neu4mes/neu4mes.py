@@ -40,6 +40,7 @@ class Neu4mes:
         self.input_ns_forward = {}          # maxmimum number of samples forward for each the input
         self.input_n_samples = {}           # maxmimum number of samples for each the input
 
+        self.neuralized = False
         self.inputs = {}                    # NN element - processed network inputs
         self.rnn_inputs = {}                # RNN element - processed network inputs
         self.inputs_for_model = {}          # NN element - clean network inputs
@@ -47,8 +48,12 @@ class Neu4mes:
         self.rnn_init_state = {}            # RNN element - for the states of RNN
         self.relations = {}                 # NN element - operations
         self.relation_samples = {}          # N samples for each relation
-        self.outputs = {}                   # NN element - clean network outputs
-        self.minimize = []
+        self.outputs = {}
+
+        # List of element to be minimized
+        self.minimize_idx = 0
+        self.minimize_list = []
+        self.loss_fn = None                 # RNN model - Pytorch loss function
 
         self.output_relation = {}           # dict with the outputs
         self.output_keys = []               # clear output signal keys (without delay info string __-z1)
@@ -60,7 +65,6 @@ class Neu4mes:
 
         # Optimizer parameters
         self.optimizer = None                     # NN model - Pytorch optimizer
-        self.loss_fn = None                 # RNN model - Pytorch loss function
 
         # Dataset characteristics
         self.input_data = {}                # dict with data divided by file and symbol key: input_data[(file,key)]
@@ -109,8 +113,8 @@ class Neu4mes:
                 X[key] = X[key].unsqueeze(0)
         result = self.model(X)
         result_dict = {}
-        for key, value in self.model_def['Outputs'].items():
-            result_dict[key] = result[value].squeeze().detach().numpy().tolist()
+        for key in self.model_def['Outputs'].keys():
+            result_dict[key] = result[key].squeeze().detach().numpy().tolist()
         return result_dict
 
     def MP(self,fun,arg):
@@ -129,12 +133,23 @@ class Neu4mes:
         #self.MP(pprint,self.model_def)
 
     # TODO da modificare perchè adesso serve solo per far funzionare i test
-    def minimizeError(self, stream1, stream2):
+    def minimizeError(self, stream1, stream2, loss_function='mse'):
+        # TODO Create un modello solo per la minimizzazione
         self.model_def = merge(self.model_def, stream1.json)
         self.model_def = merge(self.model_def, stream2.json)
-        self.model_def['Outputs']['A'] = stream1.name
-        self.model_def['Outputs']['B'] = stream2.name
-        self.minimize.append((stream1.name,stream2.name))
+        if type(stream1) is not Output:
+            nameA = 'MinA_'+str(self.minimize_idx)
+            self.model_def['Outputs'][nameA] = stream1.name
+        else:
+            nameA = stream1.name
+        if type(stream2) is not Output:
+            nameB = 'MinA_' + str(self.minimize_idx)
+            self.model_def['Outputs'][nameB] = stream2.name
+        else:
+            nameB = stream2.name
+        self.minimize_list.append((nameA, nameB, loss_function))
+        self.minimize_idx = self.minimize_idx + 1
+
 
     """
     Definition of the network structure through the dependency graph and sampling time.
@@ -153,56 +168,14 @@ class Neu4mes:
             self.model_def["SampleTime"] = sample_time
         self.MP(pprint,self.model_def)
 
-
         for key, value in self.model_def['Inputs'].items():
             self.input_tw_backward[key] = abs(value['tw'][0])
             self.input_tw_forward[key] = value['tw'][1]
-            if value['tw'] == [0,0]:
+            if value['sw'] == [0,0] and value['tw'] == [0,0]:
                 self.input_tw_backward[key] = sample_time
             self.input_ns_backward[key] = max(int(self.input_tw_backward[key] / sample_time),abs(value['sw'][0]))
             self.input_ns_forward[key] = max(int(self.input_tw_forward[key] / sample_time),abs(value['sw'][1]))
             self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
-
-        # # Set the maximum time window for each input
-        # for name, params in self.model_def['Relations'].items():
-        #     #if name not in self.model_def['Outputs'].keys():
-        #     relation_params = params[1]
-        #     for rel in relation_params:
-        #         if type(rel) is tuple:
-        #             if rel[0] in self.model_def['Inputs'].keys():
-        #                 tw = rel[1]
-        #                 if type(tw) is list: ## backward + forward
-        #                     assert tw[0] < tw[1], 'The first element of a time window must be less that the second (Ex: [-2, 2])'
-        #                     if rel[0] in self.input_tw_backward.keys(): ## Update if grater
-        #                         self.input_tw_backward[rel[0]] = max(abs(tw[0]), self.input_tw_backward[rel[0]])
-        #                         self.input_tw_forward[rel[0]] = max(tw[1], self.input_tw_forward[rel[0]])
-        #                     else:
-        #                         self.input_tw_backward[rel[0]] = abs(tw[0])
-        #                         self.input_tw_forward[rel[0]] = tw[1]
-        #                 else: ## Only backward
-        #
-        #                     if rel[0] in self.input_tw_backward.keys(): ## Update if grater
-        #                         self.input_tw_backward[rel[0]] = max(tw, self.input_tw_backward[rel[0]])
-        #                         self.input_tw_forward[rel[0]] = max(0, self.input_tw_forward[rel[0]])
-        #                     else:
-        #                         self.input_tw_backward[rel[0]] = tw
-        #                         self.input_tw_forward[rel[0]] = 0
-        #
-        #                 self.input_ns_backward[rel[0]] = int(self.input_tw_backward[rel[0]] / self.model_def['SampleTime'])
-        #                 self.input_ns_forward[rel[0]] = int(self.input_tw_forward[rel[0]] / self.model_def['SampleTime'])
-        #                 self.input_n_samples[rel[0]] = self.input_ns_backward[rel[0]] + self.input_ns_forward[rel[0]]
-        #         else:
-        #             if rel in self.model_def['Inputs'].keys(): ## instantaneous input
-        #                 if rel not in self.input_tw_backward.keys():
-        #                     self.input_tw_backward[rel] = self.model_def['SampleTime']
-        #                     self.input_tw_forward[rel] = 0
-        #
-        #                     self.input_ns_backward[rel] = 1
-        #                     self.input_ns_forward[rel] = 0
-        #                     self.input_n_samples[rel] = self.input_ns_backward[rel] + self.input_ns_forward[rel]
-
-        # assert self.input_tw_backward_prova == self.input_tw_backward, 'OK'
-        # assert self.input_tw_forward_prova == self.input_tw_forward, 'OK'
 
         self.max_samples_backward = max(self.input_ns_backward.values())
         self.max_samples_forward = max(self.input_ns_forward.values())
@@ -214,9 +187,10 @@ class Neu4mes:
         self.MP(pprint,{"max_samples_backward": self.max_samples_backward, "max_samples_forward":self.max_samples_forward, "max_samples":self.max_n_samples})
 
         ## Get samples per relation
-        for name, inputs in self.model_def['Relations'].items():
+        for name, inputs in (self.model_def['Relations']|self.model_def['Outputs']).items():
             input_samples = {}
-            for input_name in inputs[1]:
+            inputs = inputs[1] if name in self.model_def['Relations'] else [inputs]
+            for input_name in inputs:
                 if type(input_name) is tuple: ## we have a window
                     window = 'tw' if 'tw' in input_name[1] else 'sw'
                     aux_sample_time = sample_time if 'tw' in input_name[1] else 1
@@ -241,10 +215,10 @@ class Neu4mes:
 
         self.MP(pprint,{"relation_samples": self.relation_samples})
 
-
         ## Build the network
         self.model = Model(self.model_def, self.relation_samples)
         self.MP(pprint,self.model)
+        self.neuralized = True
     """
     Loading of the data set files and generate the structure for the training considering the structure of the input and the output
     :param format: it is a list of the variable in the csv. All the input keys must be inside this list.
@@ -253,6 +227,7 @@ class Neu4mes:
     :param delimiters: it is a list of the symbols used between the element of the file
     """
     def loadData(self, format, folder = './data', skiplines = 0, delimiters=['\t',';',',']):
+        assert self.neuralized == True, "The network is not neuralized yet."
         path, dirs, files = next(os.walk(folder))
         file_count = len(files)
 
@@ -301,13 +276,23 @@ class Neu4mes:
                         else:
                             self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-self.input_n_samples[key]:aux_ind])
 
-                for key in output_keys:
-                    used_key = key
-                    elem_key = key.split('__')
-                    if len(elem_key) > 1 and elem_key[1]== '-z1':
-                        used_key = elem_key[0]
-                    for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples+add_sample_forward):
-                        self.inout_data_time_window[key].append(self.input_data[(file,used_key)][i+self.max_n_samples-self.max_samples_forward])
+                # for key in output_keys:
+                #     if type(self.model_def['Outputs'][key]) is tuple:
+                #         input_key = self.model_def['Outputs'][key][0]
+                #         for i in range(0, len(self.input_data[(file,input_key)])-self.max_n_samples+add_sample_forward):
+                #             aux_ind = i+self.max_n_samples+self.input_ns_forward[input_key]-self.max_samples_forward
+                #             if self.input_n_samples[input_key] == 1:
+                #                 self.inout_data_time_window[key].append(self.input_data[(file,input_key)][aux_ind-1])
+                #             else:
+                #                 self.inout_data_time_window[key].append(self.input_data[(file,input_key)][aux_ind-self.input_n_samples[input_key]:aux_ind])
+
+                # for key in output_keys:
+                #     used_key = key
+                #     elem_key = key.split('__')
+                #     if len(elem_key) > 1 and elem_key[1]== '-z1':
+                #         used_key = elem_key[0]
+                #     for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples+add_sample_forward):
+                #         self.inout_data_time_window[key].append(self.input_data[(file,used_key)][i+self.max_n_samples-self.max_samples_forward])
 
                 # Index identifying each file start
                 self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
@@ -338,7 +323,7 @@ class Neu4mes:
     """
     Analysis of the results
     """
-    def resultAnalysis(self, train_loss, test_loss, x_test, y_test):
+    def resultAnalysis(self, train_loss, test_loss, xy_train, xy_test):
         ## Plot train loss and test loss
         plt.plot(train_loss, label='train loss')
         plt.plot(test_loss, label='test loss')
@@ -363,26 +348,21 @@ class Neu4mes:
         with torch.inference_mode():
             self.model.eval()
             for idx in range(number_of_samples):
-                X, Y = {}, {}
-                for key, val in x_test.items():
-                    #item[key] = torch.tensor(val[index], dtype=torch.float32)
-                    X[key] = torch.from_numpy(val[idx]).to(torch.float32).unsqueeze(dim=0)
-                for key, val in y_test.items():
-                    Y[key] = torch.tensor(val[idx], dtype=torch.float32)
+                XY = {}
+                for key, val in xy_test.items():
+                    XY[key] = torch.from_numpy(val[idx]).to(torch.float32).unsqueeze(dim=0)
 
-                pred = self.model(X)
-                for i, key in enumerate(output_keys):
-                    self.prediction[i][idx] = pred[key].item() 
-                    self.label[i][idx] = Y[key].item() 
-                    self.performance['se'][i][idx] = np.square(pred[key].item() - Y[key].item())
+                out = self.model(XY)
+                for ind, obj in enumerate(self.minimize_list):
+                    self.performance['se'][ind][idx] = self.loss_fn(out[obj[0]], out[obj[1]])
 
-            for i, key in enumerate(output_keys):
-                # Mean Square Error 
-                self.performance['mse'][i] = np.mean(self.performance['se'][i])
+            for ind, obj in enumerate(self.minimize_list):
+                # Mean Square Error
+                self.performance['mse'][ind] = np.mean(self.performance['se'][ind])
                 # Root Mean Square Error
-                self.performance['rmse_test'][i] = np.sqrt(np.mean(self.performance['se'][i]))
-                # Fraction of variance unexplained (FVU) 
-                self.performance['fvu'][i] = np.var(self.prediction[i] - self.label[i]) / np.var(self.label[i])
+                self.performance['rmse_test'][ind] = np.sqrt(np.mean(self.performance['se'][ind]))
+                # Fraction of variance unexplained (FVU)
+                #self.performance['fvu'][ind] = np.var(self.prediction[i] - self.label[i]) / np.var(self.label[i])
 
             # Index of worst results
             self.performance['max_se_idxs'] = np.argmax(self.performance['se'], axis=1)
@@ -408,8 +388,8 @@ class Neu4mes:
         self.__getTrainParams(training_params, test_size=test_size)
 
         ## Split train and test
-        X_train, Y_train = {}, {}
-        X_test, Y_test = {}, {}
+        XY_train = {}
+        XY_test = {}
         for key,data in self.inout_data_time_window.items():
             if data:
                 samples = np.asarray(data)
@@ -417,15 +397,15 @@ class Neu4mes:
                     samples = np.reshape(samples, (-1, 1))
 
                 if key in self.model_def['Inputs'].keys():
-                    X_train[key] = samples[:int(len(samples)*train_size)]
-                    X_test[key] = samples[int(len(samples)*train_size):]
+                    XY_train[key] = samples[:int(len(samples)*train_size)]
+                    XY_test[key] = samples[int(len(samples)*train_size):]
                     if self.n_samples_train is None:
-                        self.n_samples_train = round(len(X_train[key]) / self.batch_size)
+                        self.n_samples_train = round(len(XY_train[key]) / self.batch_size)
                     if self.n_samples_test is None:
-                        self.n_samples_test = round(len(X_test[key]) / self.batch_size)
-                elif key in self.model_def['Outputs'].keys():
-                    Y_train[key] = samples[:int(len(samples)*train_size)]
-                    Y_test[key] = samples[int(len(samples)*train_size):]
+                        self.n_samples_test = round(len(XY_test[key]) / self.batch_size)
+                #elif key in self.model_def['Outputs'].keys():
+                #    Y_train[key] = samples[:int(len(samples)*train_size)]
+                #    Y_test[key] = samples[int(len(samples)*train_size):]
 
         ## Build the dataset
         #train_data = Neu4MesDataset(X_train, Y_train)
@@ -446,18 +426,15 @@ class Neu4mes:
             for i in range(self.n_samples_train):
 
                 idx = i*self.batch_size
-                X, Y = {}, {}
-                for key, val in X_train.items():
-                    #item[key] = torch.tensor(val[index], dtype=torch.float32)
-                    X[key] = torch.from_numpy(val[idx:idx+self.batch_size]).to(torch.float32)
-                for key, val in Y_train.items():
-                    Y[key] = torch.tensor(val[idx:idx+self.batch_size], dtype=torch.float32)
+                XY = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.batch_size]).to(torch.float32)
 
-                #inputs, labels = inputs.to(device), labels.to(device)
                 self.optimizer.zero_grad()
-                out = self.model(X)
-                loss = self.loss_fn(out, Y)
-                loss.backward()
+                out = self.model(XY)
+                for obj in self.minimize_list:
+                    loss = self.loss_fn(out[obj[0]], out[obj[1]])
+                    loss.backward()
                 self.optimizer.step()
                 train_loss.append(loss.item())
             train_loss = np.mean(train_loss)
@@ -467,16 +444,14 @@ class Neu4mes:
             for i in range(self.n_samples_test):
 
                 idx = i*self.batch_size
-                X, Y = {}, {}
-                for key, val in X_test.items():
-                    #item[key] = torch.tensor(val[index], dtype=torch.float32)
-                    X[key] = torch.from_numpy(val[idx:idx+self.batch_size]).to(torch.float32)
-                for key, val in Y_test.items():
-                    Y[key] = torch.tensor(val[idx:idx+self.batch_size], dtype=torch.float32)
+                XY = {}
+                for key, val in XY_test.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.batch_size]).to(torch.float32)
 
-                #inputs, labels = inputs.to(device), labels.to(device)
-                out = self.model(X)
-                loss = self.loss_fn(out, Y)
+                out = self.model(XY)
+                for obj in self.minimize_list:
+                    loss = self.loss_fn(out[obj[0]], out[obj[1]])
+                    loss.backward()
                 test_loss.append(loss.item())
             test_loss = np.mean(test_loss)
 
@@ -488,4 +463,4 @@ class Neu4mes:
 
         # Show the analysis of the Result
         if show_results:
-            self.resultAnalysis(train_losses, test_losses, X_test, Y_test)
+            self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)

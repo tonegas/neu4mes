@@ -6,17 +6,7 @@ class CustomRMSE(nn.Module):
         super(CustomRMSE, self).__init__()
         self.mse = nn.MSELoss()
 
-    def forward(self, predictions, labels):
-        assert predictions.keys() == labels.keys(), "Keys of predictions and labels must match"
-
-        losses = []
-        for key in predictions.keys():
-            pred = predictions[key]
-            label = labels[key]
-            loss = torch.sqrt(self.mse(pred, label))
-            losses.append(loss)
-
-        # Calculate the mean RMSE over all keys
-        rmse_loss = torch.mean(torch.stack(losses))
-        
-        return rmse_loss
+    def forward(self, inA, inB):
+        #assert predictions.keys() == labels.keys(), "Keys of predictions and labels must match"
+        #loss = torch.sqrt(self.mse(inA, inB))
+        return self.mse(inA, inB)

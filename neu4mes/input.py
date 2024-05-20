@@ -49,17 +49,7 @@ class Input(NeuObj, Stream):
             self.json['Inputs'][self.name]['sw'][0] = advance
         else:
             self.json['Inputs'][self.name]['sw'][1] = -advance
-        return Stream((self.name, {'z':advance}), self.json, self.dim)
-
-    def s(self, derivate):
-        return Stream((self.name, {'s':derivate}), self.json, self.dim)
+        return Stream((self.name, {'sw':self.json['Inputs'][self.name]['sw']}), self.json, self.dim)
 
     # def s(self, derivate):
-    #     if derivate > 0:
-    #         return self, '__+s'+str(derivate)
-    #     else:
-    #         return self, '__-s'+str(-derivate)
-
-# class ControlInput(Input):
-#     def __init__(self,name,values = None):
-#         super().__init__(name,values)
+    #     return Stream((self.name, {'s':derivate}), self.json, self.dim)
