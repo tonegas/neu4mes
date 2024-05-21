@@ -45,18 +45,18 @@ class Fir(NeuObj, AutoToStream):
             return Stream(stream_name, stream_json,{'dim':self.output_dimension})
         else:
             raise Exception('Type is not supported!')
-
-def createLinear(self, input_size, output_size):
-    return nn.Linear(in_features=input_size, out_features=output_size, bias=False)
-
 '''
-def createLinear(self, input_size, output_size, weights=None):
-    layer = nn.Linear(in_features=input_size, out_features=output_size, bias=False)
-    if weights:
-        layer.weight = weights
-        layer.requires_grad_(False)
+def createLinear(self, input_size, output_size, param=None):
+    linear = nn.Linear(in_features=input_size, out_features=output_size, bias=False)
+    if param:
+        linear.weight = param
+    return linear
+'''
+
+def createLinear(self, weights):
+    layer = nn.Linear(in_features=weights.size(0), out_features=weights.size(1), bias=False)
     return layer
-'''
+
 
 def createLinearBias(self, input_size, output_size):
     return nn.Linear(in_features=input_size, out_features=output_size, bias=True)

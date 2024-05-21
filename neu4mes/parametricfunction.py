@@ -16,7 +16,8 @@ class ParamFun(NeuObj):
         self.output_dimension = {'dim' : output_dimension }
         super().__init__('F'+paramfun_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {
-            'function' : inspect.getsource(param_fun)
+            'code' : inspect.getsource(param_fun),
+            'name' : param_fun.__name__
         }
         self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
 
@@ -76,9 +77,27 @@ class ParamFun(NeuObj):
                     self.json['Functions'][self.name]['parameters'].append(param_name)
                     self.json['Parameters'][param_name] = {'dim' : 1}
 
+class Parametric_Layer(nn.Module):
+    def __init__(self, params):
+        super().__init__()
+        self.name = params['name']
 
+        ## Add the function to the globals
+        try:
+            exec(params['code'], globals())
+            print(f'executing {self.name}...')
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
-def createParamFun(self):
-    pass
+    def forward(self, inputs, parameters):
+        args = inputs + parameters
+        # Retrieve the function object from the globals dictionary
+        function_to_call = globals()[self.name]
+        # Call the function using the retrieved function object
+        result = function_to_call(*args)
+        return result
+
+def createParamFun(self, func_params):
+    return Parametric_Layer(params=func_params)
 
 setattr(Model, paramfun_relation_name, createParamFun)

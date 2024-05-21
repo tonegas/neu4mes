@@ -111,7 +111,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
         rel2 = Fir(input1.tw([-0.01,0.02]))
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes()
         test.minimizeError(output.z(-1), rel1+rel2)
         test.neuralizeModel(0.01)
 

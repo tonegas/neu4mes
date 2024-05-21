@@ -164,7 +164,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel7 = Fir(input1.sw(3))
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes()
         test.addModel(fun)
         test.neuralizeModel(0.01)
 

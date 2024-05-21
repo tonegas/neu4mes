@@ -13,7 +13,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes()
+        test = Neu4mes(verbose=True)
         test.minimizeError(output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
@@ -106,7 +106,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes()
+        test = Neu4mes(verbose=True)
         test.minimizeError(output.z(-1), rel1)
         test.neuralizeModel(0.01)
 

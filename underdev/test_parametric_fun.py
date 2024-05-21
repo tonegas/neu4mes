@@ -1,3 +1,8 @@
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
+
 from neu4mes import *
 
 x = Input('x')
@@ -10,8 +15,10 @@ print("------------------------EXAMPLE 1------------------------")
 # se non è specificata ci si aspetta che l'uscita sia 1 se poi non è 1 la funzione da errore
 def myFun(K1,K2,p1,p2):
     return p1*K1+p2*np.sin(K2)
+
 parfun = ParamFun(myFun,1) # definisco una funzione scalare basata su myFun
-out = Output(x.z(-1),parfun(x,F))
+gianni = Fir()
+out = Output('x.z(-1)',gianni(parfun(x,F)) + gianni(x))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
@@ -27,7 +34,7 @@ def myFun(K1,K2,p1,p2):
     import torch
     return torch.tensor([p1,p1,p1,p1])*K1+p2*np.sin(K2)
 parfun = ParamFun(myFun, output_dimension = 4) # definisco una funzione scalare basata su myFun
-out = Output(x.z(-1),parfun(x,F))
+out = Output('out',parfun(x,F))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
@@ -46,7 +53,7 @@ def myFun(K1,K2,p1):
     import torch
     return torch.tensor([K1,2*K1,3*K1,4*K1])*p1+np.sin(K2)
 parfun = ParamFun(myFun,1, parameters_dimensions = {'p1':[4,1]})
-out = Output(x.z(-1),Fir(parfun(x.tw(1),F.tw(1)))+parfun(x,F))
+out = Output('out',Fir(parfun(x.tw(1),F.tw(1)))+parfun(x,F))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)
