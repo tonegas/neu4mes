@@ -1,3 +1,8 @@
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
+
 import unittest
 from neu4mes import *
 import torch
@@ -215,3 +220,4 @@ class MyTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

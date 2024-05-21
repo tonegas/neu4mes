@@ -19,7 +19,7 @@ def myFun(K1,K2,p1,p2):
 parfun = ParamFun(myFun,1) # definisco una funzione scalare basata su myFun
 gianni = Fir()
 out = Output('x.z(-1)',gianni(parfun(x,F)) + gianni(x))
-example = Neu4mes(verbose = True)
+example = Neu4mes(verbose = False)
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -35,7 +35,7 @@ def myFun(K1,K2,p1,p2):
     return torch.tensor([p1,p1,p1,p1])*K1+p2*np.sin(K2)
 parfun = ParamFun(myFun, output_dimension = 4) # definisco una funzione scalare basata su myFun
 out = Output('out',parfun(x,F))
-example = Neu4mes(verbose = True)
+example = Neu4mes(verbose = False)
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -54,7 +54,7 @@ def myFun(K1,K2,p1):
     return torch.tensor([K1,2*K1,3*K1,4*K1])*p1+np.sin(K2)
 parfun = ParamFun(myFun,1, parameters_dimensions = {'p1':[4,1]})
 out = Output('out',Fir(parfun(x.tw(1),F.tw(1)))+parfun(x,F))
-example = Neu4mes(verbose = True)
+example = Neu4mes(verbose = False)
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -68,7 +68,7 @@ print("------------------------EXAMPLE 4------------------------")
 K = Parameter('k', dimensions =  4) # dovrebbe essere uguale all'esempio 3
 parfun = ParamFun(myFun, output_dimension = 1, parameters = [K] )
 out = Output(x.z(-1),parfun(x,F))
-example = Neu4mes(verbose = True)
+example = Neu4mes(verbose = False)
 example.addModel(out)
 example.neuralizeModel(0.05)
 #

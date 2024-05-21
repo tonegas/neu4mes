@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import numpy as np
+import random
 import os
 from pprint import pprint
 import re
@@ -94,6 +95,7 @@ class Neu4mes:
         self.rnn_num_of_epochs = 50                         # number of epochs for RNN
 
         # Training dataset
+        self.data_loaded = False
         self.inout_4train = {}                              # Dataset for training NN
         self.inout_4test = {}                               # Dataset for test NN
         self.rnn_inout_4train = {}                          # Dataset for training RNN
@@ -106,16 +108,43 @@ class Neu4mes:
         self.visualizer = visualizer                        # Class for visualizing data
 
     def __call__(self, inputs):
-        X = {}
-        for key, val in inputs.items():
-            X[key] = torch.from_numpy(np.array(val)).to(torch.float32)
-            if X[key].ndim == 1: ## add the batch dimension
-                X[key] = X[key].unsqueeze(0)
-        result = self.model(X)
+        print('[LOG] inputs: ', inputs)
+        window_dim = min([len(val)-self.input_n_samples[key]+1 for key, val in inputs.items()])
+        print('[LOG] window_dim: ', window_dim)
+        assert window_dim > 0, 'Invalid Number of Inputs!'
+
         result_dict = {}
         for key in self.model_def['Outputs'].keys():
-            result_dict[key] = result[key].squeeze().detach().numpy().tolist()
+            result_dict[key] = []
+
+        for i in range(window_dim):
+            X = {}
+            for key, val in inputs.items():
+                X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
+                if X[key].ndim == 1: ## add the batch dimension
+                    X[key] = X[key].unsqueeze(0)
+            print(f'[LOG] sample {i}: {X}')
+            result = self.model(X)
+            print(f'[LOG] result {i}: {result}')
+            for key in self.model_def['Outputs'].keys():
+                result_dict[key].append(result[key].squeeze().detach().numpy().tolist())
+
         return result_dict
+    
+    def get_random_samples(self, window=1):
+        if self.data_loaded:
+            result_dict = {}
+            for key in self.model_def['Inputs'].keys():
+                result_dict[key] = []
+            random_idx = random.randint(0, self.num_of_samples)
+            for idx in range(window):
+                for key ,data in self.inout_data_time_window.items():
+                    if key in self.model_def['Inputs'].keys() and data is not None:
+                        result_dict[key].append(data[random_idx+idx])
+            return result_dict
+        else:
+            print('The Dataset must first be loaded using <loadData> function!')
+            return {}
 
     def MP(self,fun,arg):
         if self.verbose:
@@ -306,6 +335,8 @@ class Neu4mes:
             self.inout_asarray[key]  = np.asarray(data)
             if data and self.num_of_samples is None:
                 self.num_of_samples = len(self.inout_asarray[key])
+
+        self.data_loaded = True
 
     #
     # Function that get specific parameters for training

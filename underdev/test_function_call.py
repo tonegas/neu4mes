@@ -23,36 +23,57 @@ example1 = Neu4mes(verbose = True)
 example1.addModel(est_x_k1)
 example1.neuralizeModel(0.05)
 
-# Posso fare queste chiamate
-results = example1(inputs={'F':[9],'x':[3,4,5,6,7,8,9,10,11,12]}) # x ed F sono passate alla funzione
+# Posso fare queste chiamate  (X: 10 samples and F: 1 samples)
+print('EXAMPLE 1')
+results = example1(inputs={'F':[9],'x':[3,4,5,6,7,8,9,10,11,12]}) # 1 window -> 1 output
+for output, result in results.items():
+    print(f'prediction for {output}: {result}')
+
+print('EXAMPLE 2')
+results = example1(inputs={'F':[5,2],'x':[1,2,3,4,5,6,7,8,9,10,11]}) # 2 window -> 2 output
+for output, result in results.items():
+    print(f'prediction for {output}: {result}')
+
+print('EXAMPLE 3')
+results = example1(inputs={'F':[5,4,5],'x':[1,2,3,4,5,6,7,8,9,10]}) # 1 window (x = 10) -> 1 output
+for output, result in results.items():
+    print(f'prediction for {output}: {result}')
+
+print('EXAMPLE 4')
+results = example1(inputs={'F':[5,3,4,1],'x':[1,2,3,4,5,6,7,8,9,10]}) # 1 window (x = 10) -> 1 output
+for output, result in results.items():
+    print(f'prediction for {output}: {result}')
+
+print('EXAMPLE 5')
+results = example1(inputs={'F':[5,2],'x':[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,5]}) # 2 window (F = 2) -> 2 output
+for output, result in results.items():
+    print(f'prediction for {output}: {result}')
+
+print('EXAMPLE 6')
+results = example1(inputs={'F':[5,2,4,5,1,7,8,9,10],'x':[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,5]}) # 9 window (F = 9 ; x = 20) -> 9 output
+for output, result in results.items():
+    print(f'prediction for {output}: {result}')
+
+## Now we try to use the random sampler
+print('EXAMPLE 7')
+theta = Input('theta')
+T     = Input('torque')
+out = Output('theta_s', Fir(theta)+Fir(T))
+example2 = Neu4mes(verbose = True)
+example2.addModel(out)
+example2.neuralizeModel(0.05)
+# Data load
+data_struct = ['time','theta','theta_s','','','torque']
+data_folder = './examples/datasets/pendulum/data/'
+example2.loadData(data_struct, folder = data_folder)
+sample = example2.get_random_samples(3)
+print('[LOG] random sample: ', sample)
+results = example2(inputs=sample) # 3 sample -> 3 output
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
 
 
-
-
-
-
-results = example1(inputs={'F':[5,2],'x':[1,2,3,4,5,6,7,8,9,10,11]}) # x ed F sono passate alla funzione
-for output, result in results.items():
-    print(f'prediction for {output}: {result}')
-results = example1(inputs={'F':[5,4,5],'x':[1,2,3,4,5,6,7,8,9,10]}) # x ed F sono passate alla funzione
-for output, result in results.items():
-    print(f'prediction for {output}: {result}')
-results = example1(inputs={'F':[5,3,4,1],'x':[1,2,3,4,5,6,7,8,9,10]}) # x ed F sono passate alla funzione
-for output, result in results.items():
-    print(f'prediction for {output}: {result}')
-results = example1(inputs={'F':[[5],[2]],'x':[[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,5]]}) # x ed F sono passate alla funzione
-for output, result in results.items():
-    print(f'prediction for {output}: {result}')
-# results = example1(inputs={'F':[[5],[2],[5]],'x':[[1,2,3,4,5,6,7,8,9,10],[1,2,3,4,5,6,7,8,9,5]]}) # x ed F sono passate alla funzione
-# for output, result in results.items():
-    # print(f'prediction for {output}: {result}')
-# il ritorno dovrebbe essere una cosa del genere
-# {'xk1': 3.231} adesso è un numero casuale dopo il traning sarà un numero sensato
-for output, result in results.items():
-    print(f'prediction for {output}: {result}')
-
+#print('EXAMPLE 8') ##WORK IN PROGRESS
 # La funzione prende in ingresso due Stream
 # Adesso facciamo che funziona come prima e non gestisce due reti poi faremo anche la cosa che gestisce due reti
-example1.minimizeError(x.z(-1),x_k1)
+example2.minimizeError(x.z(-1),x_k1)

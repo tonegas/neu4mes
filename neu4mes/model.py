@@ -26,7 +26,11 @@ class Model(nn.Module):
                 sample_window = int(param_dimensions[window] / aux_sample_time)
             else:
                 sample_window = 1
-            self.all_parameters[name] = nn.Parameter(torch.rand(size=(sample_window, param_dimensions['dim'])), requires_grad=True)
+            if type(param_dimensions['dim']) is list:
+                param_size = tuple(param_dimensions['dim'])
+            else:
+                param_size = (sample_window, param_dimensions['dim'])
+            self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size), requires_grad=True)
 
         ## Create all the relations
         for relation, inputs in (self.relations|self.outputs).items():

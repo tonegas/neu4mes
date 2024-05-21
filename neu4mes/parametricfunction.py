@@ -85,7 +85,7 @@ class Parametric_Layer(nn.Module):
         ## Add the function to the globals
         try:
             exec(params['code'], globals())
-            print(f'executing {self.name}...')
+            #print(f'executing {self.name}...')
         except Exception as e:
             print(f"An error occurred: {e}")
 

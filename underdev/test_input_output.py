@@ -7,6 +7,10 @@
 
 # Devo capire se l'operazione che faccio merita avere una relazione oppure no
 # Derivata x.s(1)
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 from neu4mes import *
 
