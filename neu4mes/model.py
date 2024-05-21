@@ -20,18 +20,26 @@ class Model(nn.Module):
 
         ## Create all the parameters
         for name, param_dimensions in self.params.items():
-            if 'tw' in param_dimensions.keys():
-                sample_window = int(param_dimensions['tw'] / self.sample_time)
+            window = 'tw' if 'tw' in self.params[name].keys() else ('sw' if 'sw' in self.params[name].keys() else None)
+            aux_sample_time = self.sample_time if 'tw' == window else 1
+            if window:
+                sample_window = int(param_dimensions[window] / aux_sample_time)
             else:
                 sample_window = 1
             self.all_parameters[name] = nn.Parameter(torch.rand(size=(sample_window, param_dimensions['dim'])), requires_grad=True)
 
         ## Create all the relations
-        for relation, inputs in self.relations.items():
-            rel_name = inputs[0]
-
-            ## collect the inputs needed for the relation
-            input_var = [i[0] if type(i) is tuple else i for i in inputs[1]]
+        for relation, inputs in (self.relations|self.outputs).items():
+            if relation in self.relations:
+                rel_name = inputs[0]
+                ## collect the inputs needed for the relation
+                input_var = [i[0] if type(i) is tuple else i for i in inputs[1]]
+            else:
+                if type(inputs) is tuple:
+                    self.relation_inputs[relation] = [inputs[0]]
+                else:
+                    self.relation_inputs[relation] = [inputs]
+                continue
             
             ## Check shared layers
             if len(inputs) >= 3:
@@ -65,8 +73,9 @@ class Model(nn.Module):
     def forward(self, kwargs):
         available_inputs = {}
         inputs_keys = list(self.inputs.keys())
-        while not set(self.outputs.values()).issubset(inputs_keys):
-            for output in self.relations.keys():
+        outputs_list = set([elem[0] if type(elem) is tuple else elem for elem in self.outputs.values()])
+        while not outputs_list.issubset(inputs_keys):
+            for output in (self.relations|self.outputs).keys():
                 ## if i have all the variables i can calculate the relation
                 if (output not in inputs_keys) and (set(self.relation_inputs[output]).issubset(inputs_keys)):
                     ## Layer_inputs: Selects the portion of the window from the complete vector that needs to be used for the current layer
@@ -77,27 +86,34 @@ class Model(nn.Module):
                             temp = kwargs[key][:,self.samples[output][key]['backward']:self.samples[output][key]['forward']]
                         else:
                             temp = available_inputs[key]
-                        if self.samples[output][key]['offset'] is not None:
+                        if 'offset' in self.samples[output][key]:
                             temp = temp - temp[:, self.samples[output][key]['offset']:self.samples[output][key]['offset']+1]
                         layer_inputs.append(temp)
+
+                        if output in self.outputs.keys():
+                            if key in self.inputs.keys():
+                                available_inputs[output] = layer_inputs[0]
+                            else:
+                                available_inputs[output] = available_inputs[key]
                     #print('[LOG] output: ', output)
                     #print('[LOG] layer_inputs: ', layer_inputs)
                     #print('[LOG] relation forward: ', self.relation_forward[output])
-                    if 'ParamFun' in output:
-                        layer_parameters = []
-                        func_parameters = self.functions[self.relations[output][2]]['parameters']
-                        for func_par in func_parameters:
-                            layer_parameters.append(self.all_parameters[func_par])
-                        available_inputs[output] = self.relation_forward[output](layer_inputs, layer_parameters)
-                    else:
-                        if len(layer_inputs) <= 1: ## i have a single forward pass
-                            available_inputs[output] = self.relation_forward[output](layer_inputs[0])
+                    if output not in self.outputs.keys():
+                        if 'ParamFun' in output:
+                            layer_parameters = []
+                            func_parameters = self.functions[self.relations[output][2]]['parameters']
+                            for func_par in func_parameters:
+                                layer_parameters.append(self.all_parameters[func_par])
+                            available_inputs[output] = self.relation_forward[output](layer_inputs, layer_parameters)
                         else:
-                            available_inputs[output] = self.relation_forward[output](layer_inputs)
-                    inputs_keys.append(output)
+                            if len(layer_inputs) <= 1: ## i have a single forward pass
+                                available_inputs[output] = self.relation_forward[output](layer_inputs[0])
+                            else:
+                                available_inputs[output] = self.relation_forward[output](layer_inputs)
+                        inputs_keys.append(output)
 
         ## Return a dictionary with all the outputs final values
-        result_dict = {key: available_inputs[val] for key, val in self.outputs.items()}
+        result_dict = {key: available_inputs[key] for key in self.outputs.keys()}
         return result_dict
 
     '''

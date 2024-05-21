@@ -13,7 +13,7 @@ class MyTestCase(unittest.TestCase):
         test.addModel(out)
         test.neuralizeModel(0.01)
         results = test({'in1': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],'in2': [5]})
-        self.assertAlmostEqual(results['out'],4.1329298)
+        self.assertAlmostEqual(results['out'],-0.09323513507843018)
         #results = test({'in1': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],'in2': 5})
         #self.assertAlmostEqual(results['out'],4.1329298)
         #with self.assertRaises(AssertionError):
@@ -41,7 +41,7 @@ class MyTestCase(unittest.TestCase):
         test.addModel(out4)
         test.neuralizeModel(0.1)
         results = test({'in1': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]})
-        self.assertAlmostEqual(results['out'],[5.152631759643555, -4.413782119750977, -1.938614845275879])
+        self.assertAlmostEqual(results['out'],[4.693689346313477, -9.414368629455566, 5.9971723556518555])
         self.assertAlmostEqual(results['intw2'], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         self.assertAlmostEqual(results['intw3'], [9, 10])
         self.assertAlmostEqual(results['intw4'], [9, 10, 11, 12])

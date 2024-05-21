@@ -151,8 +151,8 @@ class Neu4mes:
         self.minimize_idx = self.minimize_idx + 1
 
         ## Get output relations
-        out1 = self.model_def['Relations'][stream1.name]
-        out2 = self.model_def['Relations'][stream2.name]
+        #out1 = self.model_def['Relations'][stream1.name]
+        #out2 = self.model_def['Relations'][stream2.name]
 
 
     """
