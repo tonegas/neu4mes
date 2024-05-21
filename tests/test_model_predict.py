@@ -7,6 +7,13 @@ import unittest
 from neu4mes import *
 import torch
 
+
+def myfun(x, P):
+    return x * P
+
+def myfun2(a, b, c):
+    return np.sin(a + b) * c
+
 class MyTestCase(unittest.TestCase):
     def test_single_in_single_out(self):
         torch.manual_seed(1)
@@ -53,8 +60,6 @@ class MyTestCase(unittest.TestCase):
     def test_parametric_function(self):
         torch.manual_seed(1)
         in1 = Input('in1')
-        def myfun(x,P):
-            return x*P
 
         out = Output('out', ParamFun(myfun)(in1))
         test = Neu4mes(verbose=True)
@@ -159,10 +164,8 @@ class MyTestCase(unittest.TestCase):
         torch.manual_seed(1)
         in1 = Input('in1')
         in2 = Input('in2')
-        def myfun(a, b ,c):
-            return np.sin(a + b) * c
 
-        out = Output('out', Fir(ParamFun(myfun)(in1.tw(0.4))))
+        out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4))))
         test = Neu4mes(verbose=True)
         test.addModel(out)
         test.neuralizeModel(0.1)
@@ -177,9 +180,9 @@ class MyTestCase(unittest.TestCase):
         self.assertAlmostEqual(results['out'], [0.022739043459296227, 0.005036544054746628])
 
         with self.assertRaises(AssertionError):
-            Output('out', Fir(ParamFun(myfun)(in1.tw(0.4),in2.tw(0.2))))
+            Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4),in2.tw(0.2))))
 
-        out = Output('out', Fir(ParamFun(myfun)(in1.tw(0.4),in2.tw(0.4))))
+        out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4),in2.tw(0.4))))
         test = Neu4mes(verbose=True)
         test.addModel(out)
         test.neuralizeModel(0.1)
@@ -193,7 +196,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [5, 5, 5, 5]]})
         self.assertAlmostEqual(results['out'], [0.171805739402771, 0.03363896161317825])
 
-        out = Output('out', Fir(3)(ParamFun(myfun)(in1.tw(0.4), in2.tw(0.4))))
+        out = Output('out', Fir(3)(ParamFun(myfun2)(in1.tw(0.4), in2.tw(0.4))))
         test = Neu4mes(verbose=True)
         test.addModel(out)
         test.neuralizeModel(0.1)
@@ -201,7 +204,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [1, 2, 2, 4]]})
         self.assertAlmostEqual(results['out'], [[-0.03320024162530899, -0.4807766079902649, -0.15642336010932922], [-0.03320024162530899, -0.4807766079902649, -0.15642336010932922]])
 
-        parfun = ParamFun(myfun)
+        parfun = ParamFun(myfun2)
         with self.assertRaises(AssertionError):
             Output('out', parfun(Fir(3)(parfun(in1.tw(0.4), in2.tw(0.4)))))
 

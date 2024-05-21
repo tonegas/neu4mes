@@ -486,7 +486,7 @@ class Neu4mes:
                 out = self.model(XY)
                 for obj in self.minimize_list:
                     loss = self.loss_fn(out[obj[0]], out[obj[1]])
-                    loss.backward()
+                    #loss.backward()
                 test_loss.append(loss.item())
             test_loss = np.mean(test_loss)
 
