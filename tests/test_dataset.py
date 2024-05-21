@@ -34,8 +34,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                     [0.957,0.95,0.942,0.933,0.923],
                     [0.95,0.942,0.933,0.923,0.912]] , test.inout_asarray['in'].tolist())
 
-        self.assertEqual((10,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((10,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out'].tolist())
 
     def test_build_dataset_medium1(self):
         input = Input('in')
@@ -61,8 +61,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                     [0.957,0.95,0.942,0.933,0.923],
                     [0.95,0.942,0.933,0.923,0.912]],test.inout_asarray['in'].tolist())
 
-        self.assertEqual((10,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((10,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out'].tolist())
 
     def test_build_dataset_medium2(self):
         input1 = Input('in1')
@@ -102,8 +102,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                     [12.57 , 12.585],
                     [12.585, 12.602]],test.inout_asarray['in2'].tolist())
 
-        self.assertEqual((10,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((10,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out'].tolist())
 
     def test_build_dataset_complex1(self):
         input1 = Input('in1')
@@ -128,8 +128,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                     [0.963,0.957,0.95,0.942,0.933,0.923,0.912],
                     [0.957,0.95,0.942,0.933,0.923,0.912,0.900]],test.inout_asarray['in1'].tolist())
 
-        self.assertEqual((9,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((9,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out'].tolist())
 
     def test_build_dataset_complex2(self):
         input1 = Input('in1')
@@ -155,8 +155,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                         [0.957,0.95,0.942,0.933,0.923,0.912],
                         [0.95,0.942,0.933,0.923,0.912,0.900]],test.inout_asarray['in1'].tolist())
 
-        self.assertEqual((10,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((10,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out'].tolist())
 
     def test_build_dataset_complex3(self):
         input1 = Input('in1')
@@ -199,8 +199,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                     [12.57 , 12.585],
                     [12.585, 12.602]],test.inout_asarray['in2'].tolist())
 
-        self.assertEqual((10,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((10,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out'].tolist())
 
     def test_build_dataset_complex5(self):
         input1 = Input('in1')
@@ -212,7 +212,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         test = Neu4mes()
         test.addModel(fun)
-        test.minimizeError(output.z(-1), rel1+rel2+rel3)
+        test.minimizeError(output.z(-1), fun)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -228,8 +228,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                         [0.963,0.957,0.95,0.942,0.933,0.923,0.912],
                         [0.957,0.95,0.942,0.933,0.923,0.912,0.900]],test.inout_asarray['in1'].tolist())
 
-        self.assertEqual((9,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((9,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out'].tolist())
 
     def test_build_dataset_complex6(self):
         input1 = Input('in1')
@@ -241,7 +241,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         test = Neu4mes()
         test.addModel(fun)
-        test.minimizeError(output.z(-1), rel1 + rel2 + rel3)
+        test.minimizeError(output.z(-1), fun)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -257,8 +257,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
                         [0.963,0.957,0.95,0.942,0.933,0.923,0.912],
                         [0.957,0.95,0.942,0.933,0.923,0.912,0.900]],test.inout_asarray['in1'].tolist())
 
-        self.assertEqual((9,),test.inout_asarray['out__-z1'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out__-z1'].tolist())
+        self.assertEqual((9,),test.inout_asarray['out'].shape)
+        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out'].tolist())
 
 if __name__ == '__main__':
     unittest.main()
