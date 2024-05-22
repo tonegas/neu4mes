@@ -52,7 +52,6 @@ class Neu4mes:
         self.outputs = {}
 
         # List of element to be minimized
-        self.minimize_idx = 0
         self.minimize_list = []
         self.loss_fn = None                 # RNN model - Pytorch loss function
 
@@ -162,22 +161,20 @@ class Neu4mes:
         #self.MP(pprint,self.model_def)
 
     # TODO da modificare perchè adesso serve solo per far funzionare i test
-    def minimizeError(self, stream1, stream2, loss_function='mse'):
+    def minimizeError(self, variable_name, stream1, stream2, loss_function='mse'):
         # TODO Create un modello solo per la minimizzazione
         self.model_def = merge(self.model_def, stream1.json)
         self.model_def = merge(self.model_def, stream2.json)
+
+        nameA = variable_name + '_' + (stream1.name[0] if type(stream1.name) is tuple else stream1.name)
         if type(stream1) is not Output:
-            nameA = 'MinA_'+str(self.minimize_idx)
             self.model_def['Outputs'][nameA] = stream1.name
-        else:
-            nameA = stream1.name
+
+        nameB = variable_name + '_' + (stream2.name[0] if type(stream2.name) is tuple else stream2.name)
         if type(stream2) is not Output:
-            nameB = 'MinA_' + str(self.minimize_idx)
             self.model_def['Outputs'][nameB] = stream2.name
-        else:
-            nameB = stream2.name
+
         self.minimize_list.append((nameA, nameB, loss_function))
-        self.minimize_idx = self.minimize_idx + 1
 
         ## Get output relations
         #out1 = self.model_def['Relations'][stream1.name]
