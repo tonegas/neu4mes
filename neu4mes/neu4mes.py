@@ -169,10 +169,14 @@ class Neu4mes:
         nameA = variable_name + '_' + (stream1.name[0] if type(stream1.name) is tuple else stream1.name)
         if type(stream1) is not Output:
             self.model_def['Outputs'][nameA] = stream1.name
+        else:
+            self.model_def['Outputs'][nameA] = self.model_def['Outputs'][stream1.name]
 
         nameB = variable_name + '_' + (stream2.name[0] if type(stream2.name) is tuple else stream2.name)
         if type(stream2) is not Output:
             self.model_def['Outputs'][nameB] = stream2.name
+        else:
+            self.model_def['Outputs'][nameB] = self.model_def['Outputs'][stream2.name]
 
         self.minimize_list.append((nameA, nameB, loss_function))
 
