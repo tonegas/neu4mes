@@ -73,6 +73,7 @@ class Model(nn.Module):
         #print('[LOG] relation forward: ', self.relation_forward)
         #print('[LOG] relation inputs: ', self.relation_inputs)
         #print('[LOG] relation parameters: ', self.relation_parameters)
+        #print('[LOG] samples: ', self.samples)
     
     def forward(self, kwargs):
         available_inputs = {}

@@ -106,25 +106,48 @@ class Neu4mes:
         # Visualizer
         self.visualizer = visualizer                        # Class for visualizing data
 
-    def __call__(self, inputs):
-        print('[LOG] inputs: ', inputs)
-        window_dim = min([len(val)-self.input_n_samples[key]+1 for key, val in inputs.items()])
-        print('[LOG] window_dim: ', window_dim)
+    ## TODO: discretize between sampled windows
+    def __call__(self, inputs, sampled=False):
+        model_inputs = self.model_def['Inputs'].keys()
+
+        ## Check if there are some missing inputs
+        assert set(model_inputs).issubset(set(inputs.keys())), 'Missing Input!'
+
+        ## Make all Scalar input inside a list
+        for key, val in inputs.items():
+            if type(val) is not list:
+                inputs[key] = [val]
+
+        ## Determine the Maximal number of samples that can be created
+        if sampled:
+            min_dim = min([len(inputs[key]) for key in model_inputs])
+            max_dim = max([len(inputs[key]) for key in model_inputs])
+        else:
+            min_dim = min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
+            max_dim = max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
+        window_dim = min_dim
         assert window_dim > 0, 'Invalid Number of Inputs!'
 
-        result_dict = {}
+        ## warning the users about different time windows between samples
+        if min_dim != max_dim:
+            print(f'Warning! Different number of samples between inputs [MAX {max_dim} ; MIN {min_dim}]')
+
+        result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
         for i in range(window_dim):
             X = {}
             for key, val in inputs.items():
-                X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
-                if X[key].ndim == 1: ## add the batch dimension
-                    X[key] = X[key].unsqueeze(0)
-            print(f'[LOG] sample {i}: {X}')
+                if key in model_inputs:
+                    if sampled:
+                        X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32)
+                    else:
+                        X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
+
+                    if X[key].ndim == 1: ## add the batch dimension
+                        X[key] = X[key].unsqueeze(0)
             result = self.model(X)
-            print(f'[LOG] result {i}: {result}')
             for key in self.model_def['Outputs'].keys():
                 result_dict[key].append(result[key].squeeze().detach().numpy().tolist())
 
@@ -191,6 +214,7 @@ class Neu4mes:
     :param sample_time: the variable defines the rate of the network based on the training set
     :param prediction_window: the variable defines the prediction horizon in the future
     """
+    ## TODO sample time can be 0
     def neuralizeModel(self, sample_time = 0, prediction_window = None):
         # Prediction window is used for the recurrent network
         if prediction_window is not None:
@@ -207,8 +231,8 @@ class Neu4mes:
             self.input_tw_forward[key] = value['tw'][1]
             if value['sw'] == [0,0] and value['tw'] == [0,0]:
                 self.input_tw_backward[key] = sample_time
-            self.input_ns_backward[key] = max(int(self.input_tw_backward[key] / sample_time),abs(value['sw'][0]))
-            self.input_ns_forward[key] = max(int(self.input_tw_forward[key] / sample_time),abs(value['sw'][1]))
+            self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),abs(value['sw'][0]))
+            self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),abs(value['sw'][1]))
             self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
 
         self.max_samples_backward = max(self.input_ns_backward.values())
@@ -230,14 +254,14 @@ class Neu4mes:
                     aux_sample_time = sample_time if 'tw' in input_name[1] else 1
                     if type(input_name[1][window]) is list: ## we have the forward and backward window
                         if input_name[0] in self.model_def['Inputs']:
-                            backward = self.input_ns_backward[input_name[0]] - int(abs(input_name[1][window][0])/aux_sample_time)
-                            forward = self.input_ns_backward[input_name[0]] + int(abs(input_name[1][window][1])/aux_sample_time)
+                            backward = self.input_ns_backward[input_name[0]] - round(abs(input_name[1][window][0])/aux_sample_time)
+                            forward = self.input_ns_backward[input_name[0]] + round(abs(input_name[1][window][1])/aux_sample_time)
                         else:
-                            backward = int(abs(input_name[1][window][0])/aux_sample_time)
-                            forward = int(abs(input_name[1][window][1])/aux_sample_time)
+                            backward = round(abs(input_name[1][window][0])/aux_sample_time)
+                            forward = round(abs(input_name[1][window][1])/aux_sample_time)
 
                         if 'offset' in input_name[1]: ## we have the offset
-                            offset = int(abs(input_name[1][window][0])/aux_sample_time) + int(input_name[1]['offset'] / aux_sample_time)
+                            offset = round(abs(input_name[1][window][0])/aux_sample_time) + round(input_name[1]['offset'] / aux_sample_time)
                             input_samples[input_name[0]] = {'backward': backward, 'forward': forward, 'offset': offset}
                         else:
                             input_samples[input_name[0]] = {'backward':backward, 'forward': forward}
@@ -260,6 +284,7 @@ class Neu4mes:
     :param sample_time: number of lines to be skipped (header lines)
     :param delimiters: it is a list of the symbols used between the element of the file
     """
+    ## TODO: can load data from dictionaries
     def loadData(self, format, folder = './data', skiplines = 0, delimiters=['\t',';',',']):
         assert self.neuralized == True, "The network is not neuralized yet."
         path, dirs, files = next(os.walk(folder))

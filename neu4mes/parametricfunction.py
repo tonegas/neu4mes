@@ -37,6 +37,7 @@ class ParamFun(NeuObj):
             if tw is None:
                 tw = o.dim['tw'] if 'tw' in o.dim else None
             else:
+                assert 'tw' in o.dim
                 assert o.dim['tw'] == tw, 'The time window of the input must be the same for all the inputs'
             stream_json = merge(stream_json,o.json)
             if type(o) is Input or type(o) is Stream:

@@ -26,7 +26,7 @@ opt_fun.neuralizeModel() # TODO rimuovere il sample rate se non serve
 print(opt_fun(dataset))   # TODO dovrebbe essere un vettore di uscita dovrebbe ignorare le variabi in più
 opt_fun.loadData(dataset) # TODO Caricamento del dataset tramite un dizionario fatto come per la predict
 
-#opt_fun.trainModel(test_percentage = 10, show_results = True)
+opt_fun.trainModel(test_percentage = 10, show_results = True)
 
 print(opt_fun(dataset)['y']) # TODO potrei mettere un input per ottenere direttamente quella variabile e non un dizionario
 
