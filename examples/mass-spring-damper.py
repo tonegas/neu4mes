@@ -1,3 +1,8 @@
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
+
 import time
 from neu4mes import *
 from neu4mes.visualizer import StandardVisualizer

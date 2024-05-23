@@ -1,3 +1,8 @@
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
+
 from neu4mes import *
 from neu4mes.visualizer import StandardVisualizer
 
@@ -12,21 +17,21 @@ parfun = ParamFun(linear_fun)
 
 y = Output('y', parfun(x)) # TODO controllare che tipo di problema quando uso il nome dell'input uguale al nome dell'output
 
-data_x = np.random.rand(1,200)*20-10
+data_x = np.random.rand(1,10)*20-10
 data_a = 2
 data_b = -3
 dataset = {'x': data_x, 'target_y': linear_fun(data_x,data_a,data_b)}
 
 opt_fun = Neu4mes(verbose = True,  visualizer = StandardVisualizer())
 opt_fun.addModel(y)
-opt_fun.minimizeError('ciao', target_y, y, 'mse') # TODO mettere una stringa di input che indica il nome
+opt_fun.minimizeError('out', target_y, y, 'mse') # TODO mettere una stringa di input che indica il nome
 
 
 opt_fun.neuralizeModel() # TODO rimuovere il sample rate se non serve
-print(opt_fun(dataset))   # TODO dovrebbe essere un vettore di uscita dovrebbe ignorare le variabi in più
 opt_fun.loadData(dataset) # TODO Caricamento del dataset tramite un dizionario fatto come per la predict
 
-opt_fun.trainModel(test_percentage = 10, show_results = True)
+opt_fun.trainModel(test_percentage = 10, show_results = False)
 
-print(opt_fun(dataset)['y']) # TODO potrei mettere un input per ottenere direttamente quella variabile e non un dizionario
+print(opt_fun(dataset))
+print('Prediction only for y: ', opt_fun(dataset)['y']) # TODO potrei mettere un input per ottenere direttamente quella variabile e non un dizionario
 

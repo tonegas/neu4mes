@@ -68,7 +68,8 @@ class Model(nn.Module):
                         self.relation_parameters[inputs[2]] = relation   
             else:
                 print("Relation not defined")
-        self.params = nn.ParameterDict(self.relation_forward)
+        self.relation_forward = nn.ParameterDict(self.relation_forward)
+        self.all_parameters = nn.ParameterDict(self.all_parameters)
 
         #print('[LOG] relation forward: ', self.relation_forward)
         #print('[LOG] relation inputs: ', self.relation_inputs)

@@ -215,15 +215,15 @@ class Neu4mes:
     :param prediction_window: the variable defines the prediction horizon in the future
     """
     ## TODO sample time can be 0
-    def neuralizeModel(self, sample_time = 0, prediction_window = None):
+    def neuralizeModel(self, sample_time = 1, prediction_window = None):
         # Prediction window is used for the recurrent network
         if prediction_window is not None:
             self.rnn_window = round(prediction_window/sample_time)
             assert prediction_window >= sample_time
 
         # Sample time is used to define the number of sample for each time window
-        if sample_time:
-            self.model_def["SampleTime"] = sample_time
+        assert sample_time != 0, 'sample_time cannot be zero!'
+        self.model_def["SampleTime"] = sample_time
         self.MP(pprint,self.model_def)
 
         for key, value in self.model_def['Inputs'].items():
@@ -285,76 +285,70 @@ class Neu4mes:
     :param delimiters: it is a list of the symbols used between the element of the file
     """
     ## TODO: can load data from dictionaries
-    def loadData(self, format, folder = './data', skiplines = 0, delimiters=['\t',';',',']):
+    def loadData(self, folder, format=None, skiplines = 0, delimiters=['\t',';',',']):
         assert self.neuralized == True, "The network is not neuralized yet."
-        path, dirs, files = next(os.walk(folder))
-        file_count = len(files)
 
-        self.MP(print, "Total number of files: {}".format(file_count))
+        if type(folder) is str: ## we have a file path
+            path, dirs, files = next(os.walk(folder))
+            file_count = len(files)
 
-        # Create a vector of all the signals in the file + output_relation keys
-        output_keys = self.model_def['Outputs'].keys()
-        for key in format+list(output_keys):
-            self.inout_data_time_window[key] = []
+            self.MP(print, "Total number of files: {}".format(file_count))
 
-        # Read each file
-        for file in files:
-            for data in format:
-                self.input_data[(file,data)] = []
+            # Create a vector of all the signals in the file + output_relation keys
+            output_keys = self.model_def['Outputs'].keys()
+            for key in format+list(output_keys):
+                self.inout_data_time_window[key] = []
 
-            # Open the file and read lines
-            with open(os.path.join(folder,file), 'r') as all_lines:
-                lines = all_lines.readlines()[skiplines:] # skip first lines to avoid NaNs
+            # Read each file
+            for file in files:
+                for data in format:
+                    self.input_data[(file,data)] = []
 
-                # Append the data to the input_data dict
-                for line in range(0, len(lines)):
-                    delimiter_string = '|'.join(delimiters)
-                    splitline = re.split(delimiter_string,lines[line].rstrip("\n"))
-                    for idx, key in enumerate(format):
-                        try:
-                            self.input_data[(file,key)].append(float(splitline[idx]))
-                        except ValueError:
-                            self.input_data[(file,key)].append(splitline[idx])
+                # Open the file and read lines
+                with open(os.path.join(folder,file), 'r') as all_lines:
+                    lines = all_lines.readlines()[skiplines:] # skip first lines to avoid NaNs
 
-                # Add one sample if input look at least one forward
-                add_sample_forward = 0
-                if self.max_samples_forward > 0:
-                    add_sample_forward = 1
+                    # Append the data to the input_data dict
+                    for line in range(0, len(lines)):
+                        delimiter_string = '|'.join(delimiters)
+                        splitline = re.split(delimiter_string,lines[line].rstrip("\n"))
+                        for idx, key in enumerate(format):
+                            try:
+                                self.input_data[(file,key)].append(float(splitline[idx]))
+                            except ValueError:
+                                self.input_data[(file,key)].append(splitline[idx])
 
-                # Create inout_data_time_window dict
-                # it is a dict of signals. Each signal is a list of vector the dimensions of the vector are (tokens, input_n_samples[key])
-                if 'time' in format:
-                    for i in range(0, len(self.input_data[(file,'time')])-self.max_n_samples+add_sample_forward):
-                        self.inout_data_time_window['time'].append(self.input_data[(file,'time')][i+self.max_n_samples-1-self.max_samples_forward])
+                    # Add one sample if input look at least one forward
+                    add_sample_forward = 0
+                    if self.max_samples_forward > 0:
+                        add_sample_forward = 1
 
-                for key in self.input_n_samples.keys():
-                    for i in range(0, len(self.input_data[(file,key)])-self.max_n_samples+add_sample_forward):
-                        aux_ind = i+self.max_n_samples+self.input_ns_forward[key]-self.max_samples_forward
-                        if self.input_n_samples[key] == 1:
-                            self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-1])
-                        else:
-                            self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-self.input_n_samples[key]:aux_ind])
+                    # Create inout_data_time_window dict
+                    # it is a dict of signals. Each signal is a list of vector the dimensions of the vector are (tokens, input_n_samples[key])
+                    if 'time' in format:
+                        for i in range(0, len(self.input_data[(file,'time')])-self.max_n_samples+add_sample_forward):
+                            self.inout_data_time_window['time'].append(self.input_data[(file,'time')][i+self.max_n_samples-1-self.max_samples_forward])
 
-                # for key in output_keys:
-                #     if type(self.model_def['Outputs'][key]) is tuple:
-                #         input_key = self.model_def['Outputs'][key][0]
-                #         for i in range(0, len(self.input_data[(file,input_key)])-self.max_n_samples+add_sample_forward):
-                #             aux_ind = i+self.max_n_samples+self.input_ns_forward[input_key]-self.max_samples_forward
-                #             if self.input_n_samples[input_key] == 1:
-                #                 self.inout_data_time_window[key].append(self.input_data[(file,input_key)][aux_ind-1])
-                #             else:
-                #                 self.inout_data_time_window[key].append(self.input_data[(file,input_key)][aux_ind-self.input_n_samples[input_key]:aux_ind])
+                    for key in self.input_n_samples.keys():
+                        for i in range(0, len(self.input_data[(file,key)])-self.max_n_samples+add_sample_forward):
+                            aux_ind = i+self.max_n_samples+self.input_ns_forward[key]-self.max_samples_forward
+                            if self.input_n_samples[key] == 1:
+                                self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-1])
+                            else:
+                                self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-self.input_n_samples[key]:aux_ind])
 
-                # for key in output_keys:
-                #     used_key = key
-                #     elem_key = key.split('__')
-                #     if len(elem_key) > 1 and elem_key[1]== '-z1':
-                #         used_key = elem_key[0]
-                #     for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples+add_sample_forward):
-                #         self.inout_data_time_window[key].append(self.input_data[(file,used_key)][i+self.max_n_samples-self.max_samples_forward])
+                    # Index identifying each file start
+                    #self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
 
-                # Index identifying each file start
-                self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
+        elif type(folder) is dict:  ## we have a crafted dataset
+            ## Check if the inputs are correct
+            model_inputs = self.model_def['Inputs'].keys()
+            assert set(model_inputs).issubset(folder.keys()), 'The dataset is missing some inputs.'
+
+            for key in model_inputs:
+                self.inout_data_time_window[key] = []  ## Initialize the dataset
+                for idx in range(len(folder[key][0]) - self.max_n_samples):
+                    self.inout_data_time_window[key].append(folder[key][0][idx+(self.max_samples_backward-self.input_ns_backward[key]):idx+(self.max_samples_backward+self.input_ns_forward[key])])
 
         # Build the asarray for numpy
         for key,data in self.inout_data_time_window.items():
@@ -362,6 +356,7 @@ class Neu4mes:
             if data and self.num_of_samples is None:
                 self.num_of_samples = len(self.inout_asarray[key])
 
+        ## Set the Loaded flag to True
         self.data_loaded = True
 
     #

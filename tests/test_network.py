@@ -21,7 +21,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in1': 1}, test.input_n_samples)
 
         list_of_dimensions = [[1, 1], [1, 1]]
-        for ind, (key, value) in enumerate({k: v for k, v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k: v for k, v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
     def test_network_building_simple(self):
         input1 = Input('in1')
@@ -37,7 +37,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in1': 5} , test.input_n_samples)
         
         list_of_dimensions = [[5,1], [1,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
 
     def test_network_building_tw(self):
@@ -57,7 +57,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in1': 5, 'in2': 7} , test.input_n_samples)
         
         list_of_dimensions = [[5,1], [1,1], [5,1], [4,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
 
         in1 = [0,1,2,3,4]
@@ -88,7 +88,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 8} , test.input_n_samples)
         
         list_of_dimensions = [[5,1], [4,1], [6,1], [3,1], [3,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
 
         in2 = [-5,-4,-3,-2,-1,0,1,2]
@@ -114,7 +114,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 8} , test.input_n_samples)
 
         list_of_dimensions = [[5,1], [4,1], [5,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
 
         in2 = [0,1,2,3,4,5,6,7]
@@ -141,7 +141,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 7} , test.input_n_samples)
 
         list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
 
         in2 = [0,1,2,3,4,5,6]
@@ -195,7 +195,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 7} , test.input_n_samples)
 
         list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
 
         in2 = [0,1,2,3,4,5,6]
@@ -225,7 +225,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 6} , test.input_n_samples)
 
         list_of_dimensions = [[6,1], [1,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.params.items() if 'Fir' in k}.items()):
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
 
         in2 = [0,1,2,3,4,5]
