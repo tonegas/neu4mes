@@ -25,7 +25,7 @@ pendolum.neuralizeModel(0.05)
 # Data load
 data_struct = ['time','theta','theta_s','','','torque']
 data_folder = './examples/datasets/pendulum/data/'
-pendolum.loadData(folder = data_folder, format=data_struct)
+pendolum.loadData(source=data_folder, format=data_struct)
 
 # Neural network train
 pendolum.trainModel(test_percentage = 30, show_results = True)

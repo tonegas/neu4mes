@@ -17,7 +17,7 @@ parfun = ParamFun(linear_fun)
 
 y = Output('y', parfun(x)) # TODO controllare che tipo di problema quando uso il nome dell'input uguale al nome dell'output
 
-data_x = np.random.rand(1,10)*20-10
+data_x = np.random.rand(200)*20-10
 data_a = 2
 data_b = -3
 dataset = {'x': data_x, 'target_y': linear_fun(data_x,data_a,data_b)}
@@ -28,7 +28,7 @@ opt_fun.minimizeError('out', target_y, y, 'mse') # TODO mettere una stringa di i
 
 
 opt_fun.neuralizeModel() # TODO rimuovere il sample rate se non serve
-opt_fun.loadData(dataset) # TODO Caricamento del dataset tramite un dizionario fatto come per la predict
+opt_fun.loadData(dataset)  # TODO Caricamento del dataset tramite un dizionario fatto come per la predict
 
 opt_fun.trainModel(test_percentage = 10, show_results = False)
 

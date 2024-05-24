@@ -18,7 +18,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder = data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
@@ -48,7 +48,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder = data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
@@ -78,7 +78,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder = data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
@@ -111,7 +111,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder = data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
@@ -143,13 +143,13 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         x_size = 10
-        data_x = np.random.rand(1,x_size)*20-10
+        data_x = np.random.rand(x_size)*20-10
         data_a = 2
         data_b = -3
         dataset = {'in1': data_x, 'out': data_x*data_a+data_b}
 
-        test.loadData(folder = dataset, skiplines = 4)
-        self.assertEqual((4,5),test.inout_asarray['in1'].shape)  ## 10 data - 6 tw = 4 sample | 0.05/0.01 = 5 in1
+        test.loadData(source=dataset, skiplines=4)
+        self.assertEqual((5,5),test.inout_asarray['in1'].shape)  ## 10 data - 6 tw = 4 sample | 0.05/0.01 = 5 in1
 
         training_params = {}
         training_params['batch_size'] = 2
@@ -163,9 +163,9 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # batch_size > 1 -> YES
         # num_of_training_sample must be multiple of batch_size
         # num_of_test_sample must be multiple of batch_size and at least 10%
-        self.assertEqual(3,test.n_samples_train)
+        self.assertEqual(4,test.n_samples_train)
         self.assertEqual(1,test.n_samples_test)
-        self.assertEqual(4,test.num_of_samples)
+        self.assertEqual(5,test.num_of_samples)
         self.assertEqual(1,test.batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)

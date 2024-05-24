@@ -14,6 +14,8 @@ def myfun2(a, b ,c):
     import torch
     return torch.sin(a + b) * c
 
+
+
 class MyTestCase(unittest.TestCase):
     def test_single_in_single_out(self):
         torch.manual_seed(1)
@@ -179,7 +181,7 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(AssertionError):
             test({'in1': [1, 2, 2]})
         results = test({'in1': [1, 2, 2, 4]})
-        self.assertAlmostEqual(results['out'], [0.022739043459296227])
+        self.assertAlmostEqual(results['out'][0], 0.022739043459296227,places=12)
         results = test({'in1': [[1, 2, 2, 4],[2, 2, 4, 5]]}, sampled=True)
         self.assertAlmostEqual(results['out'], [0.022739043459296227, 0.005036544054746628])
         results = test({'in1': [1, 2, 2, 4, 5]})

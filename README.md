@@ -114,9 +114,9 @@ The function `neuralizeModel` is used to perform the discretization. The paramet
 ### Load the dataset
 
 ```python
-data_struct = ['time','x','x_s','F']
+data_struct = ['time', 'x', 'x_s', 'F']
 data_folder = './datasets/massspringdamper/data/'
-mass_spring_damper.loadData(data_struct, folder = data_folder)
+mass_spring_damper.loadData(data_struct)
 ```
 Finally, the dataset is loaded. **neu4mes** loads all the files that are in a folder.
 

@@ -21,7 +21,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,5),test.inout_asarray['in'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977],
                     [0.983,0.982,0.98,0.977,0.973],
@@ -48,7 +48,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,5),test.inout_asarray['in'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977],
                     [0.983,0.982,0.98,0.977,0.973],
@@ -77,7 +77,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977],
                     [0.983,0.982,0.98,0.977,0.973],
@@ -116,7 +116,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((9,7),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
                     [0.983,0.982,0.98,0.977,0.973,0.969,0.963],
@@ -142,7 +142,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,6),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973],
                         [0.983,0.982,0.98,0.977,0.973,0.969],
@@ -174,7 +174,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((10,6),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973],
                         [0.983,0.982,0.98,0.977,0.973,0.969],
@@ -216,7 +216,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((9,7),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
                         [0.983,0.982,0.98,0.977,0.973,0.969,0.963],
@@ -245,7 +245,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(folder=data_folder, format=data_struct, skiplines = 4)
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
         self.assertEqual((9,7),test.inout_asarray['in1'].shape)
         self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
                         [0.983,0.982,0.98,0.977,0.973,0.969,0.963],

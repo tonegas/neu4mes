@@ -285,11 +285,11 @@ class Neu4mes:
     :param delimiters: it is a list of the symbols used between the element of the file
     """
     ## TODO: can load data from dictionaries
-    def loadData(self, folder, format=None, skiplines = 0, delimiters=['\t',';',',']):
+    def loadData(self, source, format=None, skiplines = 0, delimiters=['\t',';',',']):
         assert self.neuralized == True, "The network is not neuralized yet."
 
-        if type(folder) is str: ## we have a file path
-            path, dirs, files = next(os.walk(folder))
+        if type(source) is str: ## we have a file path
+            path, dirs, files = next(os.walk(source))
             file_count = len(files)
 
             self.MP(print, "Total number of files: {}".format(file_count))
@@ -305,7 +305,7 @@ class Neu4mes:
                     self.input_data[(file,data)] = []
 
                 # Open the file and read lines
-                with open(os.path.join(folder,file), 'r') as all_lines:
+                with open(os.path.join(source, file), 'r') as all_lines:
                     lines = all_lines.readlines()[skiplines:] # skip first lines to avoid NaNs
 
                     # Append the data to the input_data dict
@@ -340,15 +340,15 @@ class Neu4mes:
                     # Index identifying each file start
                     #self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
 
-        elif type(folder) is dict:  ## we have a crafted dataset
+        elif type(source) is dict:  ## we have a crafted dataset
             ## Check if the inputs are correct
             model_inputs = self.model_def['Inputs'].keys()
-            assert set(model_inputs).issubset(folder.keys()), 'The dataset is missing some inputs.'
+            assert set(model_inputs).issubset(source.keys()), 'The dataset is missing some inputs.'
 
             for key in model_inputs:
                 self.inout_data_time_window[key] = []  ## Initialize the dataset
-                for idx in range(len(folder[key][0]) - self.max_n_samples):
-                    self.inout_data_time_window[key].append(folder[key][0][idx+(self.max_samples_backward-self.input_ns_backward[key]):idx+(self.max_samples_backward+self.input_ns_forward[key])])
+                for idx in range(len(source[key]) - self.max_n_samples + 1):
+                    self.inout_data_time_window[key].append(source[key][idx + (self.max_samples_backward - self.input_ns_backward[key]):idx + (self.max_samples_backward + self.input_ns_forward[key])])
 
         # Build the asarray for numpy
         for key,data in self.inout_data_time_window.items():
@@ -363,6 +363,9 @@ class Neu4mes:
     # Function that get specific parameters for training
     #
     def __getTrainParams(self, training_params, test_size):
+        if self.batch_size > round(self.num_of_samples * test_size):
+            self.batch_size = 1
+
         if bool(training_params):
             if 'batch_size' in training_params:
                 if training_params['batch_size'] > round(self.num_of_samples*test_size):
@@ -453,8 +456,8 @@ class Neu4mes:
                     samples = np.reshape(samples, (-1, 1))
 
                 if key in self.model_def['Inputs'].keys():
-                    XY_train[key] = samples[:int(len(samples)*train_size)]
-                    XY_test[key] = samples[int(len(samples)*train_size):]
+                    XY_train[key] = samples[:round(len(samples)*train_size)]
+                    XY_test[key] = samples[round(len(samples)*train_size):]
                     if self.n_samples_train is None:
                         self.n_samples_train = round(len(XY_train[key]) / self.batch_size)
                     if self.n_samples_test is None:

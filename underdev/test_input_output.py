@@ -27,7 +27,7 @@ example1.neuralizeModel(0.05)
 
 data_struct = ['time','x','x_s','F']
 data_folder = './examples/datasets/mass-spring-damper/data/'
-example1.loadData(data_struct, folder = data_folder)
+example1.loadData(data_struct)
 example1.trainModel(test_percentage = 10, show_results = True)
 
 

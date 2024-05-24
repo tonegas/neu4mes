@@ -65,7 +65,7 @@ example2.neuralizeModel(0.05)
 # Data load
 data_struct = ['time','theta','theta_s','','','torque']
 data_folder = './examples/datasets/pendulum/data/'
-example2.loadData(data_struct, folder = data_folder)
+example2.loadData(data_struct)
 sample = example2.get_random_samples(3)
 print('[LOG] random sample: ', sample)
 results = example2(inputs=sample) # 3 sample -> 3 output

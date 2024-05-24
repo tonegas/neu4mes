@@ -16,13 +16,13 @@ x_z = Output('x_k', Fir(x.tw(2))+Fir(F))
 # Add the neural model to the neu4mes structure and neuralization of the model
 mass_spring_damper = Neu4mes(verbose = True,  visualizer = StandardVisualizer())
 mass_spring_damper.addModel(x_z)
-mass_spring_damper.minimizeError(x.z(-1), x_z, 'mse')
+mass_spring_damper.minimizeError('out',x.z(-1), x_z, 'mse')
 mass_spring_damper.neuralizeModel(0.05)
 
 # Data load
 data_struct = ['time','x','x_s','F']
 data_folder = './examples/datasets/mass-spring-damper/data/'
-mass_spring_damper.loadData(data_struct, folder = data_folder)
+mass_spring_damper.loadData(data_struct)
 
 # Neural network train
 start = time.time()
