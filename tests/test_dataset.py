@@ -1,11 +1,15 @@
+import logging
 import sys
 import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 
-import unittest, logging
+import unittest
 import numpy as np
 from neu4mes import *
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.CRITICAL)
 
 import os
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
@@ -44,7 +48,9 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel2 = Fir(input.tw(0.01))
 
         test = Neu4mes()
+        #log.enable()
         test.minimizeError('out',output.z(-1), rel1+rel2)
+        #log.disable()
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']

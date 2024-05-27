@@ -12,7 +12,10 @@ if major < 3:
 elif minor < 6:
     sys.exit("Sorry, You need Python >= 3.6 for "+__package__+".")
 else:
-    print(">>>>>>>>>>---"+__package__+"---<<<<<<<<<<")
+    print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>---- '+ __package__+' ----<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+
+import logging
+LOG_LEVEL = logging.DEBUG
 
 from neu4mes.neu4mes import Neu4mes
 
@@ -29,8 +32,9 @@ from neu4mes.fuzzify import Fuzzify
 from neu4mes.part import TimePart, Part, Select, TimeSelect
 from neu4mes.localmodel import LocalModel
 from neu4mes.parameter import Parameter
+from neu4mes.logger import logging
 
 
-import os, os.path
+import os, os.path, logging
 from pprint import pp, pprint
 import numpy as np

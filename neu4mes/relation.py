@@ -1,7 +1,15 @@
 import copy
 
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.ERROR, LOG_LEVEL))
+
 def merge(source, destination, main = True):
     if main:
+        log.title("Merge")
+        log.paramjson("Source", source)
+        log.paramjson("Destination", destination)
         result = copy.deepcopy(destination)
     else:
         result = destination
@@ -19,7 +27,8 @@ def merge(source, destination, main = True):
                         result[key][1] = value[1]
             else:
                 result[key] = value
-
+    if main == True:
+        log.titlejson("Result", result)
     return result
 
 class NeuObj():

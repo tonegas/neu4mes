@@ -1,4 +1,4 @@
-import unittest, logging
+import unittest
 
 import sys
 import os

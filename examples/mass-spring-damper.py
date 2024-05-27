@@ -8,41 +8,50 @@ import logging
 
 import time
 from neu4mes import *
-from neu4mes.neu4mes import log
 from neu4mes.visualizer import StandardVisualizer
 
 # Create neural model
 x = Input('x')
-F = Input('Fs')
-F1= Input('Fa')
-F2 = Input('F2')
-F3 = Input('F3')
-F4 = Input('F4')
-F5 = Input('F5')
-F6 = Input('F6')
+F = Input('F')
+
 
 
 #log.setLevel(logging.WARNING)
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.WARNING)
-log.disable()
-log.enable()
-Fir(x.tw(2))+Fir(F)
-x_z = Output('x_k', Fir(x.tw(2))+Fir(F)+Fir(F1)+Fir(F2)+Fir(F3))
-log.disable()
+#log = logging.getLogger("mass-spring-damper")
+#logging.getLogger("neu4mes.relation").setLevel(logging.DEBUG)
+#logging.getLogger("neu4mes.neu4mes").setLevel(logging.DEBUG)
+#logging.getLogger("neu4mes.output").setLevel(logging.DEBUG)
+#log.setLevel(logging.DEBUG)
+#log.enable()
+Fir(x.tw(2))
+#log.titlejson('PROVA',{'Gas':'gas'})
+#log.debug('GASTONE')
+#log.info('GASTONE')
+#log.warning('GASTONE')
+#log.error('GASTONE')
+#log.disable()
+
+ #+Fir(F))
+
+x_z = Output('x_k', Fir(x.tw(2))+Fir(F))
+
 
 # Add the neural model to the neu4mes structure and neuralization of the model
-mass_spring_damper = Neu4mes(verbose = True)
+mass_spring_damper = Neu4mes(verbose = 0)
 mass_spring_damper.addModel(x_z)
-mass_spring_damper.minimizeError('min', x.z(-1), x_z, 'mse')
+mass_spring_damper.minimizeError('position', x.z(-1), x_z, 'mse')
+#log.disable()
+#log.enable()
 mass_spring_damper.neuralizeModel(0.05)
-
+#log.disable()
+#log.debug('GASTONE')
+mass_spring_damper({'x':[4,2,3,4,4]})
 
 # Data load
 data_struct = ['time','x','x_s','F']
 data_folder = './examples/datasets/mass-spring-damper/data/'
-mass_spring_damper.loadData(data_struct)
+mass_spring_damper.loadData(data_folder, data_struct)
 
 # Neural network train
 start = time.time()

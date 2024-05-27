@@ -10,17 +10,18 @@ x = Input('x')
 target_y = Input('target_y')
 
 # Linear function
-def linear_fun(x,a,b):
-    return x*a+b
+def linear_fun(x,a,b,c):
+    return x**2*a+x*b+c
 
 parfun = ParamFun(linear_fun)
 
 y = Output('y', parfun(x)) # TODO controllare che tipo di problema quando uso il nome dell'input uguale al nome dell'output
 
-data_x = np.random.rand(200)*20-10
+data_x = np.random.rand(250)*20-10
 data_a = 2
 data_b = -3
-dataset = {'x': data_x, 'target_y': linear_fun(data_x,data_a,data_b)}
+data_c = 2
+dataset = {'x': data_x, 'target_y': linear_fun(data_x,data_a,data_b,data_c)}
 
 opt_fun = Neu4mes(verbose = True,  visualizer = StandardVisualizer())
 opt_fun.addModel(y)

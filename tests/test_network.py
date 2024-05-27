@@ -1,14 +1,16 @@
-import unittest, logging
+import unittest
 
 import sys
 import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
+logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
 
 class Neu4mesNetworkBuildingTest(unittest.TestCase):
+
     def test_network_building_very_simple(self):
-        print('start')
+
         input1 = Input('in1')
         rel1 = Fir(input1)
         fun = Output('out', rel1)
