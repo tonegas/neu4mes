@@ -32,4 +32,4 @@ mass_spring_damper.trainModel(test_percentage = 10, show_results = True)
 # Le dimensioni di ingresso ed uscita devono essere le medesime.
 # La finestra temporale di 'x' è riempita inizialmente con i dati presi dal file e poi successivemente è riempieta utilizzando
 # l'uscita 'xk1' per un orizzonte temporale di 1 secondo.
-mass_spring_damper.trainModel(test_percentage = 10, show_results = True, close_loop = {'x':'xk1'}, prediction_horizon = 1, step = 1 )
+mass_spring_damper.trainModel(test_percentage = 10, show_results = True, close_loop = {'x':'xk1'}, prediction_horizon = 1, step = 1)

@@ -22,7 +22,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
-        training_params['batch_size'] = 1
+        training_params['train_batch_size'] = 1
+        training_params['test_batch_size'] = 1
         training_params['learning_rate'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(test_percentage=30, training_params = training_params)
@@ -33,7 +34,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(7,test.n_samples_train)
         self.assertEqual(3,test.n_samples_test)
         self.assertEqual(10,test.num_of_samples)
-        self.assertEqual(1,test.batch_size)
+        self.assertEqual(1,test.train_batch_size)
+        self.assertEqual(1,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
 
@@ -52,7 +54,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
-        training_params['batch_size'] = 25
+        training_params['train_batch_size'] = 25
+        training_params['test_batch_size'] = 25
         training_params['learning_rate'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(test_percentage=50,training_params = training_params)
@@ -63,7 +66,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # batch_size > 5 use batch_size = 1
         self.assertEqual(5,test.n_samples_train)
         self.assertEqual(5,test.n_samples_test)
-        self.assertEqual(1,test.batch_size)
+        self.assertEqual(1,test.train_batch_size)
+        self.assertEqual(1,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
     
@@ -82,7 +86,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
-        training_params['batch_size'] = 2
+        training_params['train_batch_size'] = 2
+        training_params['test_batch_size'] = 2
         training_params['learning_rate'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(test_percentage=50, training_params = training_params)
@@ -97,7 +102,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(2,test.n_samples_train)
         self.assertEqual(2,test.n_samples_test)
         self.assertEqual(10,test.num_of_samples)
-        self.assertEqual(2,test.batch_size)
+        self.assertEqual(2,test.train_batch_size)
+        self.assertEqual(2,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
     
@@ -115,7 +121,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual((10,5),test.inout_asarray['in1'].shape)
 
         training_params = {}
-        training_params['batch_size'] = 2
+        training_params['train_batch_size'] = 2
+        training_params['test_batch_size'] = 2
         training_params['learning_rate'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(test_percentage=10, training_params = training_params)
@@ -126,10 +133,11 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # batch_size > 1 -> YES
         # num_of_training_sample must be multiple of batch_size
         # num_of_test_sample must be multiple of batch_size and at least 10%
-        self.assertEqual(9,test.n_samples_train)
+        self.assertEqual(4,test.n_samples_train)
         self.assertEqual(1,test.n_samples_test)
         self.assertEqual(10,test.num_of_samples)
-        self.assertEqual(1,test.batch_size)
+        self.assertEqual(2,test.train_batch_size)
+        self.assertEqual(1,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
 
@@ -152,7 +160,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual((5,5),test.inout_asarray['in1'].shape)  ## 10 data - 6 tw = 4 sample | 0.05/0.01 = 5 in1
 
         training_params = {}
-        training_params['batch_size'] = 2
+        training_params['train_batch_size'] = 2
+        training_params['test_batch_size'] = 2
         training_params['learning_rate'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(test_percentage=10, training_params = training_params)
@@ -163,10 +172,11 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # batch_size > 1 -> YES
         # num_of_training_sample must be multiple of batch_size
         # num_of_test_sample must be multiple of batch_size and at least 10%
-        self.assertEqual(4,test.n_samples_train)
+        self.assertEqual(2,test.n_samples_train)
         self.assertEqual(1,test.n_samples_test)
         self.assertEqual(5,test.num_of_samples)
-        self.assertEqual(1,test.batch_size)
+        self.assertEqual(2,test.train_batch_size)
+        self.assertEqual(1,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
     

@@ -17,6 +17,7 @@ parfun = ParamFun(linear_fun)
 
 y = Output('y', parfun(x)) # TODO controllare che tipo di problema quando uso il nome dell'input uguale al nome dell'output
 
+
 data_x = np.random.rand(250)*20-10
 data_a = 2
 data_b = -3
@@ -25,14 +26,19 @@ dataset = {'x': data_x, 'target_y': linear_fun(data_x,data_a,data_b,data_c)}
 
 opt_fun = Neu4mes(verbose = True,  visualizer = StandardVisualizer())
 opt_fun.addModel(y)
-opt_fun.minimizeError('out', target_y, y, 'mse')  # TODO mettere una stringa di input che indica il nome
+opt_fun.minimizeError('out', target_y, y, 'mse') # la stringa di input ne indica il nome
 
 
-opt_fun.neuralizeModel() # TODO rimuovere il sample rate se non serve
-opt_fun.loadData(dataset)  # TODO Caricamento del dataset tramite un dizionario fatto come per la predict
+opt_fun.neuralizeModel() # rimuovere il sample rate se non serve
+opt_fun.loadData(dataset)  # Caricamento del dataset tramite un dizionario crafted
 
 opt_fun.trainModel(test_percentage = 10, show_results = False)
 
-print(opt_fun(dataset))
-print('Prediction only for y: ', opt_fun(dataset)['y']) # TODO potrei mettere un input per ottenere direttamente quella variabile e non un dizionario
+random_sample = opt_fun.get_random_samples()
+pred = opt_fun(random_sample)
+print('prediction variables: ', pred.keys())
+print('Prediction y: ', pred['y'])
+print('label: ', pred['out_target_y'])
 
+## TODO Recurrent training
+## TODO test recurrent
