@@ -27,6 +27,9 @@ class Visualizer():
     def showModel(self):
         pass
 
+    def showMinimizeError(self,variable_name):
+        pass
+
     def showModelInputWindow(self):
         pass
 
@@ -39,7 +42,7 @@ class Visualizer():
     def showDataset(self):
         pass
 
-    def showTraining(self):
+    def showTraining(self, iter, train_losses, test_losses):
         pass
 
     def showResults(self, neu4mes, output_keys, performance = None):

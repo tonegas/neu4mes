@@ -13,7 +13,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 from neu4mes.relation import NeuObj, merge
-from neu4mes.visualizer import TextVisualizer
+from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.dataset import Neu4MesDataset
 from neu4mes.loss import CustomRMSE
 from neu4mes.output import Output
@@ -31,11 +31,15 @@ def argmin_min(iterable):
     return min(enumerate(iterable), key=lambda x: x[1])
 
 class Neu4mes:
-    def __init__(self, model_def = 0, verbose = 0, visualizer = 'Standard'):
+    def __init__(self, model_def = 0, verbose = 1, visualizer = 'Standard'):
         # Visualizer
-        if visualizer == 'Standard':
-            self.visualizer = TextVisualizer(self)
-            #self.visualizer.verbose = verbose
+        if verbose > 0:
+            if visualizer == 'Standard':
+                self.visualizer = TextVisualizer(self, verbose)
+            elif visualizer:
+                self.visualizer = visualizer
+        else:
+            self.visualizer = Visualizer(self)
 
         # # Set verbose print inside the class
         # self.verbose = verbose
