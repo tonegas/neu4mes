@@ -85,13 +85,15 @@ class Neu4mes:
         self.test_loader = None
 
         # Training params
-        self.batch_size = 128                               # batch size
+        #self.batch_size = 128                               # batch size
+        self.train_batch_size = 1                          # train batch size
+        self.test_batch_size = 1                            # test batch size
         self.learning_rate = 0.0005                         # learning rate for NN
         self.num_of_epochs = 100                             # number of epochs
-        self.rnn_batch_size = self.batch_size               # batch size for RNN
+        #self.rnn_batch_size = self.batch_size               # batch size for RNN
         self.rnn_window = None                              # window of the RNN
-        self.rnn_learning_rate = self.learning_rate/10000   # learning rate for RNN
-        self.rnn_num_of_epochs = 50                         # number of epochs for RNN
+        #self.rnn_learning_rate = self.learning_rate/10000   # learning rate for RNN
+        #self.rnn_num_of_epochs = 50                         # number of epochs for RNN
 
         # Training dataset
         self.data_loaded = False
@@ -114,9 +116,9 @@ class Neu4mes:
         assert set(model_inputs).issubset(set(inputs.keys())), 'Missing Input!'
 
         ## Make all Scalar input inside a list
-        for key, val in inputs.items():
-            if type(val) is not list:
-                inputs[key] = [val]
+        #for key, val in inputs.items():
+        #    if type(val) is not list:
+        #        inputs[key] = [val]
 
         ## Determine the Maximal number of samples that can be created
         if sampled:
@@ -262,12 +264,12 @@ class Neu4mes:
 
                         if 'offset' in input_name[1]: ## we have the offset
                             offset = round(abs(input_name[1][window][0])/aux_sample_time) + round(input_name[1]['offset'] / aux_sample_time)
-                            input_samples[input_name[0]] = {'backward': backward, 'forward': forward, 'offset': offset}
+                            input_samples[input_name[0]] = {'start_idx': backward, 'end_idx': forward, 'offset_idx': offset}
                         else:
-                            input_samples[input_name[0]] = {'backward':backward, 'forward': forward}
+                            input_samples[input_name[0]] = {'start_idx':backward, 'end_idx': forward}
 
                 else: ## we have no window
-                    input_samples[input_name] = {'backward':0, 'forward':1}
+                    input_samples[input_name] = {'start_idx':0, 'end_idx':1}
 
             self.relation_samples[name] = input_samples
 
@@ -362,22 +364,29 @@ class Neu4mes:
     #
     # Function that get specific parameters for training
     #
-    def __getTrainParams(self, training_params, test_size):
-        if self.batch_size > round(self.num_of_samples * test_size):
-            self.batch_size = 1
-
+    def __getTrainParams(self, training_params, train_size, test_size):
         if bool(training_params):
-            if 'batch_size' in training_params:
-                if training_params['batch_size'] > round(self.num_of_samples*test_size):
-                    self.batch_size = 1
-                else:
-                    self.batch_size = training_params['batch_size']
-            #self.batch_size = (training_params['batch_size'] if 'batch_size' in training_params else self.batch_size)
             self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate)
             self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs)
-            self.rnn_batch_size = (training_params['rnn_batch_size'] if 'rnn_batch_size' in training_params else self.rnn_batch_size)
-            self.rnn_learning_rate = (training_params['rnn_learning_rate'] if 'rnn_learning_rate' in training_params else self.rnn_learning_rate)
-            self.rnn_num_of_epochs = (training_params['rnn_num_of_epochs'] if 'rnn_num_of_epochs' in training_params else self.rnn_num_of_epochs)
+            self.train_batch_size = (training_params['train_batch_size'] if 'train_batch_size' in training_params else self.train_batch_size)
+            self.test_batch_size = (training_params['test_batch_size'] if 'test_batch_size' in training_params else self.test_batch_size)
+
+            ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to 1
+            if self.train_batch_size > round(self.num_of_samples*train_size):
+                self.train_batch_size = 1
+            if self.test_batch_size > round(self.num_of_samples*test_size):
+                self.test_batch_size = 1
+            #if 'batch_size' in training_params:
+            #    if training_params['batch_size'] > round(self.num_of_samples*test_size):
+            #        self.batch_size = 1
+            #    else:
+            #        self.batch_size = training_params['batch_size']
+            #self.batch_size = (training_params['batch_size'] if 'batch_size' in training_params else self.batch_size)
+            #self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate)
+            #self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs)
+            #self.rnn_batch_size = (training_params['rnn_batch_size'] if 'rnn_batch_size' in training_params else self.rnn_batch_size)
+            #self.rnn_learning_rate = (training_params['rnn_learning_rate'] if 'rnn_learning_rate' in training_params else self.rnn_learning_rate)
+            #self.rnn_num_of_epochs = (training_params['rnn_num_of_epochs'] if 'rnn_num_of_epochs' in training_params else self.rnn_num_of_epochs)
 
     """
     Analysis of the results
@@ -391,7 +400,7 @@ class Neu4mes:
 
         # List of keys
         output_keys = list(self.model_def['Outputs'].keys())
-        number_of_samples = int(self.n_samples_test*self.batch_size - self.batch_size) 
+        number_of_samples = int(self.n_samples_test*self.test_batch_size - self.test_batch_size) 
 
         # Performance parameters
         self.performance['se'] = np.empty([len(output_keys),number_of_samples])
@@ -444,7 +453,7 @@ class Neu4mes:
         # Check input
         train_size = 1 - (test_percentage / 100.0)
         test_size = 1 - train_size
-        self.__getTrainParams(training_params, test_size=test_size)
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
 
         ## Split train and test
         XY_train = {}
@@ -456,12 +465,15 @@ class Neu4mes:
                     samples = np.reshape(samples, (-1, 1))
 
                 if key in self.model_def['Inputs'].keys():
-                    XY_train[key] = samples[:round(len(samples)*train_size)]
-                    XY_test[key] = samples[round(len(samples)*train_size):]
+                    if test_percentage == 0:
+                        XY_train[key] = samples
+                    else:
+                        XY_train[key] = samples[:round(len(samples)*train_size)]
+                        XY_test[key] = samples[round(len(samples)*train_size):]
+                        if self.n_samples_test is None:
+                            self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
                     if self.n_samples_train is None:
-                        self.n_samples_train = round(len(XY_train[key]) / self.batch_size)
-                    if self.n_samples_test is None:
-                        self.n_samples_test = round(len(XY_test[key]) / self.batch_size)
+                        self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
                 #elif key in self.model_def['Outputs'].keys():
                 #    Y_train[key] = samples[:int(len(samples)*train_size)]
                 #    Y_test[key] = samples[int(len(samples)*train_size):]
@@ -484,10 +496,10 @@ class Neu4mes:
             train_loss = []
             for i in range(self.n_samples_train):
 
-                idx = i*self.batch_size
+                idx = i*self.train_batch_size
                 XY = {}
                 for key, val in XY_train.items():
-                    XY[key] = torch.from_numpy(val[idx:idx+self.batch_size]).to(torch.float32)
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
 
                 self.optimizer.zero_grad()
                 out = self.model(XY)
@@ -497,28 +509,31 @@ class Neu4mes:
                 self.optimizer.step()
                 train_loss.append(loss.item())
             train_loss = np.mean(train_loss)
-
-            self.model.eval()
-            test_loss = []
-            for i in range(self.n_samples_test):
-
-                idx = i*self.batch_size
-                XY = {}
-                for key, val in XY_test.items():
-                    XY[key] = torch.from_numpy(val[idx:idx+self.batch_size]).to(torch.float32)
-
-                out = self.model(XY)
-                for obj in self.minimize_list:
-                    loss = self.loss_fn(out[obj[0]], out[obj[1]])
-                    #loss.backward()
-                test_loss.append(loss.item())
-            test_loss = np.mean(test_loss)
-
             train_losses[iter] = train_loss
-            test_losses[iter] = test_loss
+
+            if test_percentage != 0:
+                self.model.eval()
+                test_loss = []
+                for i in range(self.n_samples_test):
+
+                    idx = i*self.test_batch_size
+                    XY = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx+self.test_batch_size]).to(torch.float32)
+
+                    out = self.model(XY)
+                    for obj in self.minimize_list:
+                        loss = self.loss_fn(out[obj[0]], out[obj[1]])
+                        #loss.backward()
+                    test_loss.append(loss.item())
+                test_loss = np.mean(test_loss)
+                test_losses[iter] = test_loss
 
             if iter % 10 == 0:
-                print(f'Epoch {iter+1}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
+                if test_percentage == 0:
+                    print(f'Epoch {iter}/{self.num_of_epochs}, Train Loss {train_loss:.4f}')
+                else:
+                    print(f'Epoch {iter}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
 
         # Show the analysis of the Result
         if show_results:

@@ -67,9 +67,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             if 'Fir' in key:
                 for k, v in value.items():
                     if k == 'in1':
-                        self.assertEqual(in1[v['backward']:v['forward']], list_of_windows[ind])
+                        self.assertEqual(in1[v['start_idx']:v['end_idx']], list_of_windows[ind])
                     elif k == 'in2':
-                        self.assertEqual(in2[v['backward']:v['forward']], list_of_windows[ind])
+                        self.assertEqual(in2[v['start_idx']:v['end_idx']], list_of_windows[ind])
 
     def test_network_building_tw2(self):
         input2 = Input('in2')
@@ -97,7 +97,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             if 'Fir' in key:
                 for k, v in value.items():
                     if k == 'in2':
-                        self.assertEqual(in2[v['backward']:v['forward']], list_of_windows[ind])
+                        self.assertEqual(in2[v['start_idx']:v['end_idx']], list_of_windows[ind])
 
     def test_network_building_tw3(self):
         input2 = Input('in2')
@@ -123,7 +123,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             if 'Fir' in key:
                 for k, v in value.items():
                     if k == 'in2':
-                        self.assertEqual(in2[v['backward']:v['forward']], list_of_windows[ind])
+                        self.assertEqual(in2[v['start_idx']:v['end_idx']], list_of_windows[ind])
 
     def test_network_building_tw_with_offest(self):
         input2 = Input('in2')
@@ -151,9 +151,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                 for k, v in value.items():
                     if k == 'in2':
                         offset = 0
-                        if 'offset' in v:
-                            offset = v['offset']
-                        self.assertEqual([a-offset for a in in2[v['backward']:v['forward']]], list_of_windows[ind])
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
 
     def test_network_building_sw(self):
         input1 = Input('in1')
@@ -175,9 +175,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                 for k, v in value.items():
                     if k == 'in1':
                         offset = 0
-                        if 'offset' in v:
-                            offset = v['offset']
-                        self.assertEqual([a-offset for a in in2[v['backward']:v['forward']]], list_of_windows[ind])
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
 
     def test_network_building_sw_with_offset(self):
         input2 = Input('in2')
@@ -205,9 +205,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                 for k, v in value.items():
                     if k == 'in2':
                         offset = 0
-                        if 'offset' in v:
-                            offset = v['offset']
-                        self.assertEqual([a-offset for a in in2[v['backward']:v['forward']]], list_of_windows[ind])
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
 
     def test_network_building_sw_and_tw(self):
         input2 = Input('in2')
@@ -235,9 +235,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                 for k, v in value.items():
                     if k == 'in2':
                         offset = 0
-                        if 'offset' in v:
-                            offset = v['offset']
-                        self.assertEqual([a-offset for a in in2[v['backward']:v['forward']]], list_of_windows[ind])
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
 
     '''
     def test_network_building_discrete_input_and_local_model(self):

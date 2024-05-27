@@ -89,11 +89,11 @@ class Model(nn.Module):
                     layer_inputs = []
                     for key in self.relation_inputs[output]:
                         if key in self.inputs.keys():
-                            temp = kwargs[key][:,self.samples[output][key]['backward']:self.samples[output][key]['forward']]
+                            temp = kwargs[key][:,self.samples[output][key]['start_idx']:self.samples[output][key]['end_idx']]
                         else:
                             temp = available_inputs[key]
-                        if 'offset' in self.samples[output][key]:
-                            temp = temp - temp[:, self.samples[output][key]['offset']:self.samples[output][key]['offset']+1]
+                        if 'offset_idx' in self.samples[output][key]:
+                            temp = temp - temp[:, self.samples[output][key]['offset_idx']:self.samples[output][key]['offset_idx']+1]
                         layer_inputs.append(temp)
 
                         if output in self.outputs.keys():

@@ -65,9 +65,9 @@ example2.neuralizeModel(0.05)
 # Data load
 data_struct = ['time','theta','theta_s','','','torque']
 data_folder = './examples/datasets/pendulum/data/'
-example2.loadData(data_struct)
-sample = example2.get_random_samples(3)
-print('[LOG] random sample: ', sample)
+example2.loadData(source=data_folder, format=data_struct)
+sample = example2.get_random_samples(window=3)
+print('random sample: ', sample)
 results = example2(inputs=sample) # 3 sample -> 3 output
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
@@ -76,4 +76,4 @@ for output, result in results.items():
 #print('EXAMPLE 8') ##WORK IN PROGRESS
 # La funzione prende in ingresso due Stream
 # Adesso facciamo che funziona come prima e non gestisce due reti poi faremo anche la cosa che gestisce due reti
-example2.minimizeError(x.z(-1),x_k1)
+example2.minimizeError('out', x.z(-1),x_k1)
