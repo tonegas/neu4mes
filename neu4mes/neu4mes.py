@@ -120,8 +120,8 @@ class Neu4mes:
 
         # Training params
         #self.batch_size = 128                               # batch size
-        self.train_batch_size = 1                          # train batch size
-        self.test_batch_size = 1                            # test batch size
+        self.train_batch_size = 128                          # train batch size
+        self.test_batch_size = 128                            # test batch size
         self.learning_rate = 0.0005                         # learning rate for NN
         self.num_of_epochs = 100                             # number of epochs
         #self.rnn_batch_size = self.batch_size               # batch size for RNN
@@ -429,20 +429,16 @@ class Neu4mes:
     """
     def resultAnalysis(self, train_loss, test_loss, xy_train, xy_test):
         ## Plot train loss and test loss
-        plt.plot(train_loss, label='train loss')
-        plt.plot(test_loss, label='test loss')
-        plt.legend()
-        plt.show()
-
-        # List of keys
-        output_keys = list(self.model_def['Outputs'].keys())
-        number_of_samples = int(self.n_samples_test*self.test_batch_size - self.test_batch_size) 
+        #plt.plot(train_loss, label='train loss')
+        #plt.plot(test_loss, label='test loss')
+        #plt.legend()
+        #plt.show()
 
         # Performance parameters
-        self.performance['se'] = np.empty([len(output_keys),number_of_samples])
-        self.performance['mse'] = np.empty([len(output_keys),])
-        self.performance['rmse_test'] = np.empty([len(output_keys),])
-        self.performance['fvu'] = np.empty([len(output_keys),])
+        self.performance['se'] = np.empty([len(self.minimize_dict),self.n_samples_test])
+        self.performance['mse'] = np.empty([len(self.minimize_dict),])
+        self.performance['rmse_test'] = np.empty([len(self.minimize_dict),])
+        self.performance['fvu'] = np.empty([len(self.minimize_dict),])
 
         # Prediction on test samples
         #test_loader = DataLoader(dataset=test_data, batch_size=1, num_workers=0, shuffle=False)
@@ -475,7 +471,7 @@ class Neu4mes:
             ## TODO: Use log likelihood instead of MSE
             #self.performance['aic'] = - (self.num_of_test_sample * np.log(self.performance['mse'])) + 2 * self.model.count_params()
 
-        self.visualizer.showResults(self, output_keys, performance = self.performance)
+        self.visualizer.showResults()
         #self.visualizer.showResults(iter, train_losses, test_losses, XY_train, XY_test)
 
     """
@@ -535,7 +531,6 @@ class Neu4mes:
             self.model.train()
             #train_loss = []
             for i in range(self.n_samples_train):
-
                 idx = i*self.train_batch_size
                 XY = {}
                 for key, val in XY_train.items():
@@ -565,4 +560,4 @@ class Neu4mes:
 
             self.visualizer.showTraining(epoch, train_losses, test_losses)
 
-        self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+        #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
