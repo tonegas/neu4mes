@@ -1,4 +1,5 @@
 import copy
+from pprint import pformat
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -7,9 +8,10 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
 def merge(source, destination, main = True):
     if main:
-        log.title("Merge")
-        log.paramjson("Source", source)
-        log.paramjson("Destination", destination)
+        log.debug("Merge Source")
+        log.debug("\n"+pformat(source))
+        log.debug("Merge Destination")
+        log.debug("\n"+pformat(destination))
         result = copy.deepcopy(destination)
     else:
         result = destination
@@ -28,7 +30,8 @@ def merge(source, destination, main = True):
             else:
                 result[key] = value
     if main == True:
-        log.titlejson("Result", result)
+        log.debug("Merge Result")
+        log.debug("\n" + pformat(result))
     return result
 
 class NeuObj():

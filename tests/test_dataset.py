@@ -21,7 +21,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         relation = Fir(input.tw(0.05))
 
         test = Neu4mes()
-        test.minimizeError('out',output.z(-1),relation)
+        test.minimizeError('out', output.z(-1), relation)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']
@@ -49,7 +49,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         test = Neu4mes()
         #log.enable()
-        test.minimizeError('out',output.z(-1), rel1+rel2)
+        test.minimizeError('out', output.z(-1), rel1 + rel2)
         #log.disable()
         test.neuralizeModel(0.01)
 
@@ -79,7 +79,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel3 = Fir(input2.tw(0.02))
 
         test = Neu4mes()
-        test.minimizeError('out',output.z(-1), rel1+rel2+rel3)
+        test.minimizeError('out', output.z(-1), rel1 + rel2 + rel3)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -118,7 +118,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel2 = Fir(input1.tw([-0.01,0.02]))
 
         test = Neu4mes()
-        test.minimizeError('out', output.z(-1), rel1+rel2)
+        test.minimizeError('out', output.z(-1), rel1 + rel2)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -144,7 +144,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel2 = Fir(input1.tw([-0.01,0.01]))
 
         test = Neu4mes()
-        test.minimizeError('out',output.z(-1), rel1+rel2)
+        test.minimizeError('out', output.z(-1), rel1 + rel2)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -176,7 +176,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         test = Neu4mes()
         test.addModel(fun)
-        test.minimizeError('out',output.z(-1), rel1+rel2+rel3+rel4)
+        test.minimizeError('out', output.z(-1), rel1 + rel2 + rel3 + rel4)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -218,7 +218,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         test = Neu4mes()
         test.addModel(fun)
-        test.minimizeError('out',output.z(-1), fun)
+        test.minimizeError('out', output.z(-1), fun)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -247,7 +247,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         test = Neu4mes()
         test.addModel(fun)
-        test.minimizeError('out',output.z(-1), fun)
+        test.minimizeError('out', output.z(-1), fun)
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']

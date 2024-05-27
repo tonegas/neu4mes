@@ -25,7 +25,7 @@ dataset = {'x': data_x, 'target_y': linear_fun(data_x,data_a,data_b,data_c)}
 
 opt_fun = Neu4mes(verbose = True,  visualizer = StandardVisualizer())
 opt_fun.addModel(y)
-opt_fun.minimizeError('out', target_y, y, 'mse') # TODO mettere una stringa di input che indica il nome
+opt_fun.minimizeError('out', target_y, y, 'mse')  # TODO mettere una stringa di input che indica il nome
 
 
 opt_fun.neuralizeModel() # TODO rimuovere il sample rate se non serve

@@ -71,9 +71,3 @@ print('[LOG] random sample: ', sample)
 results = example2(inputs=sample) # 3 sample -> 3 output
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
-
-
-#print('EXAMPLE 8') ##WORK IN PROGRESS
-# La funzione prende in ingresso due Stream
-# Adesso facciamo che funziona come prima e non gestisce due reti poi faremo anche la cosa che gestisce due reti
-example2.minimizeError(x.z(-1),x_k1)

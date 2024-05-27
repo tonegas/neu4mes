@@ -38,15 +38,20 @@ x_z = Output('x_k', Fir(x.tw(2))+Fir(F))
 
 
 # Add the neural model to the neu4mes structure and neuralization of the model
-mass_spring_damper = Neu4mes(verbose = 0)
+mass_spring_damper = Neu4mes(verbose = 1)
 mass_spring_damper.addModel(x_z)
 mass_spring_damper.minimizeError('position', x.z(-1), x_z, 'mse')
+mass_spring_damper.minimizeError('velocity', x.z(-1), Fir(x.tw(2))+Fir(F), 'mse')
+mass_spring_damper.minimizeError('acc',Fir(x.tw(2))+Fir(F.tw(1)), Fir(x.tw(2))+Fir(F), 'mse')
 #log.disable()
 #log.enable()
-mass_spring_damper.neuralizeModel(0.05)
+mass_spring_damper.neuralizeModel(0.5)
 #log.disable()
 #log.debug('GASTONE')
-mass_spring_damper({'x':[4,2,3,4,4]})
+# run funzione check
+#mass_spring_damper({'x':[4,2,3,4,4]})
+# Warning
+#mass_spring_damper({'x':[4,2,3,4,9],'F':[2]})
 
 # Data load
 data_struct = ['time','x','x_s','F']

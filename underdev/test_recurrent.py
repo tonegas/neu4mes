@@ -18,7 +18,7 @@ est_x_k1 = Output('xk1',x_k1)
 
 mass_spring_damper = Neu4mes(verbose = True)
 mass_spring_damper.addModel(est_x_k1)
-mass_spring_damper.minimizeError(x.z(-1),x_k1)
+mass_spring_damper.minimizeError('next_pos',x.z(-1), x_k1)
 mass_spring_damper.neuralizeModel(0.1)
 data_struct = ['time','x','x_s','F']
 data_folder = './examples/datasets/mass-spring-damper/data/'

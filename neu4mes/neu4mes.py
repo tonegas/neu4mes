@@ -1,3 +1,5 @@
+import copy
+
 import torch
 from torch.utils.data import DataLoader
 
@@ -18,73 +20,45 @@ from neu4mes.output import Output
 from neu4mes.model import Model
 
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
-
-
-
-
-
-#loggo = logging.getLogger(__name__)
-#logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG)
-#from pprint import pformat
-
-#ds = [{'hello': 'there'}]
-#logging.debug(pformat(ds))
-
-
-# logging.basicConfig(level=logging.DEBUG)
-# # create console handler with a higher log level
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-# ch.setFormatter(CustomFormatter())
-# log.addHandler(ch)
-#
-
-# create logger with 'spam_application'
-# logging.setLoggerClass(ColoredLogger)
-# loggo = logging.getLogger(__name__)
-# loggo.setLevel(logging.DEBUG)
-# loggo.disabled = False
-# loggo.info('Starting Neu4Mes')
-# loggo.disabled = True
-#loggo.setLevel(logging.)
-
-# create console handler with a higher log level
-#ch = logging.StreamHandler()
-#ch.setLevel(logging.DEBUG)
-#ch.setFormatter(CustomFormatter())
-#log.addHandler(ch)
-
-
 def check(condition, exception, string):
     if not condition:
         raise exception(string)
 
+def argmax_max(iterable):
+    return max(enumerate(iterable), key=lambda x: x[1])
+
+def argmin_min(iterable):
+    return min(enumerate(iterable), key=lambda x: x[1])
 
 class Neu4mes:
-    def __init__(self, model_def = 0, verbose = 0, visualizer = TextVisualizer()):
-        # Set verbose print inside the class
-        self.verbose = verbose
-        if self.verbose > 0:
-            # verbose 1 print only the model and the training
-            # verbose 2 print also the window
-            # verbose 3 print also the minimize
-            # verbose 4 print also the pytorch
-            log.setLevel(min(logging.INFO - verbose + 1,log.level))
-        else:
-            log.setLevel(min(logging.INFO - verbose + 1, log.level))
+    def __init__(self, model_def = 0, verbose = 0, visualizer = 'Standard'):
+        # Visualizer
+        if visualizer == 'Standard':
+            self.visualizer = TextVisualizer(self)
+            #self.visualizer.verbose = verbose
+
+        # # Set verbose print inside the class
+        # self.verbose = verbose
+        # if self.verbose > 0:
+        #     # verbose 1 print only the model and the training
+        #     # verbose 2 print also the window
+        #     # verbose 3 print also the minimize
+        #     # verbose 4 print also the pytorch
+        #     log.setLevel(min(logging.INFO - verbose + 1,log.level))
+        # else:
+        #     log.setLevel(min(logging.INFO - verbose + 1, log.level))
 
         # Inizialize the model definition
         # the model_def has all the relation defined for that model
-        if type(model_def) is Output:
-            self.model_def = model_def.json
-        elif type(model_def) is dict:
-            self.model_def = self.model_def
-        else:
-            self.model_def = NeuObj().json
+
+        self.model_def = NeuObj().json
+        self.addModel(model_def)
+        # if type(model_def) is Output:
+        #     self.model_def = model_def.json
+        # elif type(model_def) is dict:
+        #     self.model_def = self.model_def
+        # else:
+        #     self.model_def = NeuObj().json
 
         # Input, output, and model characteristics
         self.input_tw_backward = {}         # dimensions of the time window in the past for each input
@@ -108,6 +82,7 @@ class Neu4mes:
 
         # List of element to be minimized
         self.minimize_list = []
+        self.minimize_dict = {}
         self.loss_fn = None                 # RNN model - Pytorch loss function
 
         self.output_relation = {}           # dict with the outputs
@@ -158,8 +133,7 @@ class Neu4mes:
         # Training performance
         self.performance = {}                               # Dict with performance parameters for NN
 
-        # Visualizer
-        self.visualizer = visualizer                        # Class for visualizing data
+
 
     ## TODO: discretize between sampled windows
     def __call__(self, inputs, sampled=False):
@@ -178,17 +152,17 @@ class Neu4mes:
 
         ## Determine the Maximal number of samples that can be created
         if sampled:
-            min_dim = min([len(inputs[key]) for key in model_inputs])
-            max_dim = max([len(inputs[key]) for key in model_inputs])
+            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in model_inputs])
+            max_dim_ind,  max_dim = argmax_max([len(inputs[key]) for key in model_inputs])
         else:
-            min_dim = min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
-            max_dim = max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
+            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
+            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
         window_dim = min_dim
         assert window_dim > 0, 'Invalid Number of Inputs!'
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
-            print(f'Warning! Different number of samples between inputs [MAX {max_dim} ; MIN {min_dim}]')
+            self.visualizer.warning(f'Different number of samples between inputs [MAX {list(model_inputs)[max_dim_ind]} = {max_dim}; MIN {list(model_inputs)[min_dim_ind]} = {min_dim}]')
 
         result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
@@ -227,7 +201,7 @@ class Neu4mes:
             return {}
 
     def MP(self,fun,arg):
-        if self.verbose:
+        if self.visualizer.verbose:
             fun(arg)
 
     """
@@ -239,31 +213,26 @@ class Neu4mes:
             self.model_def = merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
             self.model_def = merge(self.model_def, model_def)
-        #self.MP(pprint,self.model_def)
 
-    def minimizeError(self, variable_name, stream1, stream2, loss_function='mse'):
-        self.model_def = merge(self.model_def, stream1.json)
-        self.model_def = merge(self.model_def, stream2.json)
-        A = (stream1.name[0] if type(stream1.name) is tuple else stream1.name)
+    def minimizeError(self, variable_name, streamA, streamB, loss_function='mse'):
+        self.model_def = merge(self.model_def, streamA.json)
+        self.model_def = merge(self.model_def, streamB.json)
+        A = (streamA.name[0] if type(streamA.name) is tuple else streamA.name)
         nameA = variable_name + '_' + A
-        if type(stream1) is not Output:
-            self.model_def['Outputs'][nameA] = stream1.name
+        if type(streamA) is not Output:
+            self.model_def['Outputs'][nameA] = streamA.name
         else:
-            self.model_def['Outputs'][nameA] = self.model_def['Outputs'][stream1.name]
+            self.model_def['Outputs'][nameA] = self.model_def['Outputs'][streamA.name]
 
-        B = (stream2.name[0] if type(stream2.name) is tuple else stream2.name)
+        B = (streamB.name[0] if type(streamB.name) is tuple else streamB.name)
         nameB = variable_name + '_' + B
-        if type(stream2) is not Output:
-            self.model_def['Outputs'][nameB] = stream2.name
+        if type(streamB) is not Output:
+            self.model_def['Outputs'][nameB] = streamB.name
         else:
-            self.model_def['Outputs'][nameB] = self.model_def['Outputs'][stream2.name]
+            self.model_def['Outputs'][nameB] = self.model_def['Outputs'][streamB.name]
         self.minimize_list.append((nameA, nameB, loss_function))
-
-        log.title(f"Minimize Error of {variable_name} with {loss_function}",level = logging.INFO-2)
-        log.paramjson(f"Model {A}", stream1.json,level = logging.INFO-2)
-        log.paramjson(f"Model {B}", stream2.json,level = logging.INFO-2)
-        log.line(level = logging.INFO-2)
-
+        self.minimize_dict[variable_name]={'A':(nameA, copy.deepcopy(streamA)), 'B':(nameB, copy.deepcopy(streamB)), 'loss':loss_function}
+        self.visualizer.showMinimizeError(variable_name)
 
     """
     Definition of the network structure through the dependency graph and sampling time.
@@ -282,8 +251,8 @@ class Neu4mes:
 
         assert sample_time != 0, 'sample_time cannot be zero!'
         self.model_def["SampleTime"] = sample_time
-        #self.MP(pprint,self.model_def)
-        log.titlejson("Neu4mes Model",self.model_def,level = logging.INFO)
+        self.visualizer.showModel()
+
 
         for key, value in self.model_def['Inputs'].items():
             self.input_tw_backward[key] = abs(value['tw'][0])
@@ -298,19 +267,7 @@ class Neu4mes:
         self.max_samples_forward = max(self.input_ns_forward.values())
         self.max_n_samples = self.max_samples_forward + self.max_samples_backward
 
-        #self.MP(pprint,{"window_backward": self.input_tw_backward, "window_forward":self.input_tw_forward})
-        #self.MP(pprint,{"samples_backward": self.input_ns_backward, "samples_forward":self.input_ns_forward})
-        #self.MP(pprint,{"input_n_samples": self.input_n_samples})
-        #self.MP(pprint,{"max_samples_backward": self.max_samples_backward, "max_samples_forward":self.max_samples_forward, "max_samples":self.max_n_samples})
-        log.title("Neu4mes Model Input Windows",level = logging.INFO-1)
-        log.paramjson("time_window_backward:",self.input_tw_backward,level = logging.INFO-1)
-        log.paramjson("time_window_forward:",self.input_tw_forward,level = logging.INFO-1)
-        log.paramjson("sample_window_backward:", self.input_ns_backward,level = logging.INFO-1)
-        log.paramjson("sample_window_forward:", self.input_ns_forward,level = logging.INFO-1)
-        log.paramjson("input_n_samples:", self.input_n_samples,level = logging.INFO-1)
-        log.param("max_samples [backw, forw]:", f"[{self.max_samples_backward},{self.max_samples_forward}]",level = logging.INFO-1)
-        log.param("max_samples total:",f"{self.max_n_samples}",level = logging.INFO-1)
-        log.line(level = logging.INFO-1)
+        self.visualizer.showModelInputWindow()
 
         ## Get samples per relation
         for name, inputs in (self.model_def['Relations']|self.model_def['Outputs']).items():
@@ -338,14 +295,13 @@ class Neu4mes:
                     input_samples[input_name] = {'backward':0, 'forward':1}
 
             self.relation_samples[name] = input_samples
-        log.title("Neu4mes Model Relation Samples", level = logging.INFO-1)
-        log.paramjson("Relation_samples:", self.relation_samples, level = logging.INFO-1)
-        log.line(level = logging.INFO-1)
-        #self.MP(pprint,{"relation_samples": self.relation_samples})
+
+        self.visualizer.showModelRelationSamples()
+
 
         ## Build the network
         self.model = Model(self.model_def, self.relation_samples)
-        log.titlejson("Neu4mes Pytorch Model", self.model, level = logging.INFO-1)
+        self.visualizer.showBuiltModel()
         self.neuralized = True
     """
     Loading of the data set files and generate the structure for the training considering the structure of the input and the output
@@ -360,9 +316,7 @@ class Neu4mes:
 
         if type(source) is str: ## we have a file path
             path, dirs, files = next(os.walk(source))
-            file_count = len(files)
-
-            self.MP(print, "Total number of files: {}".format(file_count))
+            self.file_count = len(files)
 
             # Create a vector of all the signals in the file + output_relation keys
             output_keys = self.model_def['Outputs'].keys()
@@ -426,6 +380,7 @@ class Neu4mes:
             if data and self.num_of_samples is None:
                 self.num_of_samples = len(self.inout_asarray[key])
 
+        self.visualizer.showDataset()
         ## Set the Loaded flag to True
         self.data_loaded = True
 
@@ -501,6 +456,7 @@ class Neu4mes:
             #self.performance['aic'] = - (self.num_of_test_sample * np.log(self.performance['mse'])) + 2 * self.model.count_params()
 
         self.visualizer.showResults(self, output_keys, performance = self.performance)
+        self.visualizer.showResults(iter, train_losses, test_losses, XY_train, XY_test)
 
     """
     Training of the model.
@@ -509,8 +465,8 @@ class Neu4mes:
     :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
     :param show_results: it is a boolean for enable the plot of the results
     """
-    def trainModel(self, test_percentage = 0, training_params = {}, show_results = False):
-        log.title("Train Model")
+    def trainModel(self, test_percentage = 0, training_params = {}):
+
         # Check input
         train_size = 1 - (test_percentage / 100.0)
         test_size = 1 - train_size
@@ -547,11 +503,14 @@ class Neu4mes:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.loss_fn = CustomRMSE()
 
-        train_losses, test_losses = np.zeros(self.num_of_epochs), np.zeros(self.num_of_epochs)
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = np.zeros(self.num_of_epochs)
+            test_losses[key] = np.zeros(self.num_of_epochs)
 
-        for iter in range(self.num_of_epochs):
+        for epoch in range(self.num_of_epochs):
             self.model.train()
-            train_loss = []
+            #train_loss = []
             for i in range(self.n_samples_train):
 
                 idx = i*self.batch_size
@@ -561,15 +520,16 @@ class Neu4mes:
 
                 self.optimizer.zero_grad()
                 out = self.model(XY)
-                for obj in self.minimize_list:
-                    loss = self.loss_fn(out[obj[0]], out[obj[1]])
+                for key, value in self.minimize_dict.items():
+                    loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])
                     loss.backward()
+                    train_losses[key][epoch] = loss.item()
                 self.optimizer.step()
-                train_loss.append(loss.item())
-            train_loss = np.mean(train_loss)
+                #train_loss.append(loss.item())
+            #train_loss = np.mean(train_loss)
 
             self.model.eval()
-            test_loss = []
+            #test_loss = []
             for i in range(self.n_samples_test):
 
                 idx = i*self.batch_size
@@ -578,26 +538,30 @@ class Neu4mes:
                     XY[key] = torch.from_numpy(val[idx:idx+self.batch_size]).to(torch.float32)
 
                 out = self.model(XY)
-                for obj in self.minimize_list:
-                    loss = self.loss_fn(out[obj[0]], out[obj[1]])
+                for key, value in self.minimize_dict.items():
+                    loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])
                     #loss.backward()
-                test_loss.append(loss.item())
-            test_loss = np.mean(test_loss)
+                    test_losses[key][epoch] = loss.item()
+                #test_loss.append(loss.item())
+            #test_loss = np.mean(test_loss)
 
-            train_losses[iter] = train_loss
-            test_losses[iter] = test_loss
+            #train_losses[iter] = train_loss
+            #test_losses[iter] = test_loss
 
-            print('', end='\r')
-            print(f'Epoch {iter + 1}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}',
-                  end='')
-            if iter % 10 == 0:
-                print('', end='\r')
-                log.string(f'Epoch {iter+1}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
+        self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
 
-        print('', end='\r')
-        log.string(f'Epoch {iter + 1}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
-        log.line()
+            # print('', end='\r')
+            # print(f'Epoch {iter + 1}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}',
+            #       end='')
+            # if iter % 10 == 0:
+            #     print('', end='\r')
+            #     log.string(f'Epoch {iter+1}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
+
+        # print('', end='\r')
+        # log.string(f'Epoch {iter + 1}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
+        # log.line()
 
         # Show the analysis of the Result
-        if show_results:
-            self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+        # if show_results:
+        #     self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
