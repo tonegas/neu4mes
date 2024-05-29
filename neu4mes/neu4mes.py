@@ -122,7 +122,7 @@ class Neu4mes:
         # Training params
         #self.batch_size = 128                               # batch size
         self.train_batch_size = 128                          # train batch size
-        self.test_batch_size = 128                            # test batch size
+        self.test_batch_size = 128                         # test batch size
         self.learning_rate = 0.0005                         # learning rate for NN
         self.num_of_epochs = 100                             # number of epochs
         #self.rnn_batch_size = self.batch_size               # batch size for RNN
@@ -141,8 +141,6 @@ class Neu4mes:
         self.performance = {}                               # Dict with performance parameters for NN
         self.prediction = {}
 
-
-    ## TODO: discretize between sampled windows
     def __call__(self, inputs, sampled=False):
         model_inputs = self.model_def['Inputs'].keys()
 
@@ -372,6 +370,7 @@ class Neu4mes:
                     #self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
 
         elif type(source) is dict:  ## we have a crafted dataset
+            self.file_count = 1
             ## Check if the inputs are correct
             model_inputs = self.model_def['Inputs'].keys()
             assert set(model_inputs).issubset(source.keys()), 'The dataset is missing some inputs.'
@@ -379,7 +378,7 @@ class Neu4mes:
             for key in model_inputs:
                 self.inout_data_time_window[key] = []  ## Initialize the dataset
                 for idx in range(len(source[key]) - self.max_n_samples + 1):
-                    self.inout_data_time_window[key].append(source[key][idx + (self.max_samples_backward - self.input_ns_backward[key]):idx + (self.max_samples_backward + self.input_ns_forward[key])])
+                    self.inout_data_time_window[key].append(source[key][idx + (self.max_samples_backward - self.input_ns_backward[key]):idx + (self.max_samples_backward + self.input_ns_forward[key])].tolist())
 
         # Build the asarray for numpy
         for key,data in self.inout_data_time_window.items():
@@ -497,7 +496,6 @@ class Neu4mes:
 
     """
     Training of the model.
-    :param states: it is a list of a states, the state must be an Output object
     :param training_params: dict that contains the parameters of training (batch_size, learning rate, etc..)
     :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
     :param show_results: it is a boolean for enable the plot of the results
@@ -561,8 +559,9 @@ class Neu4mes:
                 out = self.model(XY)
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])
-                    loss.backward()
+                    loss.backward(retain_graph=True)
                     aux_train_losses[ind][i]= loss.item()
+
                 self.optimizer.step()
 
             for ind, key in enumerate(self.minimize_dict.keys()):
@@ -589,3 +588,145 @@ class Neu4mes:
             self.visualizer.showTraining(epoch, train_losses, test_losses)
 
         self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+
+
+    """
+    Recurrent Training of the model.
+    :param close_loop: dict that contains the variables that will be used into the recurrent loop
+    :param prediction_horizon: size of the prediction window
+    :param step: how much to skip between different windows
+    :param training_params: dict that contains the parameters of training (batch_size, learning rate, etc..)
+    :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
+    """
+    def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
+
+        sample_time = self.model_def['SampleTime']
+        if prediction_horizon is None:
+            prediction_horizon = sample_time
+
+        # Initialize input
+        prediction_samples = round(prediction_horizon / sample_time)
+        train_size = 1 - (test_percentage / 100.0)
+        test_size = 1 - train_size
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
+
+        ## Split train and test
+        XY_train = {}
+        XY_test = {}
+        for key,data in self.inout_data_time_window.items():
+            if data:
+                samples = np.asarray(data)
+                if samples.ndim == 1:
+                    samples = np.reshape(samples, (-1, 1))
+                if key in self.model_def['Inputs'].keys():
+                    if test_percentage == 0:
+                        XY_train[key] = samples
+                    else:
+                        XY_train[key] = samples[:round(len(samples)*train_size)]
+                        XY_test[key] = samples[round(len(samples)*train_size):]
+                        if self.n_samples_test is None:
+                            self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
+                    if self.n_samples_train is None:
+                        self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
+
+        ## Check input
+        assert self.n_samples_train > prediction_samples and self.n_samples_test > prediction_samples, f'Error: The Prediction window is set to large (Max {(min(self.n_samples_test,self.n_samples_train)-1)*sample_time})'
+
+
+        ## Build the dataset
+        #train_data = Neu4MesDataset(X_train, Y_train)
+        #test_data = Neu4MesDataset(X_test, Y_test)
+        
+        #self.train_loader = DataLoader(dataset=train_data, batch_size=self.batch_size, num_workers=0, shuffle=False)
+        #self.test_loader = DataLoader(dataset=test_data, batch_size=self.batch_size, num_workers=0, shuffle=False)
+
+        ## define optimizer and loss function
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.loss_fn = CustomRMSE()
+
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = np.zeros(self.num_of_epochs)
+            test_losses[key] = np.zeros(self.num_of_epochs)
+
+        #print('[LOG] n_samples_train: ', self.n_samples_train)
+        #print('[LOG] prediction_samples: ', prediction_samples)
+        for epoch in range(self.num_of_epochs):
+            self.model.train()
+            train_loss = []
+            for i in range(0, (self.n_samples_train - prediction_samples), step):
+
+                idx = i*self.train_batch_size
+                XY = {}
+                XY_horizon = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+                    ## This dictionary contains the horizon labels
+                    XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.train_batch_size+prediction_samples+1]).to(torch.float32)
+
+                self.optimizer.zero_grad()  
+                losses = []
+                #print('[LOG] prediction samples: ', prediction_samples)
+                for horizon_idx in range(prediction_samples):
+                    #print('[LOG] XY: ', XY)
+                    #print('[LOG] XY_horizon: ', XY_horizon)
+                    out = self.model(XY)
+                    #print('[LOG] out: ', out)
+                    for key, value in self.minimize_dict.items():
+                        #print('[LOG] valueA: ', out[value['A'][0]])
+                        #print('[LOG] ValueB: ', out[value['B'][0]])
+                        loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]]) 
+                        #print('[LOG] loss: ', loss.item()) 
+                        losses.append(loss)
+
+                    ## Update the input with the recurrent prediction
+                    for key in XY.keys():
+                        XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                        XY[key][:, -1] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1]
+                        if key in close_loop.keys():
+                            XY[key][:, -2] = out[close_loop[key]].squeeze()
+
+                #loss = sum(losses) / prediction_samples
+                loss = sum(losses)
+                loss.backward()
+                self.optimizer.step()
+                train_loss.append(loss.item())
+            train_loss = np.mean(train_loss)
+            train_losses[epoch] = train_loss
+
+            if test_percentage != 0:
+                self.model.eval()
+                test_loss = []
+                for i in range(0, (self.n_samples_test - prediction_samples), step):
+
+                    idx = i*self.test_batch_size
+                    XY = {}
+                    XY_horizon = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx+self.test_batch_size]).to(torch.float32)
+                        XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.test_batch_size+prediction_samples+1]).to(torch.float32)
+
+                    losses = []
+                    for horizon_idx in range(prediction_samples):
+                        out = self.model(XY)
+                        for key, value in self.minimize_dict.items():
+                            loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])  
+                            losses.append(loss)
+
+                        ## Update the input with the recurrent prediction
+                        for key in XY.keys():
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                            XY[key][:, -1] = XY_horizon[key][horizon_idx:horizon_idx+self.test_batch_size, -1]
+                            if key in close_loop.keys():
+                                XY[key][:, -2] = out[close_loop[key]].squeeze()
+
+                    loss = sum(losses) / prediction_samples
+                    test_loss.append(loss.item())
+                test_loss = np.mean(test_loss)
+                test_losses[epoch] = test_loss
+            if epoch % 10 == 0:
+                if test_percentage == 0:
+                    print(f'Epoch {epoch}/{self.num_of_epochs}, Train Loss {train_loss:.4f}')
+                else:
+                    print(f'Epoch {epoch}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
+

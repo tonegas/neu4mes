@@ -29,7 +29,7 @@ class Model(nn.Module):
             if type(param_dimensions['dim']) is list:
                 param_size = tuple(param_dimensions['dim'])
             else:
-                param_size = (sample_window, param_dimensions['dim'])
+                param_size = (param_dimensions['dim'], sample_window)
             self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size), requires_grad=True)
 
         ## Create all the relations

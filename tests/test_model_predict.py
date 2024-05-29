@@ -16,7 +16,12 @@ def myfun2(a, b ,c):
 
 class MyTestCase(unittest.TestCase):
     def TestAlmostEqual(self, data1, data2, precision=4):
-        self.assertAlmostEqual(data1, data2, places=precision)
+        assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2, dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'
+        if type(data1) == type(data2) == list:  
+            for pred, label in zip(data1, data2):
+                self.TestAlmostEqual(pred, label, precision=precision)
+        else:
+            self.assertAlmostEqual(data1, data2, places=precision)
 
     def test_single_in_single_out(self):
         torch.manual_seed(1)
@@ -183,19 +188,19 @@ class MyTestCase(unittest.TestCase):
         test = Neu4mes(verbose=False)
         test.addModel(out)
         test.neuralizeModel(0.1)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(KeyError):
             test({'in1': [[1, 2, 2, 4]]})
         results = test({'in1': [1, 2, 2, 4], 'in2': [1, 2, 2, 4]})
 
-        self.assertAlmostEqual(results['out'], [0.21597996354103088])
+        self.TestAlmostEqual(results['out'], [0.21597996354103088])
         results = test({'in1': [[1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
-        self.assertAlmostEqual(results['out'], [0.21597996354103088])
+        self.TestAlmostEqual(results['out'], [0.21597996354103088])
         results = test({'in1': [1, 2, 2, 4, 5], 'in2': [1, 2, 2, 4]})
-        self.assertAlmostEqual(results['out'], [0.21597996354103088])
+        self.TestAlmostEqual(results['out'], [0.21597996354103088])
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
-        self.assertAlmostEqual(results['out'], [0.21597996354103088])
+        self.TestAlmostEqual(results['out'], [0.21597996354103088])
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [5, 5, 5, 5]]}, sampled=True)
-        self.assertAlmostEqual(results['out'], [0.21597996354103088, 0.15265005826950073])
+        self.TestAlmostEqual(results['out'], [0.21597996354103088, 0.15265005826950073])
 
         self.TestAlmostEqual(results['out'], [0.2159799486398697])
         results = test({'in1': [[1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)

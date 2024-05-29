@@ -14,8 +14,7 @@ from neu4mes.visualizer import StandardVisualizer
 x = Input('x')
 F = Input('F')
 
-
-
+k = Parameter('k', dimensions=4, tw=2)
 #log.setLevel(logging.WARNING)
 
 #log = logging.getLogger("mass-spring-damper")
@@ -34,18 +33,34 @@ F = Input('F')
 
  #+Fir(F))
 
+
 #x_z = Output('x_k', Fir(x)+Fir(F))
 
 
 # Add the neural model to the neu4mes structure and neuralization of the model
 mass_spring_damper = Neu4mes(verbose = 1)
 #mass_spring_damper.addModel(x_z)
-mass_spring_damper.minimizeError('position', x.z(-1), Fir(x)+Fir(F), 'mse')
-mass_spring_damper.minimizeError('velocity', x.z(-1), Fir(x.tw(2))+Fir(F), 'mse')
+mass_spring_damper.minimizeError('p1', x.z(-1), Fir(x)+Fir(F), 'mse')
+mass_spring_damper.minimizeError('p2', x.z(-1), Fir(x.tw(1))+Fir(F), 'mse')
+mass_spring_damper.minimizeError('p3', x.z(-1), Fir(x.tw(2))+Fir(F), 'mse')
+mass_spring_damper.minimizeError('p4', x.z(-1), Fir(x.tw(3))+Fir(F), 'mse')
+mass_spring_damper.minimizeError('p5', x.z(-1), Fir(x.tw(4))+Fir(F), 'mse')
+
+
+#fir = Fir(4)
+#x_z = Output('x_k', fir(x.tw(2))+fir(F.tw(2)))
+#y_z = Output('y_k', x.tw([0,2]))
+
+# Add the neural model to the neu4mes structure and neuralization of the model
+#mass_spring_damper = Neu4mes(verbose = 1)
+#mass_spring_damper.addModel(x_z)
+#mass_spring_damper.minimizeError('position', y_z, x_z, 'mse')
+#mass_spring_damper.minimizeError('velocity', x.z(-1), Fir(x.tw(2))+Fir(F), 'mse')
+
 #mass_spring_damper.minimizeError('acc',Fir(x.tw(2))+Fir(F.tw(1)), Fir(x.tw(2))+Fir(F), 'mse')
 #log.disable()
 #log.enable()
-mass_spring_damper.neuralizeModel()
+mass_spring_damper.neuralizeModel(0.5)
 #log.disable()
 #log.debug('GASTONE')
 # run funzione check
@@ -60,6 +75,14 @@ mass_spring_damper.loadData(data_folder, data_struct)
 
 # Neural network train
 start = time.time()
-mass_spring_damper.trainModel(test_percentage = 10, training_params={'num_of_epochs': 2})
+mass_spring_damper.trainModel(test_percentage = 10, training_params={'num_of_epochs': 200})
 end = time.time()
-#print(end - start)
+print(end - start)
+
+#def count_parameters(model):
+#    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+#print(count_parameters(mass_spring_damper.model))
+
+#print(mass_spring_damper(inputs={'x':[1,2,3,4,5,6,7,8], 'F':[1,2,3,4]}))
+
