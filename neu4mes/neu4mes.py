@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import numpy as np
+from scipy.stats import norm
 import random
 import os
 from pprint import pprint
@@ -107,7 +108,7 @@ class Neu4mes:
         self.inout_asarray = {}             # dict for network input in asarray format
         self.rnn_inout_asarray = {}         # dict for RNN network input in asarray format
         self.num_of_samples = None          # number of rows of the file
-        self.num_of_training_sample = 0     # number of rows for training
+        #self.num_of_training_sample = 0     # number of rows for training
         self.n_samples_train = None
         self.n_samples_test = None
 
@@ -138,7 +139,7 @@ class Neu4mes:
 
         # Training performance
         self.performance = {}                               # Dict with performance parameters for NN
-
+        self.prediction = {}
 
 
     ## TODO: discretize between sampled windows
@@ -427,52 +428,72 @@ class Neu4mes:
     """
     Analysis of the results
     """
-    def resultAnalysis(self, train_loss, test_loss, xy_train, xy_test):
-        ## Plot train loss and test loss
-        #plt.plot(train_loss, label='train loss')
-        #plt.plot(test_loss, label='test loss')
-        #plt.legend()
-        #plt.show()
-
-        # Performance parameters
-        self.performance['se'] = np.empty([len(self.minimize_dict),self.n_samples_test])
-        self.performance['mse'] = np.empty([len(self.minimize_dict),])
-        self.performance['rmse_test'] = np.empty([len(self.minimize_dict),])
-        self.performance['fvu'] = np.empty([len(self.minimize_dict),])
-
-        # Prediction on test samples
-        #test_loader = DataLoader(dataset=test_data, batch_size=1, num_workers=0, shuffle=False)
-        self.prediction = np.empty((len(output_keys), number_of_samples))
-        self.label = np.empty((len(output_keys), number_of_samples))
-
+    def resultAnalysis(self, train_losses, test_losses, XY_train, XY_test):
         with torch.inference_mode():
             self.model.eval()
-            for idx in range(number_of_samples):
+            samples = len(XY_test['x'])
+            #samples = self.n_samples_test
+            #samples = 1
+
+            #batch_size = int(len(XY_test['x']) / samples)
+            aux_test_losses = np.zeros([len(self.minimize_dict), samples])
+            A = torch.zeros(len(self.minimize_dict), samples)
+            B = torch.zeros(len(self.minimize_dict), samples)
+            for i in range(samples):
+
                 XY = {}
-                for key, val in xy_test.items():
-                    XY[key] = torch.from_numpy(val[idx]).to(torch.float32).unsqueeze(dim=0)
+                for key, val in XY_test.items():
+                    XY[key] = torch.from_numpy(val[i]).to(torch.float32).unsqueeze(dim=0)
+
+                # idx = i * batch_size
+                # XY = {}
+                # for key, val in XY_test.items():
+                #     XY[key] = torch.from_numpy(val[idx:idx + batch_size]).to(torch.float32)
 
                 out = self.model(XY)
-                for ind, obj in enumerate(self.minimize_list):
-                    self.performance['se'][ind][idx] = self.loss_fn(out[obj[0]], out[obj[1]])
+                for ind, (key, value) in enumerate(self.minimize_dict.items()):
+                    A[ind][i] = out[value['A'][0]]
+                    B[ind][i] = out[value['B'][0]]
+                    loss = self.loss_fn(A[ind][i], B[ind][i])
+                    aux_test_losses[ind][i] = loss.detach().numpy()
 
-            for ind, obj in enumerate(self.minimize_list):
-                # Mean Square Error
-                self.performance['mse'][ind] = np.mean(self.performance['se'][ind])
-                # Root Mean Square Error
-                self.performance['rmse_test'][ind] = np.sqrt(np.mean(self.performance['se'][ind]))
-                # Fraction of variance unexplained (FVU)
-                #self.performance['fvu'][ind] = np.var(self.prediction[i] - self.label[i]) / np.var(self.label[i])
+            self.prediction['A'] = A.detach().numpy()
+            self.prediction['B'] = B.detach().numpy()
+            for ind, (key, value) in enumerate(self.minimize_dict.items()):
+                self.performance[key] = {}
+                self.performance[key][value['loss']] = {'epoch_test': test_losses[key], 'epoch_train': train_losses[key], 'test': np.mean(aux_test_losses[ind])}
+                self.performance[key]['fvu'] = {}
+                # Compute FVU
+                residual = self.prediction['A'][ind] - self.prediction['B'][ind]
+                error_var = np.var(residual)
+                error_mean = np.mean(residual)
+                #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
+                #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
+                self.performance[key]['fvu'][value['A'][0]] = error_var / np.var(self.prediction['A'][ind])
+                self.performance[key]['fvu'][value['B'][0]] = error_var / np.var(self.prediction['B'][ind])
+                self.performance[key]['fvu']['total'] = np.mean([self.performance[key]['fvu'][value['A'][0]],self.performance[key]['fvu'][value['B'][0]]])
+                # Compute AIC
+                #normal_dist = norm(0, error_var ** 0.5)
+                #probability_of_residual = normal_dist.pdf(residual)
+                #log_likelihood_first = sum(np.log(probability_of_residual))
+                p1 = -len(residual)/2.0*np.log(2*np.pi)
+                p2 = -len(residual)/2.0*np.log(error_var)
+                p3 = -1/(2.0*error_var)*np.sum(residual**2)
+                log_likelihood = p1+p2+p3
+                #print(f"{key} log likelihood second mode:{log_likelihood} = {p1}+{p2}+{p3} first mode: {log_likelihood_first}")
+                total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad) #TODO to be check the number is doubled
+                #print(f"{key} total_params:{total_params}")
+                aic = - 2 * log_likelihood + 2 * total_params
+                #print(f"{key} aic:{aic}")
+                self.performance[key]['aic'] = {'value':aic,'total_params':total_params,'log_likelihood':log_likelihood}
 
-            # Index of worst results
-            self.performance['max_se_idxs'] = np.argmax(self.performance['se'], axis=1)
-
-            # Akaike’s Information Criterion (AIC) test
-            ## TODO: Use log likelihood instead of MSE
-            #self.performance['aic'] = - (self.num_of_test_sample * np.log(self.performance['mse'])) + 2 * self.model.count_params()
+            self.performance['total'] = {}
+            self.performance['total']['mean_error'] = {'test': np.mean(aux_test_losses)}
+            self.performance['total']['fvu'] = np.mean([self.performance[key]['fvu']['total'] for key in self.minimize_dict.keys()])
+            self.performance['total']['aic'] = np.mean([self.performance[key]['aic']['value']for key in self.minimize_dict.keys()])
 
         self.visualizer.showResults()
-        #self.visualizer.showResults(iter, train_losses, test_losses, XY_train, XY_test)
+
 
     """
     Training of the model.
@@ -529,7 +550,7 @@ class Neu4mes:
 
         for epoch in range(self.num_of_epochs):
             self.model.train()
-            #train_loss = []
+            aux_train_losses = torch.zeros([len(self.minimize_dict),self.n_samples_train])
             for i in range(self.n_samples_train):
                 idx = i*self.train_batch_size
                 XY = {}
@@ -538,14 +559,18 @@ class Neu4mes:
 
                 self.optimizer.zero_grad()
                 out = self.model(XY)
-                for key, value in self.minimize_dict.items():
+                for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])
                     loss.backward()
-                    train_losses[key][epoch] = loss.item()
+                    aux_train_losses[ind][i]= loss.item()
                 self.optimizer.step()
+
+            for ind, key in enumerate(self.minimize_dict.keys()):
+                train_losses[key][epoch] = torch.mean(aux_train_losses[ind])
 
             if test_percentage != 0:
                 self.model.eval()
+                aux_test_losses = torch.zeros(len(self.minimize_dict), self.n_samples_test)
                 for i in range(self.n_samples_test):
 
                     idx = i * self.test_batch_size
@@ -554,10 +579,13 @@ class Neu4mes:
                         XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
 
                     out = self.model(XY)
-                    for key, value in self.minimize_dict.items():
+                    for ind, (key, value) in enumerate(self.minimize_dict.items()):
                         loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])
-                        test_losses[key][epoch] = loss.item()
+                        aux_test_losses[ind][i] = loss.item()
+
+                for ind, key in enumerate(self.minimize_dict.keys()):
+                    test_losses[key][epoch] = torch.mean(aux_test_losses[ind])
 
             self.visualizer.showTraining(epoch, train_losses, test_losses)
 
-        #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+        self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)

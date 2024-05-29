@@ -53,8 +53,8 @@ class TextVisualizer(Visualizer):
         super().__init__(neu4mes)
         self.verbose = verbose
 
-    def __title(self,msg):
-        print(color((msg).center(80, '='), GREEN, True))
+    def __title(self,msg, lenght = 80):
+        print(color((msg).center(lenght, '='), GREEN, True))
 
     def __line(self):
         print(color('='.center(80, '='),GREEN))
@@ -113,10 +113,11 @@ class TextVisualizer(Visualizer):
             self.__line()
 
     def showTraining(self, iter, train_losses, test_losses):
+        show_epoch = 1 if self.n4m.num_of_epochs <= 20 else 10
         dim = len(self.n4m.minimize_dict)
         if self.verbose >= 1:
             if iter == 0:
-                self.__title(" Training ")
+                self.__title(" Neu4mes Training ",12+(len(self.n4m.minimize_dict)+1)*20)
                 print(color('|'+(f'Epoch').center(10,' ')+'|'),end='')
                 for key in self.n4m.minimize_dict.keys():
                     print(color((f'{key}').center(19, ' ') + '|'), end='')
@@ -148,7 +149,7 @@ class TextVisualizer(Visualizer):
                 print((f'{np.mean(train_loss):.4f}').center(9, ' ') + '|', end='')
                 print((f'{np.mean(test_loss):.4f}').center(9, ' ') + '|', end='')
 
-                if (iter+1) % 10 == 0:
+                if (iter+1) % show_epoch == 0:
                     print('', end='\r')
                     print(color('|' + (f'{iter+1}/{self.n4m.num_of_epochs}').center(10, ' ') + '|'), end='')
                     for key in self.n4m.minimize_dict.keys():
@@ -160,10 +161,41 @@ class TextVisualizer(Visualizer):
             if iter+1 == self.n4m.num_of_epochs:
                 print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
 
-    def showResults(self, neu4mes, output_keys, performance = None):
-        for i in range(0, neu4mes.prediction.shape[0]):
-            text = "Rmse training: {:3.6f}\nRmse test: {:3.6f}\nAIC: {:3.6f}\nFVU: {:3.6f}".format(neu4mes.performance['rmse_train'][i], neu4mes.performance['rmse_test'][i], neu4mes.performance['aic'][i], neu4mes.performance['fvu'][i])
-            print(text)
+    def showResults(self):
+
+        loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.minimize_dict.items())])
+        self.__title(" Neu4mes Model Results ", 12 + (len(loss_type_list) + 2) * 20)
+        print(color('|' + (f'Loss').center(10, ' ') + '|'), end='')
+        for loss in loss_type_list:
+            print(color((f'{loss} (test)').center(19, ' ') + '|'), end='')
+        print(color((f'FVU (test)').center(19, ' ') + '|'), end='')
+        print(color((f'AIC (test)').center(19, ' ') + '|'))
+
+        print(color('|' + (f'').center(10, ' ') + '|'), end='')
+        for i in range(len(loss_type_list)):
+            print(color((f'small better').center(19, ' ') + '|'), end='')
+        print(color((f'small better').center(19, ' ') + '|'), end='')
+        print(color((f'lower better').center(19, ' ') + '|'))
+
+        print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
+        for ind, (key, value) in enumerate(self.n4m.minimize_dict.items()):
+            print(color('|'+(f'{key}').center(10, ' ') + '|'), end='')
+            for loss in list(loss_type_list):
+                if value["loss"] == loss:
+                    print(color((f'{self.n4m.performance[key][value["loss"]]["test"]:.4f}').center(19, ' ') + '|'), end='')
+                else:
+                    print(color((f' ').center(19, ' ') + '|'), end='')
+            print(color((f'{self.n4m.performance[key]["fvu"]["total"]:.4f}').center(19, ' ') + '|'), end='')
+            print(color((f'{self.n4m.performance[key]["aic"]["value"]:.4f}').center(19, ' ') + '|'))
+
+        print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
+        print(color('|'+(f'Total').center(10, ' ') + '|'), end='')
+        print(color((f'{self.n4m.performance["total"]["mean_error"]["test"]:.4f}').center(len(loss_type_list)*20-1, ' ') + '|'), end='')
+        print(color((f'{self.n4m.performance["total"]["fvu"]:.4f}').center(19, ' ') + '|'), end='')
+        print(color((f'{self.n4m.performance["total"]["aic"]:.4f}').center(19, ' ') + '|'))
+
+        print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
+
 
 class StandardVisualizer(Visualizer):
     def __init__(self):
