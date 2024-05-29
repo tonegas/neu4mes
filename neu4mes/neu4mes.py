@@ -120,8 +120,8 @@ class Neu4mes:
 
         # Training params
         #self.batch_size = 128                               # batch size
-        self.train_batch_size = 4                          # train batch size
-        self.test_batch_size = 4                         # test batch size
+        self.train_batch_size = 128                          # train batch size
+        self.test_batch_size = 128                         # test batch size
         self.learning_rate = 0.0005                         # learning rate for NN
         self.num_of_epochs = 100                             # number of epochs
         #self.rnn_batch_size = self.batch_size               # batch size for RNN
@@ -570,10 +570,14 @@ class Neu4mes:
     :param training_params: dict that contains the parameters of training (batch_size, learning rate, etc..)
     :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
     """
-    def trainRecurrentModel(self, close_loop, prediction_horizon=1, step=1, test_percentage = 0, training_params = {}):
+    def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
 
-        # Check input
-        prediction_samples = round(prediction_horizon / self.model_def["SampleTime"])
+        sample_time = self.model_def['SampleTime']
+        if prediction_horizon is None:
+            prediction_horizon = sample_time
+
+        # Initialize input
+        prediction_samples = round(prediction_horizon / sample_time)
         train_size = 1 - (test_percentage / 100.0)
         test_size = 1 - train_size
         self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
@@ -597,6 +601,10 @@ class Neu4mes:
                     if self.n_samples_train is None:
                         self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
 
+        ## Check input
+        assert self.n_samples_train > prediction_samples and self.n_samples_test > prediction_samples, f'Error: The Prediction window is set to large (Max {(min(self.n_samples_test,self.n_samples_train)-1)*sample_time})'
+
+
         ## Build the dataset
         #train_data = Neu4MesDataset(X_train, Y_train)
         #test_data = Neu4MesDataset(X_test, Y_test)
@@ -613,6 +621,8 @@ class Neu4mes:
             train_losses[key] = np.zeros(self.num_of_epochs)
             test_losses[key] = np.zeros(self.num_of_epochs)
 
+        #print('[LOG] n_samples_train: ', self.n_samples_train)
+        #print('[LOG] prediction_samples: ', prediction_samples)
         for epoch in range(self.num_of_epochs):
             self.model.train()
             train_loss = []
@@ -628,10 +638,17 @@ class Neu4mes:
 
                 self.optimizer.zero_grad()  
                 losses = []
+                #print('[LOG] prediction samples: ', prediction_samples)
                 for horizon_idx in range(prediction_samples):
+                    #print('[LOG] XY: ', XY)
+                    #print('[LOG] XY_horizon: ', XY_horizon)
                     out = self.model(XY)
+                    #print('[LOG] out: ', out)
                     for key, value in self.minimize_dict.items():
-                        loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])  
+                        #print('[LOG] valueA: ', out[value['A'][0]])
+                        #print('[LOG] ValueB: ', out[value['B'][0]])
+                        loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]]) 
+                        #print('[LOG] loss: ', loss.item()) 
                         losses.append(loss)
 
                     ## Update the input with the recurrent prediction
@@ -641,7 +658,8 @@ class Neu4mes:
                         if key in close_loop.keys():
                             XY[key][:, -2] = out[close_loop[key]].squeeze()
 
-                loss = sum(losses) / prediction_samples
+                #loss = sum(losses) / prediction_samples
+                loss = sum(losses)
                 loss.backward()
                 self.optimizer.step()
                 train_loss.append(loss.item())

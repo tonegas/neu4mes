@@ -8,7 +8,7 @@ from neu4mes import *
 from neu4mes.visualizer import StandardVisualizer
 
 # Create neu4mes structure
-pendolum = Neu4mes(verbose = True, visualizer = StandardVisualizer())
+pendolum = Neu4mes(verbose = 2, visualizer = StandardVisualizer())
 
 # Create neural model
 theta = Input('theta')
@@ -34,7 +34,7 @@ pendolum.neuralizeModel(0.05)
 # Data load
 data_struct = ['time','theta','theta_s','','','torque']
 data_folder = './examples/datasets/pendulum/data/'
-pendolum.loadData(data_struct)
+pendolum.loadData(source=data_folder, format=data_struct)
 
 # Neural network train
-pendolum.trainModel(test_percentage = 30, show_results = True)
+pendolum.trainModel(test_percentage = 30)

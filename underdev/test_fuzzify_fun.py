@@ -12,7 +12,7 @@ print("------------------------EXAMPLE 1------------------------")
 # Example 1
 # Ho creato una funzione fuzzificatrice con 5 membership function in un intervallo [1,5] della variabile di ingresso
 fuz = Fuzzify(5,[1,5])
-out = Output(x.z(-1),fuz(x))
+out = Output('out',fuz(x))
 example = Neu4mes(verbose = True)
 example.addModel(out)
 example.neuralizeModel(0.05)

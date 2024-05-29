@@ -18,7 +18,8 @@ from neu4mes import *
 # Caso 1
 x = Input('x')
 F = Input('F')
-x_k1 = Fir(x.tw(0.5))+F
+fir = Fir()
+x_k1 = fir(x.tw(0.5))+fir(F.tw(0.5))
 #x_k2 = Fir(x.tw(0.5))+Fir(F.tw(0.5))
 est_x_k1 = Output('xk1',x_k1)  ## TODO: should work without Output
 
@@ -44,9 +45,9 @@ mass_spring_damper.loadData(source=dataset)
 # Le dimensioni di ingresso ed uscita devono essere le medesime.
 # La finestra temporale di 'x' è riempita inizialmente con i dati presi dal file e poi successivemente è riempieta utilizzando
 # l'uscita 'xk1' per un orizzonte temporale di 1 secondo.
-params = {'train_batch_size':8, 'test_batch_size':4}
+params = {'train_batch_size':32, 'test_batch_size':16, 'learning_rate':0.1, 'num_of_epochs':200}
 mass_spring_damper.trainRecurrentModel(close_loop = {'x':'xk1'}, 
-                                       prediction_horizon = 1, 
+                                       prediction_horizon = 0.5, 
                                        step = 1, 
                                        test_percentage = 10, 
                                        training_params=params)

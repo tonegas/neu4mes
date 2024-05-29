@@ -14,8 +14,7 @@ from neu4mes.visualizer import StandardVisualizer
 x = Input('x')
 F = Input('F')
 
-
-
+k = Parameter('k', dimensions=4, tw=2)
 #log.setLevel(logging.WARNING)
 
 #log = logging.getLogger("mass-spring-damper")
@@ -24,7 +23,7 @@ F = Input('F')
 #logging.getLogger("neu4mes.output").setLevel(logging.DEBUG)
 #log.setLevel(logging.DEBUG)
 #log.enable()
-Fir(x.tw(2))
+#Fir(x.tw(2))
 #log.titlejson('PROVA',{'Gas':'gas'})
 #log.debug('GASTONE')
 #log.info('GASTONE')
@@ -33,16 +32,16 @@ Fir(x.tw(2))
 #log.disable()
 
  #+Fir(F))
-
-x_z = Output('x_k', Fir(x.tw(2))+Fir(F))
-
+fir = Fir(4)
+x_z = Output('x_k', fir(x.tw(2))+fir(F.tw(2)))
+y_z = Output('y_k', x.tw([0,2]))
 
 # Add the neural model to the neu4mes structure and neuralization of the model
 mass_spring_damper = Neu4mes(verbose = 1)
 mass_spring_damper.addModel(x_z)
-mass_spring_damper.minimizeError('position', x.z(-1), x_z, 'mse')
-mass_spring_damper.minimizeError('velocity', x.z(-1), Fir(x.tw(2))+Fir(F), 'mse')
-mass_spring_damper.minimizeError('acc',Fir(x.tw(2))+Fir(F.tw(1)), Fir(x.tw(2))+Fir(F), 'mse')
+mass_spring_damper.minimizeError('position', y_z, x_z, 'mse')
+#mass_spring_damper.minimizeError('velocity', x.z(-1), Fir(x.tw(2))+Fir(F), 'mse')
+#mass_spring_damper.minimizeError('acc',Fir(x.tw(2))+Fir(F.tw(1)), Fir(x.tw(2))+Fir(F), 'mse')
 #log.disable()
 #log.enable()
 mass_spring_damper.neuralizeModel(0.5)
@@ -63,3 +62,10 @@ start = time.time()
 mass_spring_damper.trainModel(test_percentage = 10)
 end = time.time()
 print(end - start)
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+print(count_parameters(mass_spring_damper.model))
+
+print(mass_spring_damper(inputs={'x':[1,2,3,4,5,6,7,8], 'F':[1,2,3,4,5,6,7,8]}))

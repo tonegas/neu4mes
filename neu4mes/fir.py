@@ -1,6 +1,7 @@
 import copy
 
 import torch.nn as nn
+import torch
 
 from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
 from neu4mes.input import Input
@@ -54,9 +55,10 @@ def createLinear(self, input_size, output_size, param=None):
 '''
 
 def createLinear(self, weights):
-    layer = nn.Linear(in_features=weights.size(0), out_features=weights.size(1), bias=False)
+    layer = nn.Linear(in_features=weights.size(1), out_features=weights.size(0), bias=False)
+    #with torch.no_grad(): ##TODO: see if it is needed
+    layer.weight = weights
     return layer
-
 
 def createLinearBias(self, input_size, output_size):
     return nn.Linear(in_features=input_size, out_features=output_size, bias=True)
