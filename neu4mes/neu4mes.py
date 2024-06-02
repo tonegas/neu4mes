@@ -32,13 +32,14 @@ def argmin_min(iterable):
     return min(enumerate(iterable), key=lambda x: x[1])
 
 class Neu4mes:
+    name = None
     def __init__(self, model_def = 0, verbose = 1, visualizer = 'Standard'):
         # Visualizer
         if verbose > 0:
             if visualizer == 'Standard':
                 self.visualizer = TextVisualizer(self, verbose)
             elif visualizer:
-                self.visualizer = visualizer
+                self.visualizer = visualizer(self)
         else:
             self.visualizer = Visualizer(self)
 
@@ -526,16 +527,6 @@ class Neu4mes:
                             self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
                     if self.n_samples_train is None:
                         self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
-                #elif key in self.model_def['Outputs'].keys():
-                #    Y_train[key] = samples[:int(len(samples)*train_size)]
-                #    Y_test[key] = samples[int(len(samples)*train_size):]
-
-        ## Build the dataset
-        #train_data = Neu4MesDataset(X_train, Y_train)
-        #test_data = Neu4MesDataset(X_test, Y_test)
-        
-        #self.train_loader = DataLoader(dataset=train_data, batch_size=self.batch_size, num_workers=0, shuffle=False)
-        #self.test_loader = DataLoader(dataset=test_data, batch_size=self.batch_size, num_workers=0, shuffle=False)
 
         ## define optimizer and loss function
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -543,8 +534,8 @@ class Neu4mes:
 
         train_losses, test_losses = {}, {}
         for key in self.minimize_dict.keys():
-            train_losses[key] = np.zeros(self.num_of_epochs)
-            test_losses[key] = np.zeros(self.num_of_epochs)
+            train_losses[key] = []
+            test_losses[key] = []
 
         for epoch in range(self.num_of_epochs):
             self.model.train()
@@ -565,7 +556,7 @@ class Neu4mes:
                 self.optimizer.step()
 
             for ind, key in enumerate(self.minimize_dict.keys()):
-                train_losses[key][epoch] = torch.mean(aux_train_losses[ind])
+                train_losses[key].append(torch.mean(aux_train_losses[ind]).tolist())
 
             if test_percentage != 0:
                 self.model.eval()
@@ -583,7 +574,7 @@ class Neu4mes:
                         aux_test_losses[ind][i] = loss.item()
 
                 for ind, key in enumerate(self.minimize_dict.keys()):
-                    test_losses[key][epoch] = torch.mean(aux_test_losses[ind])
+                    test_losses[key].append(torch.mean(aux_test_losses[ind]).tolist())
 
             self.visualizer.showTraining(epoch, train_losses, test_losses)
 

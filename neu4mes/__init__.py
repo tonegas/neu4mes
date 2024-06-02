@@ -4,6 +4,7 @@
 __version__ = '0.3.0'   #Pytorch version
 
 import sys
+import time
 
 major, minor = sys.version_info.major, sys.version_info.minor
 
@@ -34,7 +35,18 @@ from neu4mes.localmodel import LocalModel
 from neu4mes.parameter import Parameter
 from neu4mes.logger import logging
 
-
 import os, os.path, logging
 from pprint import pp, pprint
 import numpy as np
+
+from multiprocessing import Process, current_process, Manager, freeze_support
+if current_process().name == 'MainProcess':
+    print('Hello from the main process')
+else:
+    print('Hello from child process')
+    #time.sleep(10)
+    #poolList=Manager().list()
+    #for p in poolList:
+    #    p.join()
+    #print(poolList)
+

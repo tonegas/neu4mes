@@ -9,9 +9,15 @@ from neu4mes.visualizer import StandardVisualizer
 x = Input('x')
 target_y = Input('target_y')
 
+a = Parameter('a')
+b = Parameter('b')
+c = Parameter('c')
+d = Parameter('d')
+e = Parameter('e')
+
 # Linear function
 def linear_fun1(x,a,b):
-    return x**2*a+x*b
+    return x*a+b
 
 def linear_fun2(x,a,b,c):
     return x**2*a+x*b+c
