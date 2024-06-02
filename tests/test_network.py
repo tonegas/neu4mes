@@ -15,7 +15,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel1 = Fir(input1)
         fun = Output('out', rel1)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -31,7 +31,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel2 = Fir(input1.tw(0.01))
         fun = Output('out',rel1+rel2)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -51,7 +51,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel4 = Fir(input2.tw([-0.02,0.02]))
         fun = Output('out',rel1+rel2+rel3+rel4)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -82,7 +82,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel7 = Fir(input2.tw(0.03))
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -108,7 +108,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel5 = Fir(input2.tw([-0.04,0.01]))
         fun = Output('out',rel3+rel4+rel5)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -135,7 +135,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel6 = Fir(input2.tw([-0.04,0.02],offset=0.02))
         fun = Output('out',rel3+rel4+rel5+rel6)
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -166,7 +166,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel7 = Fir(input1.sw(3))
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -189,7 +189,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel6 = Fir(input2.sw([-4,2],offset=2))
         fun = Output('out',rel3+rel4+rel5+rel6)
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
@@ -219,7 +219,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel1 = Fir(input2.sw([-4,2]))+Fir(input2.tw([-0.01,0]))
         fun = Output('out',rel1)
 
-        test = Neu4mes(verbose=True)
+        test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 

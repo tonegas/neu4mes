@@ -8,12 +8,33 @@ from neu4mes import *
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
 class Neu4mesTrainingTest(unittest.TestCase):
+    def test_network_mass_spring_damper(self):
+        x = Input('x')  # Position
+        F = Input('F')  # Force
+
+        # List the output of the model
+        x_z = Output('x_z', Fir(x.tw(0.3)) + Fir(F))
+
+        # Add the neural model to the neu4mes structure and neuralization of the model
+        test = Neu4mes()
+        test.addModel(x_z)
+        test.minimizeError('next-pos', x.z(-1), x_z, 'mse')
+
+        # Create the neural network
+        test.neuralizeModel(sample_time=0.05)  # The sampling time depends to the dataset
+
+        # Data load
+        data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4)
+        test.trainModel(test_percentage=30)
+
+
     def test_build_dataset_batch(self):
         input1 = Input('in1')
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes(verbose=False)
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
@@ -45,7 +66,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
@@ -77,7 +98,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
@@ -112,7 +133,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes(verbose=False)
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
@@ -146,7 +167,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes(verbose=False)
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 

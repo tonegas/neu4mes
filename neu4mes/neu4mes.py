@@ -31,28 +31,22 @@ def argmax_max(iterable):
 def argmin_min(iterable):
     return min(enumerate(iterable), key=lambda x: x[1])
 
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.ERROR, LOG_LEVEL))
+
 class Neu4mes:
     name = None
-    def __init__(self, model_def = 0, verbose = 1, visualizer = 'Standard'):
+    def __init__(self, model_def = 0, visualizer = 'Standard'):
         # Visualizer
-        if verbose > 0:
-            if visualizer == 'Standard':
-                self.visualizer = TextVisualizer(self, verbose)
-            elif visualizer:
-                self.visualizer = visualizer(self)
+        if visualizer == 'Standard':
+            self.visualizer = TextVisualizer(1)
+        elif visualizer != None:
+            self.visualizer = visualizer
         else:
-            self.visualizer = Visualizer(self)
-
-        # # Set verbose print inside the class
-        # self.verbose = verbose
-        # if self.verbose > 0:
-        #     # verbose 1 print only the model and the training
-        #     # verbose 2 print also the window
-        #     # verbose 3 print also the minimize
-        #     # verbose 4 print also the pytorch
-        #     log.setLevel(min(logging.INFO - verbose + 1,log.level))
-        # else:
-        #     log.setLevel(min(logging.INFO - verbose + 1, log.level))
+            self.visualizer = Visualizer()
+        self.visualizer.set_n4m(self)
 
         # Inizialize the model definition
         # the model_def has all the relation defined for that model
@@ -206,9 +200,6 @@ class Neu4mes:
             print('The Dataset must first be loaded using <loadData> function!')
             return {}
 
-    def MP(self,fun,arg):
-        if self.visualizer.verbose:
-            fun(arg)
 
     """
     Add a new model to be trained:
@@ -431,7 +422,8 @@ class Neu4mes:
     def resultAnalysis(self, train_losses, test_losses, XY_train, XY_test):
         with torch.inference_mode():
             self.model.eval()
-            samples = len(XY_test['x'])
+            key = list(XY_test.keys())[0]
+            samples = len(XY_test[key])
             #samples = self.n_samples_test
             #samples = 1
 
@@ -457,21 +449,22 @@ class Neu4mes:
                     loss = self.loss_fn(A[ind][i], B[ind][i])
                     aux_test_losses[ind][i] = loss.detach().numpy()
 
-            self.prediction['A'] = A.detach().numpy()
-            self.prediction['B'] = B.detach().numpy()
+
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
+                A_np = A[ind].detach().numpy()
+                B_np = B[ind].detach().numpy()
                 self.performance[key] = {}
                 self.performance[key][value['loss']] = {'epoch_test': test_losses[key], 'epoch_train': train_losses[key], 'test': np.mean(aux_test_losses[ind])}
                 self.performance[key]['fvu'] = {}
                 # Compute FVU
-                residual = self.prediction['A'][ind] - self.prediction['B'][ind]
+                residual = A_np - B_np
                 error_var = np.var(residual)
                 error_mean = np.mean(residual)
                 #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
                 #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
-                self.performance[key]['fvu'][value['A'][0]] = error_var / np.var(self.prediction['A'][ind])
-                self.performance[key]['fvu'][value['B'][0]] = error_var / np.var(self.prediction['B'][ind])
-                self.performance[key]['fvu']['total'] = np.mean([self.performance[key]['fvu'][value['A'][0]],self.performance[key]['fvu'][value['B'][0]]])
+                self.performance[key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+                self.performance[key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                self.performance[key]['fvu']['total'] = np.mean([self.performance[key]['fvu']['A'],self.performance[key]['fvu']['B']]).item()
                 # Compute AIC
                 #normal_dist = norm(0, error_var ** 0.5)
                 #probability_of_residual = normal_dist.pdf(residual)
@@ -486,6 +479,10 @@ class Neu4mes:
                 aic = - 2 * log_likelihood + 2 * total_params
                 #print(f"{key} aic:{aic}")
                 self.performance[key]['aic'] = {'value':aic,'total_params':total_params,'log_likelihood':log_likelihood}
+                # Prediction and target
+                self.prediction[key] = {}
+                self.prediction[key]['A'] = A_np.tolist()
+                self.prediction[key]['B'] = B_np.tolist()
 
             self.performance['total'] = {}
             self.performance['total']['mean_error'] = {'test': np.mean(aux_test_losses)}
@@ -502,6 +499,8 @@ class Neu4mes:
     :param show_results: it is a boolean for enable the plot of the results
     """
     def trainModel(self, test_percentage = 0, training_params = {}):
+        import time
+        start = time.time()
 
         # Check input
         train_size = 1 - (test_percentage / 100.0)
@@ -578,6 +577,8 @@ class Neu4mes:
 
             self.visualizer.showTraining(epoch, train_losses, test_losses)
 
+        end = time.time()
+        self.visualizer.showTrainingTime(end-start)
         self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
 
 
@@ -590,6 +591,8 @@ class Neu4mes:
     :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
     """
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
+        import time
+        start = time.time()
 
         sample_time = self.model_def['SampleTime']
         if prediction_horizon is None:
@@ -622,14 +625,6 @@ class Neu4mes:
 
         ## Check input
         assert self.n_samples_train > prediction_samples and self.n_samples_test > prediction_samples, f'Error: The Prediction window is set to large (Max {(min(self.n_samples_test,self.n_samples_train)-1)*sample_time})'
-
-
-        ## Build the dataset
-        #train_data = Neu4MesDataset(X_train, Y_train)
-        #test_data = Neu4MesDataset(X_test, Y_test)
-        
-        #self.train_loader = DataLoader(dataset=train_data, batch_size=self.batch_size, num_workers=0, shuffle=False)
-        #self.test_loader = DataLoader(dataset=test_data, batch_size=self.batch_size, num_workers=0, shuffle=False)
 
         ## define optimizer and loss function
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -715,9 +710,8 @@ class Neu4mes:
                     test_loss.append(loss.item())
                 test_loss = np.mean(test_loss)
                 test_losses[epoch] = test_loss
-            if epoch % 10 == 0:
-                if test_percentage == 0:
-                    print(f'Epoch {epoch}/{self.num_of_epochs}, Train Loss {train_loss:.4f}')
-                else:
-                    print(f'Epoch {epoch}/{self.num_of_epochs}, Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}')
 
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
+
+        end = time.time()
+        self.visualizer.showTrainingTime(end - start)

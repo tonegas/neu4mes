@@ -25,7 +25,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         y = Output('y', rel1)
 
 
-        test = Neu4mes(verbose=2)
+        test = Neu4mes(visualizer=None)
         test.addModel(y)
         test.minimizeError('out', out.z(-1), rel1)
         test.neuralizeModel(0.01)
@@ -36,7 +36,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 4
         training_params['test_batch_size'] = 4
         training_params['learning_rate'] = 0.1
-        training_params['num_of_epochs'] = 100
+        training_params['num_of_epochs'] = 5
         test.trainRecurrentModel(close_loop={'x':'y'}, prediction_horizon=0.05, step=1, test_percentage=30, training_params = training_params)
 
         # 15 lines in the dataset
@@ -47,7 +47,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(495,test.num_of_samples)
         self.assertEqual(4,test.train_batch_size)
         self.assertEqual(4,test.test_batch_size)
-        self.assertEqual(100,test.num_of_epochs)
+        self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
 
     '''
