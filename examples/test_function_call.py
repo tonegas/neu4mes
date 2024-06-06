@@ -19,7 +19,7 @@ x_k1 = Fir(x.tw(0.5))+Fir(F)
 est_x_k1 = Output('xk1',x_k1)
 
 # Dopo che chi neuralizzato
-example1 = Neu4mes(verbose = False)
+example1 = Neu4mes()
 example1.addModel(est_x_k1)
 example1.neuralizeModel(0.05)
 
@@ -58,8 +58,8 @@ for output, result in results.items():
 print('EXAMPLE 7')
 theta = Input('theta')
 T     = Input('torque')
-out = Output('theta_s', Fir(theta)+Fir(T))
-example2 = Neu4mes(verbose = False)
+out = Output('theta_s', Fir(theta.tw(0.1))+Fir(T))
+example2 = Neu4mes()
 example2.addModel(out)
 example2.neuralizeModel(0.05)
 # Data load

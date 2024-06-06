@@ -74,7 +74,8 @@ class Diff_Layer(nn.Module):
 
     def forward(self, inputs):
         # Perform element-wise subtraction
-        return torch.stack(inputs).diff(dim=0)
+        return torch.add(inputs[0],-inputs[1])
+
 
 def createSubtract(self, *inputs):
     return Diff_Layer()

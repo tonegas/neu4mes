@@ -7,7 +7,7 @@ These networks base their structure on mechanical and control theory laws.
 
 The framework's goal is to allow the users fast modeling and control of a mechanical system such as an autonomous vehicle, an industrial robot, a walking robot, a flying drone.
 
-The workflow that the framework inspires you to have is as follows:
+Below is the workflow that the framework follows.
 
 Using a conceptual representation of your mechanical system the framework uses the structured neural network for modelling the considered mechanical device. 
 Providing suitable experimental data, the framework will realize an effective training of the neural models by appropriately choosing all the hyper-parameters.
@@ -28,6 +28,16 @@ The realized neural controller will be exported using C language or ONNX, and it
         <li><a href="#neuralizemodel">Neuralize the structured neural model</a></li>
         <li><a href="#loaddataset">Load the dataset</a></li>
         <li><a href="#trainmodel">Train the structured neural network</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#fonlderstructure">Structure of the Folders</a>
+      <ul>
+        <li><a href="#neu4mesfolder">neu4mes folder</a></li>
+        <li><a href="#examplesfolder">examples folder</a></li>
+        <li><a href="#testsfolder">tests folder</a></li>
+        <li><a href="#underdevfolder">underdev folder</a></li>
+        <li><a href="#usagefolder">usage folder</a></li>
       </ul>
     </li>
   </ol>
@@ -127,5 +137,46 @@ Using that files the training is performed on the model.
 ```python
 mass_spring_damper.trainModel()
 ```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<a name="fonlderstructure"></a>
+## Structure of the Repository
+
+<a name="neu4mesfolder"></a>
+### Neu4mes folder
+This folder contains all the neu4mes library files, rhe files are as follows:
+1. __activation.py__ this file contains all the activation functions implemented in the framework
+2. __arithmetic.py__ this file contains the aritmetic functions as: +, -, /, *., ^2
+3. __fir.py__ this file contains the finite inpulse response filter
+4. __input.py__ 
+5. ...
+
+### Tutorial Folder
+This folder contains some complex example of the use of the neu4mes fromwork. 
+The objective of this folder is demostrate the effectivness of the framework in solving real problems. 
+The examples proposed, some of them related of accompanying article, are as follows:
+1. Modeling a linear mass spring damper. The obejtive is to estimate the future position and velocity of the mass. We consider the system equipped with
+position sensor and a force sensor....
+
+### Tests Folder
+This folder contains the unittest of the library in particular each file test a specific functionality:
+1. __test_basic.py__
+2. __test_dataset.py__
+3. __test_model_predict.py__
+4. __test_network.py__
+5. __test_reccurrent_train.py__
+6. __test_train.py__
+
+### Underdev Folder
+This folder contains functionality underdevelopment. 
+These files presents the new functionalities and the syntax chosen.
+
+### Examples of usage Folder
+The files in the examples folder are a collection of the functionality of the library.
+Each file present in deep a specific functionality or function of the framework.
+This folder is useful to understand the flexibility and capability of the framework.
+The file proposed are:
+1.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
