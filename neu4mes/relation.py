@@ -4,7 +4,7 @@ from pprint import pformat
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
 log = logging.getLogger(__name__)
-log.setLevel(max(logging.ERROR, LOG_LEVEL))
+log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
 def merge(source, destination, main = True):
     if main:
@@ -36,8 +36,11 @@ def merge(source, destination, main = True):
 
 class NeuObj():
     count = 0
+    @classmethod
+    def reset_count(self):
+        NeuObj.count = 0
     def __init__(self, name = '', json = {}, dim = 0):
-        NeuObj.count = NeuObj.count + 1
+        NeuObj.count += 1
         self.name = name
         self.dim = dim
         if json:
@@ -79,11 +82,17 @@ class Relation():
 
 class Stream(Relation):
     count = 0
+    @classmethod
+    def reset_count(self):
+        Stream.count = 0
+
     def __init__(self, name, json, dim, count = 1):
-        Stream.count = Stream.count + count
+        Stream.count += count
         self.name = name
         self.json = copy.deepcopy(json)
         self.dim = dim
+
+
 
 class ToStream():
     def __new__(cls, *args):
