@@ -28,7 +28,6 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.loadData(source=data_folder, format=data_struct, skiplines=4)
         test.trainModel(test_percentage=30)
 
-
     def test_build_dataset_batch(self):
         input1 = Input('in1')
         output = Input('out')
@@ -200,7 +199,6 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(1,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
-    
 
 if __name__ == '__main__':
     unittest.main()

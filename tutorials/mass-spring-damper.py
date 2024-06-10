@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 from neu4mes.visualizer import MPLVisulizer
+from neu4mes.output import log
 
 # This example shows how to fit a simple linear model.
 # The model chosen is a mass spring damper.

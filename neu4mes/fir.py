@@ -56,7 +56,6 @@ def createLinear(self, input_size, output_size, param=None):
 
 def createLinear(self, weights):
     layer = nn.Linear(in_features=weights.size(1), out_features=weights.size(0), bias=False)
-    #with torch.no_grad(): ##TODO: see if it is needed
     layer.weight = weights
     return layer
 

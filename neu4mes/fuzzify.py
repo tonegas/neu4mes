@@ -2,10 +2,16 @@ import inspect, copy
 import numpy as np
 
 import torch.nn as nn
+import torch
 
 from neu4mes.relation import NeuObj, Stream, merge
 from neu4mes.input import Input
 from neu4mes.model import Model
+
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
 fuzzify_relation_name = 'Fuzzify'
 
@@ -55,7 +61,85 @@ class Fuzzify(NeuObj):
         else:
             raise Exception('Type is not supported!')
 
-def createFizzify(self):
-    pass
+def triangular(x, idx_channel, chan_centers):
 
-setattr(Model, fuzzify_relation_name, createFizzify)
+    # Compute the number of channels
+    num_channels = len(chan_centers)
+
+    # First dimension of activation
+    if idx_channel == 0:
+        if num_channels != 1:
+            ampl    = chan_centers[1] - chan_centers[0]
+            act_fcn = torch.minimum(torch.maximum(-(x - chan_centers[0])/ampl + 1, torch.tensor(0.0)), torch.tensor(1.0))
+        else:
+            # In case the user only wants one channel
+            act_fcn = 1
+    elif idx_channel != 0 and idx_channel == (num_channels - 1):
+        ampl    = chan_centers[-1] - chan_centers[-2]
+        act_fcn = torch.minimum(torch.maximum((x - chan_centers[-2])/ampl, torch.tensor(0.0)), torch.tensor(1.0))
+    else:
+        ampl_1  = chan_centers[idx_channel] - chan_centers[idx_channel - 1]
+        ampl_2  = chan_centers[idx_channel + 1] - chan_centers[idx_channel]
+        act_fcn = torch.minimum(torch.maximum((x - chan_centers[idx_channel - 1])/ampl_1, torch.tensor(0.0)),torch.maximum(-(x - chan_centers[idx_channel])/ampl_2 + 1, torch.tensor(0.0)))
+  
+    return act_fcn
+
+def rectangular(x, idx_channel, chan_centers):
+    ## compute number of channels
+    num_channels = len(chan_centers)
+
+    ## First dimension of activation
+    if idx_channel == 0:
+        if num_channels != 1:
+            width = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
+            act_fcn = torch.where(x < (chan_centers[idx_channel] + width), torch.tensor(1.0), torch.tensor(0.0))
+        else:
+            # In case the user only wants one channel
+            act_fcn = torch.tensor(1.0)
+    elif idx_channel != 0 and idx_channel == (num_channels - 1):
+        width = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
+        act_fcn = torch.where(x >= chan_centers[idx_channel] - width, torch.tensor(1.0), torch.tensor(0.0))
+    else:
+        width_forward = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2  
+        width_backward = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
+        act_fcn = torch.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), torch.tensor(1.0), torch.tensor(0.0))
+  
+    return act_fcn
+
+class Fuzzify_Layer(nn.Module):
+    def __init__(self, params):
+        super().__init__()
+        self.centers = params['centers']
+        self.function = params['functions']
+        self.dimension = params['dim_out']['dim']
+
+        if self.function not in ['Triangular', 'Rectangular']: ## custom function
+            ## Add the function to the globals
+            try:
+                exec(self.function, globals())
+                #print(f'executing {self.name}...')
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+            ## TODO: need a name
+            self.name = params['name']
+
+    def forward(self, x):
+        res = torch.empty((x.size(0), self.dimension), dtype=torch.float32)
+
+        if self.function == 'Triangular':
+            for i in range(len(self.centers)):
+                res[:, i] = triangular(x, i, self.centers)
+        elif self.function == 'Rectangular':
+            for i in range(len(self.centers)):
+                res[:, i] = rectangular(x, i, self.centers)
+        else: ## Custom_function
+            # Retrieve the function object from the globals dictionary
+            function_to_call = globals()[self.name]
+        
+        return res
+
+def createFuzzify(self, params):
+    return Fuzzify_Layer(params)
+
+setattr(Model, fuzzify_relation_name, createFuzzify)

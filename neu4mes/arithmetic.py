@@ -65,8 +65,15 @@ class Sum_Layer(nn.Module):
 def createSum(name, *inputs):
     return Sum_Layer()
 
+class Mul_Layer(nn.Module):
+    def __init__(self):
+        super(Mul_Layer, self).__init__()
+
+    def forward(self, inputs):
+        return torch.mul(inputs[0], inputs[1])
+    
 def createMul(name, *inputs):
-    pass
+    return Mul_Layer()
 
 class Diff_Layer(nn.Module):
     def __init__(self):

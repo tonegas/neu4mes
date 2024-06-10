@@ -53,10 +53,11 @@ example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
-
+'''
 print("------------------------EXAMPLE 5------------------------")
 # Example 5
 # Crea 2 membership function custom che si posizionano in -1 e 5
+## TODO: if i have a vector as functions. the number of function is equal to the number of centers
 def fun1(x):
     return np.sin(x)
 def fun2(x):
@@ -82,9 +83,26 @@ example.addModel(out)
 example.neuralizeModel(0.05)
 #
 
+## TODO work in progress:
+print("------------------------EXAMPLE 7------------------------")
+# Example 7
+# Crea 4 membership function custom con centri learnable
+def fun1(x):
+    return np.sin(x)
+def fun2(x):
+    return np.cos(x)
+c1,c2,c3,c4 = Parameter('c1'), Parameter('c2'), Parameter('c3'), Parameter('c4')
+fuz = Fuzzify(4,centers=[c1,c2,c3,c4],functions=[fun1,fun2,fun1,fun2])
+out = Output('out',fuz(x.tw(1))+fuz(F.tw(1)))
+example = Neu4mes()
+example.addModel(out)
+example.neuralizeModel(0.05)
+
+
 #TODO fare delle membership funtion usando le funzioni parametriche
 # def myFun(in1,p1):
 #    return np.sin(in1-p1)
 # parfun = ParamFun(myFun,1)
 # fuz = Fuzzify(3,range=[-2,2],functions=[parfun,parfun,parfun])
 # out = Output(x.z(-1),fuz(x))
+'''

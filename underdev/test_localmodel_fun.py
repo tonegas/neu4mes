@@ -5,7 +5,7 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
-x = Input('x')
+x = Input('x', )
 F = Input('F')
 activationA = Fuzzify(2,[0,1],functions='Triangular')(x)
 activationB = Fuzzify(2,[0,1],functions='Triangular')(F)
@@ -14,8 +14,8 @@ print("------------------------EXAMPLE 1------------------------")
 # Example 1
 # Singola funzione di attivazione e solo funzione in input
 loc = LocalModel(input_function = lambda : Fir)(x.tw(1),activationA)
-out = Output(x.z(-1),loc)
-example = Neu4mes(verbose = True)
+out = Output('out',loc)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -24,8 +24,8 @@ print("------------------------EXAMPLE 2------------------------")
 # Example 2
 # Due funzioni di attivazione e quindi 4 filtri di ingresso
 loc = LocalModel(input_function = Fir)(x.tw(1),(activationA,activationB))
-out = Output(x.z(-1),loc)
-example = Neu4mes(verbose = True)
+out = Output('out',loc)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -36,8 +36,8 @@ print("------------------------EXAMPLE 3------------------------")
 def myFun(in1,p1):
     return in1*p1
 loc = LocalModel(output_function = lambda:ParamFun(myFun))(x,activationA)
-out = Output(x.z(-1),loc)
-example = Neu4mes(verbose = True)
+out = Output('out',loc)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -51,8 +51,8 @@ activationA = Fuzzify(2,[0,1],functions='Triangular')(x.tw(1))
 def myFun(in1,p1,p2):
     return p1*in1+p2*np.sin(in1)
 loc = LocalModel(input_function = lambda:ParamFun(myFun), output_function = Fir())(x.tw(1),activationA)
-out = Output(x.z(-1),loc)
-example = Neu4mes(verbose = True)
+out = Output('out',loc)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
