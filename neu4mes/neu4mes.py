@@ -19,17 +19,8 @@ from neu4mes.dataset import Neu4MesDataset
 from neu4mes.loss import CustomRMSE
 from neu4mes.output import Output
 from neu4mes.model import Model
+from neu4mes.utilis import check, argmax_max, argmin_min
 
-
-def check(condition, exception, string):
-    if not condition:
-        raise exception(string)
-
-def argmax_max(iterable):
-    return max(enumerate(iterable), key=lambda x: x[1])
-
-def argmin_min(iterable):
-    return min(enumerate(iterable), key=lambda x: x[1])
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -252,7 +243,7 @@ class Neu4mes:
 
 
         for key, value in self.model_def['Inputs'].items():
-            self.input_tw_backward[key] = abs(value['tw'][0])
+            self.input_tw_backward[key] = abs(value['tw'][0]) # TODO Eccolo l'errore le finestre sono costruite male
             self.input_tw_forward[key] = value['tw'][1]
             if value['sw'] == [0,0] and value['tw'] == [0,0]:
                 self.input_tw_backward[key] = sample_time
