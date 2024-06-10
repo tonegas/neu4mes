@@ -6,8 +6,15 @@ sys.path.append(os.getcwd())
 import unittest, logging
 from neu4mes import *
 
+# This test file tests the json, in particular
+# the dimensions that are propagated through the realtions
+# and the structure of the json itself
+
 def myFun(K1,K2,p1,p2):
     return p1*K1+p2*np.sin(K2)
+
+
+NeuObj.count = 0
 
 class Neu4mesJson(unittest.TestCase):
     def test_input(self):
@@ -18,11 +25,26 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'Inputs': {'in': {'dim': 1, 'discrete': [2,3,4], 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {}, 'SampleTime': 0},input.json)
 
     def test_aritmetic(self):
+        Stream.reset_count()
+        NeuObj.reset_count()
         input = Input('in')
         out = input+input
         self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add1': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)
         out = input.tw(1) + input.tw(1)
         self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add4': ['Add', [('in', {'tw':[-1,0]}), ('in',{'tw':[-1,0]})]]}, 'SampleTime': 0},out.json)
+        out = input.tw(1) * input.tw(1)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Mul7': ['Mul', [('in', {'tw':[-1,0]}), ('in',{'tw':[-1,0]})]]}, 'SampleTime': 0},out.json)
+        out = input.tw(1) - input.tw(1)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Sub10': ['Sub', [('in', {'tw':[-1,0]}), ('in',{'tw':[-1,0]})]]}, 'SampleTime': 0},out.json)
+        input = Input('in', dimensions = 5)
+        out = input + input
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add12': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)
+        out = input.tw(1) + input.tw(1)
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [-1, 0], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add15': ['Add', [('in', {'tw': [-1, 0]}), ('in', {'tw': [-1, 0]})]]},'SampleTime': 0}, out.json)
+        out = input.tw([2,5]) + input.tw([3,6])
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [2, 6], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add18': ['Add', [('in', {'tw': [2, 5]}), ('in', {'tw': [3, 6]})]]},'SampleTime': 0}, out.json)
+        out = input.tw([-5,-2]) + input.tw([-6,-3])
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [-6, -2], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add21': ['Add', [('in', {'tw': [-5, -2]}), ('in', {'tw': [-6, -3]})]]},'SampleTime': 0}, out.json)
 
     def test_scalar_input_dimensions(self):
         input = Input('in')
@@ -135,9 +157,9 @@ class Neu4mesJson(unittest.TestCase):
             out = input.sw([-2,0])+input.sw([-1,0])
         with self.assertRaises(AssertionError):
             out = input.sw(1) + input.tw([-1, 0])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             out = input.sw(1.2)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             out = input.sw([-1.2,0.05])
 
 

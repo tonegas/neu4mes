@@ -3,10 +3,12 @@ import copy
 import numpy as np
 
 from neu4mes.relation import NeuObj, Stream
+from neu4mes.utilis import check
 
 class Input(NeuObj, Stream):
-    def __init__(self, name, dimensions = 1, values = None):
+    def __init__(self, name, dimensions:int = 1, values = None):
         NeuObj.__init__(self, name)
+        check(type(dimensions) == int, TypeError,"The dimensions must be a integer")
         self.json['Inputs'][self.name] = {'dim': dimensions, 'tw': [0, 0], 'sw': [0,0] }
         self.dim = {'dim': dimensions}
         if values:
@@ -21,7 +23,7 @@ class Input(NeuObj, Stream):
             json['Inputs'][self.name]['tw'] = tw
             tw = tw[1] - tw[0]
         else:
-            assert tw > 0, "The time window must be positive"
+            check(tw >0, ValueError,"The time window must be positive")
             json['Inputs'][self.name]['tw'][0] = -tw
         dim['tw'] = tw
         if offset is not None:
@@ -32,23 +34,20 @@ class Input(NeuObj, Stream):
         dim = copy.deepcopy(self.dim)
         json = copy.deepcopy(self.json)
         if type(sw) is list:
-            assert type(sw[1]) is int and type(sw[1]) is int, "The type of sample window must be an integer"
+            check(type(sw[0]) == int and type(sw[1]) == int, TypeError, "The sample window must be integer")
             json['Inputs'][self.name]['sw'] = sw
             sw = sw[1] - sw[0]
         else:
-            assert type(sw) is int, "The type of sample window must be an integer"
-            assert sw > 0, "The time window must be positive"
+            check(type(sw) == int, TypeError, "The sample window must be integer")
+            check(sw > 0, ValueError, "The time window must be positive")
             json['Inputs'][self.name]['sw'][0] = -sw
         dim['sw'] = sw
         if offset is not None:
             return Stream((self.name, {'sw': json['Inputs'][self.name]['sw'], 'offset': offset}), json, dim)
         return Stream((self.name, {'sw': json['Inputs'][self.name]['sw']}), json, dim)
 
-    def z(self, advance):
-        if advance > 0:
-            self.json['Inputs'][self.name]['sw'][0] = advance
-        else:
-            self.json['Inputs'][self.name]['sw'][1] = -advance
+    def z(self, delay):
+        self.json['Inputs'][self.name]['sw'] = [(-delay)-1,(-delay)]
         return Stream((self.name, {'sw':self.json['Inputs'][self.name]['sw']}), self.json, self.dim)
 
     # def s(self, derivate):

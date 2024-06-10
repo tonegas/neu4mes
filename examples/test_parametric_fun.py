@@ -70,13 +70,13 @@ print("------------------------EXAMPLE 4------------------------")
 # The parametric function takes a parameter of size 4
 # The function has three inputs, the first two are inputs and the second is a K parameter
 # The function creates a tensor performs a dot product between input 1 and p1 (which is effectively K Parameter)
-K = Parameter('k', dimensions =  4)
+K = Parameter('k', dimensions =  4, tw = 1)
 parfun = ParamFun(myFun, output_dimension = 1, parameters = [K] )
-out = Output('out',parfun(x,F))
+out = Output('out',parfun(x.tw(1),F.tw(1)))
 example = Neu4mes()
 example.addModel(out)
-example.neuralizeModel(0.05)
-print(example({'x':[1],'F':[1]}))
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
 #
 
 
