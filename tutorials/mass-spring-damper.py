@@ -45,5 +45,4 @@ data_folder = './tutorials/datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(data_folder, data_struct)
 
 #Neural network train
-#mass_spring_damper.trainModel(test_percentage = 10, training_params = {'num_of_epochs': 150})
-print(mass_spring_damper({'x':[1,23],'F':[1],'dx':[2]}))
+mass_spring_damper.trainModel(test_percentage = 10, training_params = {'num_of_epochs': 150})
