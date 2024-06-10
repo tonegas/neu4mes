@@ -243,12 +243,16 @@ class Neu4mes:
 
 
         for key, value in self.model_def['Inputs'].items():
-            self.input_tw_backward[key] = abs(value['tw'][0]) # TODO Eccolo l'errore le finestre sono costruite male
+            self.input_tw_backward[key] = -value['tw'][0]
             self.input_tw_forward[key] = value['tw'][1]
             if value['sw'] == [0,0] and value['tw'] == [0,0]:
                 self.input_tw_backward[key] = sample_time
-            self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),abs(value['sw'][0]))
-            self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),abs(value['sw'][1]))
+            if value['sw'] == [0,0] :
+                self.input_ns_backward[key] = round(self.input_tw_backward[key] / sample_time)
+                self.input_ns_forward[key] = round(self.input_tw_forward[key] / sample_time)
+            else:
+                self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),-value['sw'][0])
+                self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),value['sw'][1])
             self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
 
         self.max_samples_backward = max(self.input_ns_backward.values())

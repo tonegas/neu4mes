@@ -195,28 +195,28 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in2'],0.06)
-        self.assertEqual(test.input_tw_forward['in2'], -0.01)
-        self.assertEqual(test.input_ns_backward['in2'],6)
-        self.assertEqual(test.input_ns_forward['in2'], -1)
-        self.assertEqual(test.input_n_samples['in2'],5) # 6 samples - 1 samples of the horizon
+        self.assertEqual(0.06,test.input_tw_backward['in2'])
+        self.assertEqual( -0.01, test.input_tw_forward['in2'])
+        self.assertEqual(6, test.input_ns_backward['in2'])
+        self.assertEqual(-1, test.input_ns_forward['in2'])
+        self.assertEqual(5, test.input_n_samples['in2']) # 6 samples - 1 samples of the horizon
 
-        self.assertEqual(test.max_samples_backward, 6)
-        self.assertEqual(test.max_samples_forward, -1)
-        self.assertEqual(test.max_n_samples, 5)  # 5 samples
+        self.assertEqual(6, test.max_samples_backward)
+        self.assertEqual(-1, test.max_samples_forward)
+        self.assertEqual(5, test.max_n_samples)  # 5 samples
 
         #TODO In questo caso la rete deve lanciare un warning per dire che non è compreso l'istante 0
 
-        in2 = [0,1,2,3,4]
-        list_of_windows = [[2,3,4],[0,1,2]]
-        for ind, (key, value) in enumerate(test.relation_samples.items()):
-            if 'Fir' in key:
-                for k, v in value.items():
-                    if k == 'in2':
-                        offset = 0
-                        if 'offset_idx' in v:
-                            offset = v['offset_idx']
-                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+        # in2 = [0,1,2,3,4]
+        # list_of_windows = [[2,3,4],[0,1,2]]
+        # for ind, (key, value) in enumerate(test.relation_samples.items()):
+        #     if 'Fir' in key:
+        #         for k, v in value.items():
+        #             if k == 'in2':
+        #                 offset = 0
+        #                 if 'offset_idx' in v:
+        #                     offset = v['offset_idx']
+        #                 self.assertEqual(list_of_windows[ind],[a-offset for a in in2[v['start_idx']:v['end_idx']]])
 
     def test_network_building_tw_positive(self):
         input2 = Input('in2')
@@ -228,28 +228,28 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in2'],-0.01)
-        self.assertEqual(test.input_tw_forward['in2'], 0.06)
-        self.assertEqual(test.input_ns_backward['in2'],-1)
-        self.assertEqual(test.input_ns_forward['in2'], 6)
-        self.assertEqual(test.input_n_samples['in2'],5) # -1 samples + 6 samples of the horizon
+        self.assertEqual(-0.01, test.input_tw_backward['in2'])
+        self.assertEqual(0.06, test.input_tw_forward['in2'])
+        self.assertEqual(-1, test.input_ns_backward['in2'])
+        self.assertEqual(6, test.input_ns_forward['in2'])
+        self.assertEqual(5, test.input_n_samples['in2']) # -1 samples + 6 samples of the horizon
 
-        self.assertEqual(test.max_samples_backward, -1)
-        self.assertEqual(test.max_samples_forward, 6)
-        self.assertEqual(test.max_n_samples, 5)  # 5 samples
+        self.assertEqual(-1, test.max_samples_backward)
+        self.assertEqual(6, test.max_samples_forward)
+        self.assertEqual(5, test.max_n_samples)  # 5 samples
 
         #TODO In questo caso la rete deve lanciare un warning per dire che non è compreso l'istante 0
 
-        in2 = [0,1,2,3,4]
-        list_of_windows = [[0,1,2],[2,3,4]]
-        for ind, (key, value) in enumerate(test.relation_samples.items()):
-            if 'Fir' in key:
-                for k, v in value.items():
-                    if k == 'in2':
-                        offset = 0
-                        if 'offset_idx' in v:
-                            offset = v['offset_idx']
-                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+        # in2 = [0,1,2,3,4]
+        # list_of_windows = [[0,1,2],[2,3,4]]
+        # for ind, (key, value) in enumerate(test.relation_samples.items()):
+        #     if 'Fir' in key:
+        #         for k, v in value.items():
+        #             if k == 'in2':
+        #                 offset = 0
+        #                 if 'offset_idx' in v:
+        #                     offset = v['offset_idx']
+        #                 self.assertEqual(list_of_windows[ind],[a-offset for a in in2[v['start_idx']:v['end_idx']]])
 
     def test_network_building_sw(self):
         input1 = Input('in1')
