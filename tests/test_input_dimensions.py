@@ -28,15 +28,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in1'],0.01)
-        self.assertEqual(test.input_tw_forward['in1'], 0)
-        self.assertEqual(test.input_ns_backward['in1'],1)
-        self.assertEqual(test.input_ns_forward['in1'], 0)
-        self.assertEqual(test.input_n_samples['in1'],1)
+        self.assertEqual(0.01,test.input_tw_backward['in1'])
+        self.assertEqual(0,test.input_tw_forward['in1'])
+        self.assertEqual(1,test.input_ns_backward['in1'])
+        self.assertEqual(0,test.input_ns_forward['in1'])
+        self.assertEqual(1,test.input_n_samples['in1'])
 
-        self.assertEqual(test.max_samples_backward, 1)
-        self.assertEqual(test.max_samples_forward, 0)
-        self.assertEqual(test.max_n_samples, 1)  # 5 samples
+        self.assertEqual(1,test.max_samples_backward)
+        self.assertEqual(0,test.max_samples_forward)
+        self.assertEqual(1,test.max_n_samples)  # 5 samples
 
     def test_network_building_simple(self):
         input1 = Input('in1')
@@ -48,15 +48,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in1'],0.05)
-        self.assertEqual(test.input_tw_forward['in1'], 0)
-        self.assertEqual(test.input_ns_backward['in1'],5)
-        self.assertEqual(test.input_ns_forward['in1'], 0)
-        self.assertEqual(test.input_n_samples['in1'],5)
+        self.assertEqual(0.05,test.input_tw_backward['in1'])
+        self.assertEqual(0,test.input_tw_forward['in1'])
+        self.assertEqual(5,test.input_ns_backward['in1'])
+        self.assertEqual(0,test.input_ns_forward['in1'])
+        self.assertEqual(5,test.input_n_samples['in1'])
 
-        self.assertEqual(test.max_samples_backward, 5)
-        self.assertEqual(test.max_samples_forward, 0)
-        self.assertEqual(test.max_n_samples, 5)  # 5 samples
+        self.assertEqual(5,test.max_samples_backward)
+        self.assertEqual(0,test.max_samples_forward)
+        self.assertEqual(5,test.max_n_samples)  # 5 samples
 
     def test_network_building_tw(self):
         input1 = Input('in1')
@@ -71,15 +71,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward,{'in1': 0.05, 'in2': 0.05})
-        self.assertEqual(test.input_tw_forward, {'in1': 0, 'in2': 0.02})
-        self.assertEqual(test.input_ns_backward,{'in1': 5, 'in2': 5})
-        self.assertEqual(test.input_ns_forward, {'in1': 0, 'in2': 2})
-        self.assertEqual(test.input_n_samples,{'in1': 5, 'in2': 7})
+        self.assertEqual({'in1': 0.05, 'in2': 0.05}, test.input_tw_backward)
+        self.assertEqual({'in1': 0, 'in2': 0.02},test.input_tw_forward )
+        self.assertEqual({'in1': 5, 'in2': 5},test.input_ns_backward)
+        self.assertEqual({'in1': 0, 'in2': 2},test.input_ns_forward)
+        self.assertEqual({'in1': 5, 'in2': 7},test.input_n_samples)
 
-        self.assertEqual(test.max_samples_backward, 5)
-        self.assertEqual(test.max_samples_forward, 2)
-        self.assertEqual(test.max_n_samples, 7)  # 5 samples + 2 samples of the horizon
+        self.assertEqual(5,test.max_samples_backward)
+        self.assertEqual(2,test.max_samples_forward)
+        self.assertEqual(7,test.max_n_samples)  # 5 samples + 2 samples of the horizon
 
         in1 = [0,1,2,3,4]
         in2 = [0,1,2,3,4,5,6]
@@ -88,9 +88,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             if 'Fir' in key:
                 for k, v in value.items():
                     if k == 'in1':
-                        self.assertEqual(in1[v['start_idx']:v['end_idx']], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind],in1[v['start_idx']:v['end_idx']])
                     elif k == 'in2':
-                        self.assertEqual(in2[v['start_idx']:v['end_idx']], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind],in2[v['start_idx']:v['end_idx']])
 
     def test_network_building_tw2(self):
         input2 = Input('in2')
@@ -105,15 +105,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in2'],0.05)
-        self.assertEqual(test.input_tw_forward['in2'], 0.03)
-        self.assertEqual(test.input_ns_backward['in2'],5)
-        self.assertEqual(test.input_ns_forward['in2'], 3)
-        self.assertEqual(test.input_n_samples['in2'],8) # 5 samples + 3 samples of the horizon
+        self.assertEqual(0.05,test.input_tw_backward['in2'])
+        self.assertEqual(0.03,test.input_tw_forward['in2'])
+        self.assertEqual(5,test.input_ns_backward['in2'])
+        self.assertEqual(3,test.input_ns_forward['in2'])
+        self.assertEqual(8,test.input_n_samples['in2']) # 5 samples + 3 samples of the horizon
 
-        self.assertEqual(test.max_samples_backward, 5)
-        self.assertEqual(test.max_samples_forward, 3)
-        self.assertEqual(test.max_n_samples, 8)  # 5 samples
+        self.assertEqual(5,test.max_samples_backward)
+        self.assertEqual(3,test.max_samples_forward)
+        self.assertEqual(8,test.max_n_samples)  # 5 samples
 
         in2 = [-5,-4,-3,-2,-1,0,1,2]
         list_of_windows = [[-3,-2,-1], [-3,-2,-1], [-3,-2,-1,0,1,2], [-2,-1,0,1], [-5,-4,-3,-2,-1]]
@@ -121,7 +121,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             if 'Fir' in key:
                 for k, v in value.items():
                     if k == 'in2':
-                        self.assertEqual(in2[v['start_idx']:v['end_idx']], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind],in2[v['start_idx']:v['end_idx']])
 
     def test_network_building_tw3(self):
         input2 = Input('in2')
@@ -134,15 +134,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in2'],0.05)
-        self.assertEqual(test.input_tw_forward['in2'], 0.03)
-        self.assertEqual(test.input_ns_backward['in2'],5)
-        self.assertEqual(test.input_ns_forward['in2'], 3)
-        self.assertEqual(test.input_n_samples['in2'],8) # 5 samples + 3 samples of the horizon
+        self.assertEqual(0.05, test.input_tw_backward['in2'])
+        self.assertEqual(0.03, test.input_tw_forward['in2'])
+        self.assertEqual(5, test.input_ns_backward['in2'],)
+        self.assertEqual(3, test.input_ns_forward['in2'])
+        self.assertEqual(8, test.input_n_samples['in2']) # 5 samples + 3 samples of the horizon
 
-        self.assertEqual(test.max_samples_backward, 5)
-        self.assertEqual(test.max_samples_forward, 3)
-        self.assertEqual(test.max_n_samples, 8)  # 5 samples
+        self.assertEqual(5, test.max_samples_backward)
+        self.assertEqual(3, test.max_samples_forward)
+        self.assertEqual(8, test.max_n_samples)  # 5 samples
 
         in2 = [0,1,2,3,4,5,6,7]
         list_of_windows = [[1,2,3,4,5], [4,5,6,7], [0,1,2,3,4]]
@@ -150,32 +150,33 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             if 'Fir' in key:
                 for k, v in value.items():
                     if k == 'in2':
-                        self.assertEqual(in2[v['start_idx']:v['end_idx']], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind], in2[v['start_idx']:v['end_idx']])
 
     def test_network_building_tw_with_offest(self):
         input2 = Input('in2')
         rel3 = Fir(input2.tw(0.05))
         rel4 = Fir(input2.tw([-0.04,0.02]))
-        rel5 = Fir(input2.tw([-0.04,0.02],offset=0))
-        rel6 = Fir(input2.tw([-0.04,0.02],offset=0.02))
-        fun = Output('out',rel3+rel4+rel5+rel6)
+        rel5 = Fir(input2.tw([-0.04, 0.02], offset=-0.04))
+        rel6 = Fir(input2.tw([-0.04, 0.02], offset=0))
+        rel7 = Fir(input2.tw([-0.04, 0.02], offset=0.01))
+        fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
         test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in2'],0.05)
-        self.assertEqual(test.input_tw_forward['in2'], 0.02)
-        self.assertEqual(test.input_ns_backward['in2'],5)
-        self.assertEqual(test.input_ns_forward['in2'], 2)
-        self.assertEqual(test.input_n_samples['in2'],7) # 5 samples + 2 samples of the horizon
+        self.assertEqual(0.05, test.input_tw_backward['in2'])
+        self.assertEqual(0.02, test.input_tw_forward['in2'])
+        self.assertEqual(5, test.input_ns_backward['in2'])
+        self.assertEqual(2, test.input_ns_forward['in2'] )
+        self.assertEqual(7, test.input_n_samples['in2']) # 5 samples + 2 samples of the horizon
 
-        self.assertEqual(test.max_samples_backward, 5)
-        self.assertEqual(test.max_samples_forward, 2)
-        self.assertEqual(test.max_n_samples, 7)  # 5 samples
+        self.assertEqual(5, test.max_samples_backward)
+        self.assertEqual(2, test.max_samples_forward)
+        self.assertEqual(7,test.max_n_samples)  # 5 samples
 
-        in2 = [0,1,2,3,4,5,6]
-        list_of_windows = [[-5,-4,-3,-2,-1,0], [-3,-2,-1,0,1,2], [1,2,3,4,5,6], [0,1,2,3,4]]
+        in2 = [0,1,2,7,4,5,6]
+        list_of_windows = [[-5,-4,1,-2,-1,0], [-4,-3,2,-1,0,1], [0,1,6,3,4,5], [1,2,7,4,5,6], [0,1,2,7,4]]
         for ind, (key, value) in enumerate(test.relation_samples.items()):
             if 'Fir' in key:
                 for k, v in value.items():
@@ -183,11 +184,11 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                         offset = 0
                         if 'offset_idx' in v:
                             offset = v['offset_idx']
-                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind], [a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
     def test_network_building_tw_negative(self):
         input2 = Input('in2')
-        rel1 = Fir(input2.tw([-0.04,-0.01]))
+        rel1 = Fir(input2.tw([-0.05,-0.01]))
         rel2 = Fir(input2.tw([-0.06,-0.03]))
         fun = Output('out',rel1+rel2)
 
@@ -205,23 +206,81 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual(-1, test.max_samples_forward)
         self.assertEqual(5, test.max_n_samples)  # 5 samples
 
-        #TODO In questo caso la rete deve lanciare un warning per dire che non è compreso l'istante 0
+        in2 = [0,1,2,3,4]
+        list_of_windows = [[0,1,2],[1,2,3,4]]
+        for ind, (key, value) in enumerate(test.relation_samples.items()):
+            if 'Fir' in key:
+                for k, v in value.items():
+                    if k == 'in2':
+                        offset = 0
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual(list_of_windows[ind],[a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
-        # in2 = [0,1,2,3,4]
-        # list_of_windows = [[2,3,4],[0,1,2]]
-        # for ind, (key, value) in enumerate(test.relation_samples.items()):
-        #     if 'Fir' in key:
-        #         for k, v in value.items():
-        #             if k == 'in2':
-        #                 offset = 0
-        #                 if 'offset_idx' in v:
-        #                     offset = v['offset_idx']
-        #                 self.assertEqual(list_of_windows[ind],[a-offset for a in in2[v['start_idx']:v['end_idx']]])
+    def test_network_building_tw_negative_with_offset(self):
+        input2 = Input('in2')
+        rel1 = Fir(input2.tw([-0.05, -0.01], offset=-0.04))
+        rel2 = Fir(input2.tw([-0.02, -0.01], offset=-0.02))
+        rel3 = Fir(input2.tw([-0.06, -0.03], offset=-0.06))
+        rel4 = Fir(input2.tw([-0.06, -0.03], offset=-0.04))
+        with self.assertRaises(ValueError):
+            input2.tw([-0.01, -0.01], offset=-0.01)
+        with self.assertRaises(IndexError):
+            input2.tw([-0.06, -0.03], offset=-0.07)
+        with self.assertRaises(IndexError):
+            input2.tw([-0.06, -0.01], offset=0)
+        with self.assertRaises(IndexError):
+            input2.tw([-0.06, -0.01], offset=-0.01)
+        fun = Output('out', rel1 + rel2 + rel3 + rel4)
+
+        test = Neu4mes(visualizer=None)
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        self.assertEqual(0.06,test.input_tw_backward['in2'])
+        self.assertEqual( -0.01, test.input_tw_forward['in2'])
+        self.assertEqual(6, test.input_ns_backward['in2'])
+        self.assertEqual(-1, test.input_ns_forward['in2'])
+        self.assertEqual(5, test.input_n_samples['in2']) # 6 samples - 1 samples of the horizon
+
+        self.assertEqual(6, test.max_samples_backward)
+        self.assertEqual(-1, test.max_samples_forward)
+        self.assertEqual(5, test.max_n_samples)  # 5 samples
+
+        in2 = [-1,1,2,7,4]
+        list_of_windows = [[-3,-1,0],[0,2,3],[0],[-1,0,5,2]]
+        for ind, (key, value) in enumerate(test.relation_samples.items()):
+            if 'Fir' in key:
+                for k, v in value.items():
+                    if k == 'in2':
+                        offset = 0
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual(list_of_windows[ind],[a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
     def test_network_building_tw_positive(self):
+        input1 = Input('in1')
+        rel = Fir(input1.tw([0.03,0.04]))
+        fun = Output('out', rel)
+        test = Neu4mes(visualizer=None)
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        in1 = [4]
+        list_of_windows = [[4]]
+        for ind, (key, value) in enumerate(test.relation_samples.items()):
+            if 'Fir' in key:
+                for k, v in value.items():
+                    if k == 'in2':
+                        offset = 0
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual(list_of_windows[ind],[a-in1[offset] for a in in1[v['start_idx']:v['end_idx']]])
+
+
         input2 = Input('in2')
         rel1 = Fir(input2.tw([0.01,0.04]))
-        rel2 = Fir(input2.tw([0.03,0.06]))
+        rel2 = Fir(input2.tw([0.03,0.07]))
         fun = Output('out',rel1+rel2)
 
         test = Neu4mes(visualizer=None)
@@ -229,27 +288,67 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         self.assertEqual(-0.01, test.input_tw_backward['in2'])
-        self.assertEqual(0.06, test.input_tw_forward['in2'])
+        self.assertEqual(0.07, test.input_tw_forward['in2'])
         self.assertEqual(-1, test.input_ns_backward['in2'])
-        self.assertEqual(6, test.input_ns_forward['in2'])
-        self.assertEqual(5, test.input_n_samples['in2']) # -1 samples + 6 samples of the horizon
+        self.assertEqual(7, test.input_ns_forward['in2'])
+        self.assertEqual(6, test.input_n_samples['in2']) # -1 samples + 6 samples of the horizon
 
         self.assertEqual(-1, test.max_samples_backward)
-        self.assertEqual(6, test.max_samples_forward)
-        self.assertEqual(5, test.max_n_samples)  # 5 samples
+        self.assertEqual(7, test.max_samples_forward)
+        self.assertEqual(6, test.max_n_samples)  # 5 samples
 
-        #TODO In questo caso la rete deve lanciare un warning per dire che non è compreso l'istante 0
+        in2 = [0,1,2,3,4,5]
+        list_of_windows = [[2,3,4,5],[0,1,2]]
+        for ind, (key, value) in enumerate(test.relation_samples.items()):
+            if 'Fir' in key:
+                for k, v in value.items():
+                    if k == 'in2':
+                        offset = 0
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual(list_of_windows[ind],[a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
-        # in2 = [0,1,2,3,4]
-        # list_of_windows = [[0,1,2],[2,3,4]]
-        # for ind, (key, value) in enumerate(test.relation_samples.items()):
-        #     if 'Fir' in key:
-        #         for k, v in value.items():
-        #             if k == 'in2':
-        #                 offset = 0
-        #                 if 'offset_idx' in v:
-        #                     offset = v['offset_idx']
-        #                 self.assertEqual(list_of_windows[ind],[a-offset for a in in2[v['start_idx']:v['end_idx']]])
+    def test_network_building_tw_positive_with_offset(self):
+        input2 = Input('in2')
+        rel1 = Fir(input2.tw([0.01,0.04],offset=0.01))
+        rel2 = Fir(input2.tw([0.03,0.07],offset=0.04))
+        with self.assertRaises(ValueError):
+            input2.tw([0.03, 0.02])
+        with self.assertRaises(IndexError):
+            input2.tw([0.03, 0.07], offset=0.08)
+        with self.assertRaises(IndexError):
+            input2.tw([0.03, 0.07], offset=0)
+
+        fun = Output('out', rel1 + rel2)
+
+        test = Neu4mes(visualizer=None)
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        self.assertEqual(-0.01,test.input_tw_backward['in2'])
+        self.assertEqual( 0.07, test.input_tw_forward['in2'])
+        self.assertEqual(-1, test.input_ns_backward['in2'])
+        self.assertEqual(7, test.input_ns_forward['in2'])
+        self.assertEqual(6, test.input_n_samples['in2']) # 6 samples - 1 samples of the horizon
+
+        self.assertEqual(-1, test.max_samples_backward)
+        self.assertEqual(7, test.max_samples_forward)
+        self.assertEqual(6, test.max_n_samples)  # 5 samples
+
+        in2 = [-1,1,2,7,4,5]
+        list_of_windows_offset = [[-5,0,-3,-2],[0,2,3]]
+        list_of_windows = [[2, 7, 4, 5], [-1, 1, 2]]
+        for ind, (key, value) in enumerate(test.relation_samples.items()):
+            if 'Fir' in key:
+                for k, v in value.items():
+                    if k == 'in2':
+                        offset = 0
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+
+                        print(offset)
+                        self.assertEqual(list_of_windows[ind],[a for a in in2[v['start_idx']:v['end_idx']]])
+                        self.assertEqual(list_of_windows_offset[ind],[a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
     def test_network_building_sw(self):
         input1 = Input('in1')
@@ -264,15 +363,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in1'],0)
-        self.assertEqual(test.input_tw_forward['in1'], 0)
-        self.assertEqual(test.input_ns_backward['in1'],3)
-        self.assertEqual(test.input_ns_forward['in1'], 3)
-        self.assertEqual(test.input_n_samples['in1'],6) # 6 samples - 1 samples of the horizon
+        self.assertEqual(0,test.input_tw_backward['in1'])
+        self.assertEqual(0,test.input_tw_forward['in1'])
+        self.assertEqual(3,test.input_ns_backward['in1'])
+        self.assertEqual(3,test.input_ns_forward['in1'])
+        self.assertEqual(6,test.input_n_samples['in1']) # 6 samples - 1 samples of the horizon
 
-        self.assertEqual(test.max_samples_backward, 3)
-        self.assertEqual(test.max_samples_forward, 3)
-        self.assertEqual(test.max_n_samples, 6)  # 5 samples
+        self.assertEqual(3,test.max_samples_backward)
+        self.assertEqual(3,test.max_samples_forward)
+        self.assertEqual(6,test.max_n_samples)  # 5 samples
 
         in2 = [0,1,2,3,4,5]
         list_of_windows = [[0,1,2], [0,1,2], [0,1,2,3,4,5], [1,2,3,4], [1,2]]
@@ -283,32 +382,35 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                         offset = 0
                         if 'offset_idx' in v:
                             offset = v['offset_idx']
-                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind],[a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
     def test_network_building_sw_with_offset(self):
         input2 = Input('in2')
         rel3 = Fir(input2.sw(5))
         rel4 = Fir(input2.sw([-4,2]))
-        rel5 = Fir(input2.sw([-4,2],offset=0))
-        rel6 = Fir(input2.sw([-4,2],offset=2))
-        fun = Output('out',rel3+rel4+rel5+rel6)
+        rel5 = Fir(input2.sw([-4, 2], offset=0))
+        rel6 = Fir(input2.sw([-4, 2], offset=1))
+        rel7 = Fir(input2.sw([-2, 2], offset=1))
+        rel8 = Fir(input2.sw([-4, 2], offset=-4))
+        fun = Output('out',rel3+rel4+rel5+rel6+rel7+rel8)
 
         test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in2'],0)
-        self.assertEqual(test.input_tw_forward['in2'], 0)
-        self.assertEqual(test.input_ns_backward['in2'],5)
-        self.assertEqual(test.input_ns_forward['in2'], 2)
-        self.assertEqual(test.input_n_samples['in2'],7)
+        self.assertEqual(0, test.input_tw_backward['in2'])
+        self.assertEqual(0, test.input_tw_forward['in2'])
+        self.assertEqual(5,test.input_ns_backward['in2'])
+        self.assertEqual(2,test.input_ns_forward['in2'])
+        self.assertEqual(7,test.input_n_samples['in2'])
 
-        self.assertEqual(test.max_samples_backward, 5)
-        self.assertEqual(test.max_samples_forward, 2)
-        self.assertEqual(test.max_n_samples, 7)
+        self.assertEqual(5,test.max_samples_backward)
+        self.assertEqual(2,test.max_samples_forward)
+        self.assertEqual(7,test.max_n_samples)
 
-        in2 = [0,1,2,3,4,5,6]
-        list_of_windows = [[-5,-4,-3,-2,-1,0], [-3,-2,-1,0,1,2], [1,2,3,4,5,6], [0,1,2,3,4]]
+        #time=-5,-4,-3,-2,-1,0,1
+        in2 = [0, 1, 2, 7, 4,5,6]
+        list_of_windows = [[0,1,6,3,4,5], [1,-2,-1,0], [-5,-4,1,-2,-1,0], [-4,-3,2,-1,0,1], [1,2,7,4,5,6], [0,1,2,7,4]]
         for ind, (key, value) in enumerate(test.relation_samples.items()):
             if 'Fir' in key:
                 for k, v in value.items():
@@ -316,7 +418,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                         offset = 0
                         if 'offset_idx' in v:
                             offset = v['offset_idx']
-                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind],[a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
     def test_network_building_sw_and_tw(self):
         input2 = Input('in2')
@@ -330,15 +432,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.input_tw_backward['in2'],0.01)
-        self.assertEqual(test.input_tw_forward['in2'], 0)
-        self.assertEqual(test.input_ns_backward['in2'],4)
-        self.assertEqual(test.input_ns_forward['in2'], 2)
-        self.assertEqual(test.input_n_samples['in2'],6)
+        self.assertEqual(0.01,test.input_tw_backward['in2'])
+        self.assertEqual(0,test.input_tw_forward['in2'])
+        self.assertEqual(4,test.input_ns_backward['in2'])
+        self.assertEqual(2,test.input_ns_forward['in2'])
+        self.assertEqual(6,test.input_n_samples['in2'])
 
-        self.assertEqual(test.max_samples_backward, 4)
-        self.assertEqual(test.max_samples_forward, 2)
-        self.assertEqual(test.max_n_samples, 6)
+        self.assertEqual(4,test.max_samples_backward)
+        self.assertEqual(2,test.max_samples_forward)
+        self.assertEqual(6,test.max_n_samples)
 
         in2 = [0,1,2,3,4,5]
         list_of_windows = [[3], [0,1,2,3,4,5]]
@@ -349,7 +451,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
                         offset = 0
                         if 'offset_idx' in v:
                             offset = v['offset_idx']
-                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+                        self.assertEqual(list_of_windows[ind],[a-in2[offset] for a in in2[v['start_idx']:v['end_idx']]])
 
     '''
     def test_network_building_discrete_input_and_local_model(self):

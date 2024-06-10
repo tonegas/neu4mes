@@ -14,6 +14,7 @@ data_x = np.random.rand(500)*20-10
 data_a = 2
 data_b = -3
 dataset = {'in1': data_x, 'out': linear_fun(data_x,data_a,data_b)}
+data_folder = 'data/'
 
 class Neu4mesTrainingTest(unittest.TestCase):
     def test_build_dataset_batch(self):
@@ -50,7 +51,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
 
-    '''
+'''
     def test_build_dataset_batch2(self):
         input1 = Input('in1')
         output = Input('out')
@@ -123,7 +124,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes(verbose=False)
+        test = Neu4mes()
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
@@ -157,7 +158,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         output = Input('out')
         rel1 = Fir(input1.tw(0.05))
 
-        test = Neu4mes(verbose=False)
+        test = Neu4mes()
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
@@ -190,7 +191,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(1,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
-    '''
+'''
 
 if __name__ == '__main__':
     unittest.main()
