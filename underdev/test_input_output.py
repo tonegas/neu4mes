@@ -32,31 +32,7 @@ example1.trainModel(test_percentage = 10, show_results = True)
 
 
 
-'''
-#assert(example1({'x':[3]}),{'xtw1':[3]} )
 
-#out2 = Output('xtw2',Fir(x.tw(0.1))+Fir(x.tw(1)))
-example1.addModel(out)
-example1.neuralizeModel(0.1)
-
-#example1({'x':[1,2,3,4,5,6,7,8,9,10]})
-
-#Time window
-t = [-5,-4,-3,-2,-1,0,1,2,3,4]
-x = Input('x') # samplerate = 1
-x.tw(1)      #-> [0]
-x.tw([-1,0]) #-> [0] il secondo è escluso
-x.tw([-3,0]) #-> [-2, -1, 0]
-x.tw([-3,1]) #-> [-2  -1  0 1]
-x.tw([-0,1]) #-> [1] l'indice zero e basta
-
-x.z(-1)      #-> [1]  l'indice zero
-x.z(0)       #-> [0] l
-
-x.sw()
-
-'''
-'''
 
 
 
