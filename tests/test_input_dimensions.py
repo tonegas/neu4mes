@@ -28,12 +28,16 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 1)  # 5 samples
-        self.assertEqual({'in1': 1}, test.input_n_samples)
+        self.assertEqual(test.input_tw_backward['in1'],0.01)
+        self.assertEqual(test.input_tw_forward['in1'], 0)
+        self.assertEqual(test.input_ns_backward['in1'],1)
+        self.assertEqual(test.input_ns_forward['in1'], 0)
+        self.assertEqual(test.input_n_samples['in1'],1)
 
-        list_of_dimensions = [[1, 1], [1, 1]]
-        for ind, (key, value) in enumerate({k: v for k, v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.max_samples_backward, 1)
+        self.assertEqual(test.max_samples_forward, 0)
+        self.assertEqual(test.max_n_samples, 1)  # 5 samples
+
     def test_network_building_simple(self):
         input1 = Input('in1')
         rel1 = Fir(input1.tw(0.05))
@@ -44,12 +48,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 5) # 5 samples
-        self.assertEqual({'in1': 5} , test.input_n_samples)
-        
-        list_of_dimensions = [[5,1], [1,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.input_tw_backward['in1'],0.05)
+        self.assertEqual(test.input_tw_forward['in1'], 0)
+        self.assertEqual(test.input_ns_backward['in1'],5)
+        self.assertEqual(test.input_ns_forward['in1'], 0)
+        self.assertEqual(test.input_n_samples['in1'],5)
+
+        self.assertEqual(test.max_samples_backward, 5)
+        self.assertEqual(test.max_samples_forward, 0)
+        self.assertEqual(test.max_n_samples, 5)  # 5 samples
 
     def test_network_building_tw(self):
         input1 = Input('in1')
@@ -64,12 +71,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 7) # 5 samples + 2 samples of the horizon
-        self.assertEqual({'in1': 5, 'in2': 7} , test.input_n_samples)
-        
-        list_of_dimensions = [[5,1], [1,1], [5,1], [4,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.input_tw_backward,{'in1': 0.05, 'in2': 0.05})
+        self.assertEqual(test.input_tw_forward, {'in1': 0, 'in2': 0.02})
+        self.assertEqual(test.input_ns_backward,{'in1': 5, 'in2': 5})
+        self.assertEqual(test.input_ns_forward, {'in1': 0, 'in2': 2})
+        self.assertEqual(test.input_n_samples,{'in1': 5, 'in2': 7})
+
+        self.assertEqual(test.max_samples_backward, 5)
+        self.assertEqual(test.max_samples_forward, 2)
+        self.assertEqual(test.max_n_samples, 7)  # 5 samples + 2 samples of the horizon
 
         in1 = [0,1,2,3,4]
         in2 = [0,1,2,3,4,5,6]
@@ -95,12 +105,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 8) # 5 samples + 3 samples of the horizon
-        self.assertEqual({'in2': 8} , test.input_n_samples)
-        
-        list_of_dimensions = [[5,1], [4,1], [6,1], [3,1], [3,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.input_tw_backward['in2'],0.05)
+        self.assertEqual(test.input_tw_forward['in2'], 0.03)
+        self.assertEqual(test.input_ns_backward['in2'],5)
+        self.assertEqual(test.input_ns_forward['in2'], 3)
+        self.assertEqual(test.input_n_samples['in2'],8) # 5 samples + 3 samples of the horizon
+
+        self.assertEqual(test.max_samples_backward, 5)
+        self.assertEqual(test.max_samples_forward, 3)
+        self.assertEqual(test.max_n_samples, 8)  # 5 samples
 
         in2 = [-5,-4,-3,-2,-1,0,1,2]
         list_of_windows = [[-3,-2,-1], [-3,-2,-1], [-3,-2,-1,0,1,2], [-2,-1,0,1], [-5,-4,-3,-2,-1]]
@@ -121,12 +134,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 8) # 5 samples + 3 samples of the horizon
-        self.assertEqual({'in2': 8} , test.input_n_samples)
+        self.assertEqual(test.input_tw_backward['in2'],0.05)
+        self.assertEqual(test.input_tw_forward['in2'], 0.03)
+        self.assertEqual(test.input_ns_backward['in2'],5)
+        self.assertEqual(test.input_ns_forward['in2'], 3)
+        self.assertEqual(test.input_n_samples['in2'],8) # 5 samples + 3 samples of the horizon
 
-        list_of_dimensions = [[5,1], [4,1], [5,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.max_samples_backward, 5)
+        self.assertEqual(test.max_samples_forward, 3)
+        self.assertEqual(test.max_n_samples, 8)  # 5 samples
 
         in2 = [0,1,2,3,4,5,6,7]
         list_of_windows = [[1,2,3,4,5], [4,5,6,7], [0,1,2,3,4]]
@@ -148,12 +164,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 7) # 5 samples + 3 samples of the horizon
-        self.assertEqual({'in2': 7} , test.input_n_samples)
+        self.assertEqual(test.input_tw_backward['in2'],0.05)
+        self.assertEqual(test.input_tw_forward['in2'], 0.02)
+        self.assertEqual(test.input_ns_backward['in2'],5)
+        self.assertEqual(test.input_ns_forward['in2'], 2)
+        self.assertEqual(test.input_n_samples['in2'],7) # 5 samples + 2 samples of the horizon
 
-        list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.max_samples_backward, 5)
+        self.assertEqual(test.max_samples_forward, 2)
+        self.assertEqual(test.max_n_samples, 7)  # 5 samples
 
         in2 = [0,1,2,3,4,5,6]
         list_of_windows = [[-5,-4,-3,-2,-1,0], [-3,-2,-1,0,1,2], [1,2,3,4,5,6], [0,1,2,3,4]]
@@ -176,12 +195,17 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 5) # 5 samples + 3 samples of the horizon
-        self.assertEqual({'in2': 5} , test.input_n_samples)
+        self.assertEqual(test.input_tw_backward['in2'],0.06)
+        self.assertEqual(test.input_tw_forward['in2'], -0.01)
+        self.assertEqual(test.input_ns_backward['in2'],6)
+        self.assertEqual(test.input_ns_forward['in2'], -1)
+        self.assertEqual(test.input_n_samples['in2'],5) # 6 samples - 1 samples of the horizon
 
-        list_of_dimensions = [[3,1], [3,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.max_samples_backward, 6)
+        self.assertEqual(test.max_samples_forward, -1)
+        self.assertEqual(test.max_n_samples, 5)  # 5 samples
+
+        #TODO In questo caso la rete deve lanciare un warning per dire che non è compreso l'istante 0
 
         in2 = [0,1,2,3,4]
         list_of_windows = [[2,3,4],[0,1,2]]
@@ -204,12 +228,17 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 5) # 5 samples + 3 samples of the horizon
-        self.assertEqual({'in2': 5} , test.input_n_samples)
+        self.assertEqual(test.input_tw_backward['in2'],-0.01)
+        self.assertEqual(test.input_tw_forward['in2'], 0.06)
+        self.assertEqual(test.input_ns_backward['in2'],-1)
+        self.assertEqual(test.input_ns_forward['in2'], 6)
+        self.assertEqual(test.input_n_samples['in2'],5) # -1 samples + 6 samples of the horizon
 
-        list_of_dimensions = [[3,1], [3,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.max_samples_backward, -1)
+        self.assertEqual(test.max_samples_forward, 6)
+        self.assertEqual(test.max_n_samples, 5)  # 5 samples
+
+        #TODO In questo caso la rete deve lanciare un warning per dire che non è compreso l'istante 0
 
         in2 = [0,1,2,3,4]
         list_of_windows = [[0,1,2],[2,3,4]]
@@ -235,7 +264,17 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        in2 = [0,1,2,3,4,5,6]
+        self.assertEqual(test.input_tw_backward['in1'],0)
+        self.assertEqual(test.input_tw_forward['in1'], 0)
+        self.assertEqual(test.input_ns_backward['in1'],3)
+        self.assertEqual(test.input_ns_forward['in1'], 3)
+        self.assertEqual(test.input_n_samples['in1'],6) # 6 samples - 1 samples of the horizon
+
+        self.assertEqual(test.max_samples_backward, 3)
+        self.assertEqual(test.max_samples_forward, 3)
+        self.assertEqual(test.max_n_samples, 6)  # 5 samples
+
+        in2 = [0,1,2,3,4,5]
         list_of_windows = [[0,1,2], [0,1,2], [0,1,2,3,4,5], [1,2,3,4], [1,2]]
         for ind, (key, value) in enumerate(test.relation_samples.items()):
             if 'Fir' in key:
@@ -258,12 +297,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 7) # 5 samples + 3 samples of the horizon
-        self.assertEqual({'in2': 7} , test.input_n_samples)
+        self.assertEqual(test.input_tw_backward['in2'],0)
+        self.assertEqual(test.input_tw_forward['in2'], 0)
+        self.assertEqual(test.input_ns_backward['in2'],5)
+        self.assertEqual(test.input_ns_forward['in2'], 2)
+        self.assertEqual(test.input_n_samples['in2'],7)
 
-        list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.max_samples_backward, 5)
+        self.assertEqual(test.max_samples_forward, 2)
+        self.assertEqual(test.max_n_samples, 7)
 
         in2 = [0,1,2,3,4,5,6]
         list_of_windows = [[-5,-4,-3,-2,-1,0], [-3,-2,-1,0,1,2], [1,2,3,4,5,6], [0,1,2,3,4]]
@@ -288,12 +330,15 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(test.max_n_samples, 6) # 5 samples + 3 samples of the horizon
-        self.assertEqual({'in2': 6} , test.input_n_samples)
+        self.assertEqual(test.input_tw_backward['in2'],0.01)
+        self.assertEqual(test.input_tw_forward['in2'], 0)
+        self.assertEqual(test.input_ns_backward['in2'],4)
+        self.assertEqual(test.input_ns_forward['in2'], 2)
+        self.assertEqual(test.input_n_samples['in2'],6)
 
-        list_of_dimensions = [[6,1], [1,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+        self.assertEqual(test.max_samples_backward, 4)
+        self.assertEqual(test.max_samples_forward, 2)
+        self.assertEqual(test.max_n_samples, 6)
 
         in2 = [0,1,2,3,4,5]
         list_of_windows = [[3], [0,1,2,3,4,5]]

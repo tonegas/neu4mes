@@ -6,8 +6,15 @@ sys.path.append(os.getcwd())
 import unittest, logging
 from neu4mes import *
 
+# This test file tests the json, in particular
+# the dimensions that are propagated through the realtions
+# and the structure of the json itself
+
 def myFun(K1,K2,p1,p2):
     return p1*K1+p2*np.sin(K2)
+
+
+NeuObj.count = 0
 
 class Neu4mesJson(unittest.TestCase):
     def test_input(self):
@@ -18,6 +25,8 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'Inputs': {'in': {'dim': 1, 'discrete': [2,3,4], 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {}, 'SampleTime': 0},input.json)
 
     def test_aritmetic(self):
+        Stream.reset_count()
+        NeuObj.reset_count()
         input = Input('in')
         out = input+input
         self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add1': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)

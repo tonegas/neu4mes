@@ -11,6 +11,9 @@ from neu4mes import *
 log = logging.getLogger(__name__)
 log.setLevel(logging.CRITICAL)
 
+# This file test the data loading in particular:
+# The shape and the value of the inputs
+
 import os
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 

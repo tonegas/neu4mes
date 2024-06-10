@@ -7,6 +7,8 @@ import unittest
 from neu4mes import *
 import torch
 
+# This file test the model prediction in particular the output value
+
 def myfun(x,P):
     return x*P
 
@@ -22,6 +24,8 @@ class MyTestCase(unittest.TestCase):
                 self.TestAlmostEqual(pred, label, precision=precision)
         else:
             self.assertAlmostEqual(data1, data2, places=precision)
+
+
 
     def test_single_in_single_out(self):
         torch.manual_seed(1)
@@ -238,6 +242,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual(results['out'], [[0.4886608421802521, 0.4340703785419464, 0.7541031241416931], [0.3563916087150574, -0.10742330551147461, 0.650678277015686]])
         results = test({'in1': [[1, 2, 2, 4],[2, 2, 4, 3]],'in2': [[6, 2, 2, 4],[2, 2, 4, 4]]}, sampled=True)
         self.TestAlmostEqual(results['out'], [[0.4886608421802521, 0.4340703785419464, 0.7541031241416931], [0.3563916087150574, -0.10742330551147461, 0.650678277015686]])
+
 
 if __name__ == '__main__':
     unittest.main()
