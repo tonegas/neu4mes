@@ -144,7 +144,7 @@ class Neu4mes:
         ## Determine the Maximal number of samples that can be created
         if sampled:
             min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in model_inputs])
-            max_dim_ind,  max_dim = argmax_max([len(inputs[key]) for key in model_inputs])
+            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in model_inputs])
         else:
             min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
             max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])

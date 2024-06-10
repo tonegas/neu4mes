@@ -88,9 +88,9 @@ class MyTestCase(unittest.TestCase):
         test.addModel(out)
         test.neuralizeModel(0.1)
 
-        with self.assertRaises(AssertionError):#TODO voglio una finestra di almeno 2 sample altrimenti errore
+        with self.assertRaises(StopIteration):#TODO voglio una finestra di almeno 2 sample altrimenti errore
             results = test({'in1': [1]})
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(StopIteration):
             results = test({'in1': [2]})
         results = test({'in1': [1,2]})
         self.TestAlmostEqual(results['out'], [[0.2793108820915222, 0.5586217641830444]])
@@ -145,10 +145,10 @@ class MyTestCase(unittest.TestCase):
         test.addModel(out)
         test.neuralizeModel(0.1)
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(StopIteration):
             results = test({'in1': [2]})
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(StopIteration):
             results = test({'in1': [2, 4]})
 
         results = test({'in1': [3,2,1]})
@@ -164,7 +164,7 @@ class MyTestCase(unittest.TestCase):
         test = Neu4mes(visualizer=None)
         test.addModel(out)
         test.neuralizeModel(0.1)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(StopIteration):
             test({'in1': [[1, 2, 2], [3, 4, 5]]})
     
     def test_parametric_function_and_fir(self):
@@ -176,7 +176,7 @@ class MyTestCase(unittest.TestCase):
         test.addModel(out)
         test.neuralizeModel(0.1)
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(StopIteration):
             test({'in1': [1, 2, 2]})
         results = test({'in1': [1, 2, 2, 4]})
         self.TestAlmostEqual(results['out'][0], -0.03262542188167572)
