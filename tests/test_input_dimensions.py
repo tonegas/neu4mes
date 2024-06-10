@@ -7,6 +7,15 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
 
+# This file tests the dimensions of the inputs in particular:
+# The dimensions for each input
+# input_tw_backward, input_tw_forward
+# input_ns_backward, input_ns_forward, and input_n_samples
+# The total maximum dimensions:
+# max_samples_backward, max_samples_forward, and max_n_samples
+# And finally the dimensions for each relation
+# relation_samples
+
 class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
     def test_network_building_very_simple(self):
@@ -148,6 +157,62 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         in2 = [0,1,2,3,4,5,6]
         list_of_windows = [[-5,-4,-3,-2,-1,0], [-3,-2,-1,0,1,2], [1,2,3,4,5,6], [0,1,2,3,4]]
+        for ind, (key, value) in enumerate(test.relation_samples.items()):
+            if 'Fir' in key:
+                for k, v in value.items():
+                    if k == 'in2':
+                        offset = 0
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+
+    def test_network_building_tw_negative(self):
+        input2 = Input('in2')
+        rel1 = Fir(input2.tw([-0.04,-0.01]))
+        rel2 = Fir(input2.tw([-0.06,-0.03]))
+        fun = Output('out',rel1+rel2)
+
+        test = Neu4mes(visualizer=None)
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        self.assertEqual(test.max_n_samples, 5) # 5 samples + 3 samples of the horizon
+        self.assertEqual({'in2': 5} , test.input_n_samples)
+
+        list_of_dimensions = [[3,1], [3,1]]
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
+            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+
+        in2 = [0,1,2,3,4]
+        list_of_windows = [[2,3,4],[0,1,2]]
+        for ind, (key, value) in enumerate(test.relation_samples.items()):
+            if 'Fir' in key:
+                for k, v in value.items():
+                    if k == 'in2':
+                        offset = 0
+                        if 'offset_idx' in v:
+                            offset = v['offset_idx']
+                        self.assertEqual([a-offset for a in in2[v['start_idx']:v['end_idx']]], list_of_windows[ind])
+
+    def test_network_building_tw_positive(self):
+        input2 = Input('in2')
+        rel1 = Fir(input2.tw([0.01,0.04]))
+        rel2 = Fir(input2.tw([0.03,0.06]))
+        fun = Output('out',rel1+rel2)
+
+        test = Neu4mes(visualizer=None)
+        test.addModel(fun)
+        test.neuralizeModel(0.01)
+
+        self.assertEqual(test.max_n_samples, 5) # 5 samples + 3 samples of the horizon
+        self.assertEqual({'in2': 5} , test.input_n_samples)
+
+        list_of_dimensions = [[3,1], [3,1]]
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
+            self.assertEqual([value.in_features, value.out_features], list_of_dimensions[ind])
+
+        in2 = [0,1,2,3,4]
+        list_of_windows = [[0,1,2],[2,3,4]]
         for ind, (key, value) in enumerate(test.relation_samples.items()):
             if 'Fir' in key:
                 for k, v in value.items():
