@@ -158,7 +158,7 @@ class Neu4mes:
             min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
             max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
         window_dim = min_dim
-        assert window_dim > 0, 'Invalid Number of Inputs!'
+        check(window_dim > 0, StopIteration, 'Invalid Number of Inputs!')
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
@@ -190,7 +190,7 @@ class Neu4mes:
             result_dict = {}
             for key in self.model_def['Inputs'].keys():
                 result_dict[key] = []
-            random_idx = random.randint(0, self.num_of_samples)
+            random_idx = random.randint(0, self.num_of_samples - window)
             for idx in range(window):
                 for key ,data in self.inout_data_time_window.items():
                     if key in self.model_def['Inputs'].keys() and data is not None:
@@ -441,7 +441,6 @@ class Neu4mes:
                 # XY = {}
                 # for key, val in XY_test.items():
                 #     XY[key] = torch.from_numpy(val[idx:idx + batch_size]).to(torch.float32)
-
                 out = self.model(XY)
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     A[ind][i] = out[value['A'][0]]

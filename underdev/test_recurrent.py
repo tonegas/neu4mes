@@ -23,7 +23,7 @@ x_k1 = fir(x.tw(0.5))+fir(F.tw(0.5))
 #x_k2 = Fir(x.tw(0.5))+Fir(F.tw(0.5))
 est_x_k1 = Output('xk1',x_k1)  ## TODO: should work without Output
 
-mass_spring_damper = Neu4mes(verbose = 2)
+mass_spring_damper = Neu4mes()
 mass_spring_damper.addModel(est_x_k1) ## TODO: should work without addModel
 mass_spring_damper.minimizeError('out',x.z(-1),x_k1)
 #mass_spring_damper.minimizeError('out2', x_k1, x_k2)
@@ -61,7 +61,7 @@ print('prediction: ', results['xk1'])
 print('label: ', results['out_x'])
 
 print('EXAMPLE 2')
-sample = {'x':[1.0,2.0,3.0,4.0,5.0,6.0], 'F':[25.0]}
+sample = {'x':[1.0,2.0,3.0,4.0,5.0,6.0], 'F':[25.0, 30.0, 35.0, 40.0, 45.0]}
 print('sample: ', sample)
 results = mass_spring_damper(sample)
 print('prediction: ', results['xk1'])

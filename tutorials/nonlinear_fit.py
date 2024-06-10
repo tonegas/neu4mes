@@ -41,7 +41,8 @@ data_c = 2
 dataset = {'x': data_x, 'target_y': parametric_fun2(data_x,data_a,data_b,data_c)}
 
 # Create the neu4mes object
-opt_fun = Neu4mes(visualizer=MPLVisulizer())
+#opt_fun = Neu4mes(visualizer=MPLVisulizer())
+opt_fun = Neu4mes()
 
 # Create objectives of the minimization
 opt_fun.minimizeError('x', target_y, y1, 'mse')

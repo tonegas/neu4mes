@@ -23,7 +23,7 @@ class Model(nn.Module):
             window = 'tw' if 'tw' in self.params[name].keys() else ('sw' if 'sw' in self.params[name].keys() else None)
             aux_sample_time = self.sample_time if 'tw' == window else 1
             if window:
-                sample_window = int(param_dimensions[window] / aux_sample_time)
+                sample_window = round(param_dimensions[window] / aux_sample_time)
             else:
                 sample_window = 1
             if type(param_dimensions['dim']) is list:
@@ -54,8 +54,10 @@ class Model(nn.Module):
 
             func = getattr(self,rel_name)
             if func:
-                if rel_name == 'ParamFun': # TODO: Work in progress
-                    self.relation_forward[relation] = func(self.functions[inputs[2]])    
+                if rel_name == 'ParamFun': 
+                    self.relation_forward[relation] = func(self.functions[inputs[2]])
+                elif rel_name == 'Fuzzify':
+                    self.relation_forward[relation] = func(self.functions[inputs[2]])
                 elif rel_name == 'Fir':  ## Linear module requires 2 inputs: input_size and output_size
                     self.relation_forward[relation] = func(self.all_parameters[inputs[2]])
                 else: ## Functions that takes no parameters
@@ -112,10 +114,13 @@ class Model(nn.Module):
                                 layer_parameters.append(self.all_parameters[func_par])
                             available_inputs[output] = self.relation_forward[output](layer_inputs, layer_parameters)
                         else:
+                            #print('[LOG] layer_inputs: ', layer_inputs)
+                            #print('[LOG] output: ', output)
                             if len(layer_inputs) <= 1: ## i have a single forward pass
                                 available_inputs[output] = self.relation_forward[output](layer_inputs[0])
                             else:
                                 available_inputs[output] = self.relation_forward[output](layer_inputs)
+                            #print('[LOG] available_inputs: ', available_inputs[output])
                         inputs_keys.append(output)
 
         ## Return a dictionary with all the outputs final values
