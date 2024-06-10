@@ -13,7 +13,7 @@ print("------------------------EXAMPLE 1------------------------")
 # Ho creato una funzione fuzzificatrice con 5 membership function in un intervallo [1,5] della variabile di ingresso
 fuz = Fuzzify(5,[1,5])
 out = Output('out',fuz(x))
-example = Neu4mes(verbose = True)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -23,8 +23,8 @@ print("------------------------EXAMPLE 2------------------------")
 # Ho creato una funzione fuzzificatrice con 5 membership function in un intervallo [1,5] della variabile di ingresso
 # e funzione di attivazione triangolare
 fuz = Fuzzify(5,[1,5], functions = 'Triangular')
-out = Output(x.z(-1),fuz(x))
-example = Neu4mes(verbose = True)
+out = Output('out',fuz(x))
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -35,8 +35,8 @@ print("------------------------EXAMPLE 3------------------------")
 # i centri sono in [1,2,3,4,5,6] le funzioni sono larghe 1 tranne la prima e l'ultima
 # [-inf, 1.5] [1.5,2.5] [2.5,3.5] [3.5,4.5] [4.5,5.5] [5.5.inf]
 fuz = Fuzzify(6,[1,6], functions = 'Rettangular')
-out = Output(x.z(-1),fuz(x))
-example = Neu4mes(verbose = True)
+out = Output('out',fuz(x))
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -48,8 +48,8 @@ print("------------------------EXAMPLE 4------------------------")
 def fun(x):
     return np.tanh(x)
 fuz = Fuzzify(output_dimension = 11, range = [-5,5], functions = fun)
-out = Output(x.z(-1),fuz(x))
-example = Neu4mes(verbose = True)
+out = Output('out',fuz(x))
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -62,8 +62,8 @@ def fun1(x):
 def fun2(x):
     return np.cos(x)
 fuz = Fuzzify(2,range=[-1,5],functions=[fun1,fun2]) # Crea 2 memebership function custom
-out = Output(x.z(-1),fuz(x))
-example = Neu4mes(verbose = True)
+out = Output('out',fuz(x))
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -76,8 +76,8 @@ def fun1(x):
 def fun2(x):
     return np.cos(x)
 fuz = Fuzzify(4,centers=[-1,0,3,5],functions=[fun1,fun2,fun1,fun2])
-out = Output(x.z(-1),fuz(x.tw(1))+fuz(F.tw(1)))
-example = Neu4mes(verbose = True)
+out = Output('out',fuz(x.tw(1))+fuz(F.tw(1)))
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
