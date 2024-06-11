@@ -144,7 +144,7 @@ class Neu4mes:
         ## Determine the Maximal number of samples that can be created
         if sampled:
             min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in model_inputs])
-            max_dim_ind,  max_dim = argmax_max([len(inputs[key]) for key in model_inputs])
+            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in model_inputs])
         else:
             min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
             max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
@@ -245,16 +245,24 @@ class Neu4mes:
 
 
         for key, value in self.model_def['Inputs'].items():
-            self.input_tw_backward[key] = abs(value['tw'][0]) # TODO Eccolo l'errore le finestre sono costruite male
+            self.input_tw_backward[key] = -value['tw'][0]
             self.input_tw_forward[key] = value['tw'][1]
             if value['sw'] == [0,0] and value['tw'] == [0,0]:
                 self.input_tw_backward[key] = sample_time
-            self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),abs(value['sw'][0]))
-            self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),abs(value['sw'][1]))
+            if value['sw'] == [0,0] :
+                self.input_ns_backward[key] = round(self.input_tw_backward[key] / sample_time)
+                self.input_ns_forward[key] = round(self.input_tw_forward[key] / sample_time)
+            else:
+                self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),-value['sw'][0])
+                self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),value['sw'][1])
             self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
 
         self.max_samples_backward = max(self.input_ns_backward.values())
         self.max_samples_forward = max(self.input_ns_forward.values())
+        if self.max_samples_backward < 0:
+            self.visualizer.warning(f"The input is only in the far past the max_samples_backward is: {self.max_samples_backward}")
+        if self.max_samples_forward < 0:
+            self.visualizer.warning(f"The input is only in the far future the max_sample_forward is: {self.max_samples_forward}")
         self.max_n_samples = self.max_samples_forward + self.max_samples_backward
 
         self.visualizer.showModelInputWindow()
@@ -268,15 +276,16 @@ class Neu4mes:
                     window = 'tw' if 'tw' in input_name[1] else 'sw'
                     aux_sample_time = sample_time if 'tw' in input_name[1] else 1
                     if type(input_name[1][window]) is list: ## we have the forward and backward window
-                        if input_name[0] in self.model_def['Inputs']:
-                            backward = self.input_ns_backward[input_name[0]] - round(abs(input_name[1][window][0])/aux_sample_time)
-                            forward = self.input_ns_backward[input_name[0]] + round(abs(input_name[1][window][1])/aux_sample_time)
-                        else:
-                            backward = round(abs(input_name[1][window][0])/aux_sample_time)
-                            forward = round(abs(input_name[1][window][1])/aux_sample_time)
+                        assert input_name[0] in self.model_def['Inputs'], "Why isn't the input in model_def['Inputs']?"
+                        # if input_name[0] in self.model_def['Inputs']:
+                        backward = self.input_ns_backward[input_name[0]] + round(input_name[1][window][0]/aux_sample_time)
+                        forward = self.input_ns_backward[input_name[0]] + round(input_name[1][window][1]/aux_sample_time)
+                        # else:
+                        #     backward = round(abs(input_name[1][window][0])/aux_sample_time)
+                        #     forward = round(abs(input_name[1][window][1])/aux_sample_time)
 
                         if 'offset' in input_name[1]: ## we have the offset
-                            offset = round(abs(input_name[1][window][0])/aux_sample_time) + round(input_name[1]['offset'] / aux_sample_time)
+                            offset = self.input_ns_backward[input_name[0]] + round(input_name[1]['offset'] / aux_sample_time)
                             input_samples[input_name[0]] = {'start_idx': backward, 'end_idx': forward, 'offset_idx': offset}
                         else:
                             input_samples[input_name[0]] = {'start_idx':backward, 'end_idx': forward}

@@ -182,10 +182,6 @@ class Neu4mesJson(unittest.TestCase):
         with self.assertRaises(AssertionError):
             out = ParamFun(myFun,5)(input.tw(2),input.tw(1))
 
-
-
-
-
     def test_output(self):
         pass
 
