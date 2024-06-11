@@ -44,5 +44,10 @@ data_struct = ['time','x','dx','F']
 data_folder = './tutorials/datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(data_folder, data_struct)
 
+random_sample = mass_spring_damper.get_random_samples(window=2)
+print('random sample: ',random_sample)
+results = mass_spring_damper(random_sample, sampled=True)
+print('results: ', results)
+
 #Neural network train
-mass_spring_damper.trainModel(test_percentage = 10, training_params = {'num_of_epochs': 150})
+#mass_spring_damper.trainModel(test_percentage = 10, training_params = {'num_of_epochs': 150})

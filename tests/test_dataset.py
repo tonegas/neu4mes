@@ -267,5 +267,34 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         self.assertEqual((9,),test.inout_asarray['out'].shape)
         self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out'].tolist())
 
+    def test_build_dataset_custom(self):
+        input1 = Input('in1')
+        output = Input('out')
+        rel1 = Fir(input1.tw(0.05))
+        rel2 = Fir(input1.tw([-0.01,0.02]))
+        rel3 = Fir(input1.tw([-0.05,0.01]))
+        fun = Output('out',rel1+rel2+rel3)
+
+        test = Neu4mes(visualizer=None)
+        test.addModel(fun)
+        test.minimizeError('out', output.z(-1), fun)
+        test.neuralizeModel(0.01)
+
+        data_x = np.array(range(10))
+        data_a = 2
+        data_b = -3
+        dataset = {'in1': data_x, 'out': (data_a*data_x) + data_b}
+        
+        test.loadData(source=dataset)
+        self.assertEqual((4,7),test.inout_asarray['in1'].shape)
+        self.assertEqual([[0,1,2,3,4,5,6],
+                        [1,2,3,4,5,6,7],
+                        [2,3,4,5,6,7,8],
+                        [3,4,5,6,7,8,9]],
+                        test.inout_asarray['in1'].tolist())
+
+        self.assertEqual((4,1),test.inout_asarray['out'].shape)
+        self.assertEqual([[7],[9],[11],[13]],test.inout_asarray['out'].tolist())
+
 if __name__ == '__main__':
     unittest.main()

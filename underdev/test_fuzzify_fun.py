@@ -53,7 +53,7 @@ example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
-'''
+
 print("------------------------EXAMPLE 5------------------------")
 # Example 5
 # Crea 2 membership function custom che si posizionano in -1 e 5
@@ -68,7 +68,7 @@ example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
-
+'''
 print("------------------------EXAMPLE 6------------------------")
 # Example 6
 # Crea 4 membership function custom che si posizionano in [-1,0,3,5]

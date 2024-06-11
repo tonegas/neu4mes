@@ -91,7 +91,10 @@ class Model(nn.Module):
                     layer_inputs = []
                     for key in self.relation_inputs[output]:
                         if key in self.inputs.keys():
-                            temp = kwargs[key][:,self.samples[output][key]['start_idx']:self.samples[output][key]['end_idx']]
+                            if kwargs[key].ndim == 1:
+                                temp = kwargs[key][:,self.samples[output][key]['start_idx']]
+                            else:
+                                temp = kwargs[key][:,self.samples[output][key]['start_idx']:self.samples[output][key]['end_idx']]
                         else:
                             temp = available_inputs[key]
                         if 'offset_idx' in self.samples[output][key]:

@@ -1,0 +1,8 @@
+1. Add 'values' inside json parameter and make parameters values not random 
+2. add tests for fuzzify -> DONE
+3. drop minimize values from the output json, so that when u call the function u don't need to also include labels
+4. add custom fuzzify function and the 'name' in the json  -> DONE
+5. add vectoral inputs
+6. investigate on why the program crashes if i force close the training plots
+7. adjust the metrics of the visualizer
+8. add the activation functions to the visualizer

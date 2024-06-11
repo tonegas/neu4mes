@@ -167,8 +167,10 @@ class Neu4mes:
                         X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32)
                     else:
                         X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
-
-                    if X[key].ndim == 1: ## add the batch dimension
+                        
+                    if X[key].ndim == 0: ## add the batch dimension
+                        X[key] = X[key].unsqueeze(0)
+                    if X[key].ndim == 1: ## add the input dimension
                         X[key] = X[key].unsqueeze(0)
             result = self.model(X)
             for key in self.model_def['Outputs'].keys():
