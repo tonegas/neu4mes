@@ -201,7 +201,9 @@ class Neu4mes:
             self.model_def = merge(self.model_def, model_def.json)
         elif type(model_def) is dict:
             self.model_def = merge(self.model_def, model_def)
-
+        elif type(model_def) is list:
+            for item in model_def:
+                self.addModel(item)
     def minimizeError(self, variable_name, streamA, streamB, loss_function='mse'):
         self.model_def = merge(self.model_def, streamA.json)
         self.model_def = merge(self.model_def, streamB.json)

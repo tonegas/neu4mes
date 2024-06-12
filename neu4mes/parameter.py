@@ -2,9 +2,10 @@ import copy
 
 from neu4mes.relation import NeuObj, Stream
 
+#values = zeros, ones, 1order, linear, quadratic
 
 class Parameter(NeuObj, Stream):
-    def __init__(self, name, dimensions=1, tw=None):
+    def __init__(self, name:str, dimensions = 1, tw = None):
         NeuObj.__init__(self, name)
         self.dim = {'dim': dimensions}
         if tw is not None:
