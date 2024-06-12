@@ -16,7 +16,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         x_z = Output('x_z', Fir(x.tw(0.3)) + Fir(F))
 
         # Add the neural model to the neu4mes structure and neuralization of the model
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(x_z)
         test.minimizeError('next-pos', x.z(-1), x_z, 'mse')
 
