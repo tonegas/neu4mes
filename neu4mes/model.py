@@ -95,7 +95,7 @@ class Model(nn.Module):
                         else:
                             temp = available_inputs[key]
                         if 'offset_idx' in self.samples[output][key]:
-                            temp = temp - temp[:, self.samples[output][key]['offset_idx']:self.samples[output][key]['offset_idx']+1]
+                            temp = temp - temp[:,self.samples[output][key]['offset_idx']-self.samples[output][key]['start_idx']-1]
                         layer_inputs.append(temp)
 
                         if output in self.outputs.keys():

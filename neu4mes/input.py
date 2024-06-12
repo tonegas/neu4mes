@@ -28,10 +28,22 @@ class Input(NeuObj, Stream):
         check(tw > 0, ValueError, "The time window must be positive")
         dim['tw'] = tw
         if offset is not None:
-            check(json['Inputs'][self.name]['tw'][0] <= offset < json['Inputs'][self.name]['tw'][1], IndexError,"The offset must be inside the time window")
+            check(json['Inputs'][self.name]['tw'][0] < offset <= json['Inputs'][self.name]['tw'][1], IndexError,"The offset must be inside the time window")
             return Stream((self.name, {'tw':json['Inputs'][self.name]['tw'], 'offset':offset}), json, dim)
         return Stream((self.name,  {'tw':json['Inputs'][self.name]['tw']}), json, dim)
 
+    # Select a sample window
+    # Example T = [-3,-2,-1,0,1,2]       # time vector 0 represent the last passed instant
+    # If sw is an integer #1 represent the number of step in the past
+    # T.s(2)                = [-1, 0]    # represents two time step in the past
+    # If sw is a list [#1,#2] the numbers represent the time index in the vector second element excluded
+    # T.s([-2,0])           = [-1, 0]    # represents two time step in the past zero in the future
+    # T.s([0,1])            = [1]        # the first time in the future
+    # T.s([-4,-2])          = [-3,-2]
+    # The total number of samples can be computed #2-#1
+    # The offset represent the index of the vector that need to be used to offset the window
+    # T.s(2,offset=-1)      = [0, 1]      # the value of the window is [-1,0] offest by -1 the value at the index -1
+    # T.s([-2,2],offset=0)  = [-1,0,1,2]  # the value of the window is [-1,0,1,2] offset by 0 the value at the index 0
     def sw(self, sw, offset=None):
         dim = copy.deepcopy(self.dim)
         json = copy.deepcopy(self.json)
@@ -45,11 +57,16 @@ class Input(NeuObj, Stream):
         check(sw > 0, ValueError, "The time window must be positive")
         dim['sw'] = sw
         if offset is not None:
-            check(json['Inputs'][self.name]['sw'][0] <= offset < json['Inputs'][self.name]['sw'][1], IndexError,
+            check(json['Inputs'][self.name]['sw'][0] < offset <= json['Inputs'][self.name]['sw'][1], IndexError,
                   "The offset must be inside the time window")
             return Stream((self.name, {'sw': json['Inputs'][self.name]['sw'], 'offset': offset}), json, dim)
         return Stream((self.name, {'sw': json['Inputs'][self.name]['sw']}), json, dim)
 
+    # Select the unitary delay
+    # Example T = [-3,-2,-1,0,1,2] # time vector 0 represent the last passed instant
+    # T.z(-1) = 1
+    # T.z(0)  = 0 #the last passed instant
+    # T.z(2)  = -2
     def z(self, delay):
         self.json['Inputs'][self.name]['sw'] = [(-delay)-1,(-delay)]
         return Stream((self.name, {'sw':self.json['Inputs'][self.name]['sw']}), self.json, self.dim)
