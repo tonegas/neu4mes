@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 from neu4mes.visualizer import MPLVisulizer
+import torch
 
 # Input of the function
 x = Input('x')
@@ -36,6 +37,40 @@ print('activation function: ', results['out'])
 
 print('\nEXAMPLE 2')
 fuz = Fuzzify(11,centers=[-5,-4,-3,-2,-1,0,1,2,3,4,5],functions='Rectangular')
+out = Output('out', fuz(x))
+
+opt_fun = Neu4mes()
+opt_fun.minimizeError('x', target_y, out, 'mse')
+opt_fun.neuralizeModel()
+opt_fun.loadData(dataset)
+
+random_sample = opt_fun.get_random_samples(window=2)
+print('X: ',random_sample['x'])
+results = opt_fun(random_sample, sampled=True)
+print('activation function: ', results['out'])
+
+print('\nEXAMPLE 3')
+def fun(x):
+    return torch.cos(x)
+fuz = Fuzzify(3,centers=[-4,0,4],functions=fun)
+out = Output('out', fuz(x))
+
+opt_fun = Neu4mes()
+opt_fun.minimizeError('x', target_y, out, 'mse')
+opt_fun.neuralizeModel()
+opt_fun.loadData(dataset)
+
+random_sample = opt_fun.get_random_samples(window=2)
+print('X: ',random_sample['x'])
+results = opt_fun(random_sample, sampled=True)
+print('activation function: ', results['out'])
+
+print('\nEXAMPLE 4')
+def fun1(x):
+    return torch.cos(x)
+def fun2(x):
+    return torch.sin(x)
+fuz = Fuzzify(4,centers=[-9.0,-3.0,3.0,9.0],functions=[fun1,fun2])
 out = Output('out', fuz(x))
 
 opt_fun = Neu4mes()

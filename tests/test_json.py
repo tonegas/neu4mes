@@ -7,7 +7,7 @@ import unittest, logging
 from neu4mes import *
 
 # This test file tests the json, in particular
-# the dimensions that are propagated through the realtions
+# the dimensions that are propagated through the relations
 # and the structure of the json itself
 
 def myFun(K1,K2,p1,p2):
