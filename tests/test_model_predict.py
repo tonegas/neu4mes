@@ -9,12 +9,17 @@ import torch
 
 # This file test the model prediction in particular the output value
 
-def myfun(x,P):
+def myfun(x, P):
     return x*P
 
 def myfun2(a, b ,c):
     import torch
     return torch.sin(a + b) * c
+
+# Dimensions
+# The first dimension must indicate the time dimension i.e. how many time samples I asked for
+# The second dimension indicates the output time dimension for each sample.
+# The third is the size of the signal
 
 class MyTestCase(unittest.TestCase):
     def TestAlmostEqual(self, data1, data2, precision=4):
@@ -26,7 +31,7 @@ class MyTestCase(unittest.TestCase):
             self.assertAlmostEqual(data1, data2, places=precision)
 
 
-    def test_single_in_single_out(self):
+    def test_single_in(self):
         torch.manual_seed(1)
         in1 = Input('in1')
         in2 = Input('in2')
@@ -45,7 +50,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(3, len(results['out']))
         self.TestAlmostEqual([33.74938201904297, 40.309326171875, 46.86927032470703], results['out'])
 
-    def test_single_in_multi_out_window(self):
+    def test_single_in_window(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
         torch.manual_seed(1)
         in1 = Input('in1')
@@ -115,7 +120,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((1,), np.array(results['x.sw([0,1])']).shape)
         self.TestAlmostEqual([1],results['x.sw([0,1])'])
 
-    def test_single_in_multi_out_window_offset(self):
+    def test_single_in_window_offset(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
         torch.manual_seed(1)
         in1 = Input('in1')
@@ -150,7 +155,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([0], results['x.tw(1)'])
         self.assertEqual((1,), np.array(results['x.tw([-1,0])']).shape)
         self.TestAlmostEqual([0], results['x.tw([-1,0])'])
-        self.assertEqual((1, 2), np.array(results['x.tw([1,3])']).shape)
+        self.assertEqual((1,2), np.array(results['x.tw([1,3])']).shape)
         self.TestAlmostEqual([[0, -4]], results['x.tw([1,3])'])
         self.assertEqual((1,), np.array(results['x.tw([-3,-2])']).shape)
         self.TestAlmostEqual([0],results['x.tw([-3,-2])'])
@@ -166,42 +171,179 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((1,6), np.array(results['x.sw([-3, 3])-2']).shape)
         self.TestAlmostEqual([[-2,-1,0,1,7,3]],results['x.sw([-3, 3])-2'])
 
+    def test_multi_in_window_offset(self):
+        # Here there is more sample for each time step but the dimensions of the input is 1
+        torch.manual_seed(1)
+        in1 = Input('in1',dimensions=3)
+        inFir = Input('in2')
+        # TODO se rimuovo questo togliendo questo modello dalla lista non funziona più
+        # -----
+        f = Fir(1)
+        out_fun = f(inFir.tw(1))
+        out0 = Output('out', out_fun)
+        # -----
 
-    def test_single_in_multi_out(self):
+        # Finestre nel tempo
+        out1 = Output('x.tw(1)', in1.tw(1, offset=0))
+        out2 = Output('x.tw([-1,0])', in1.tw([-1, 0], offset=0))
+        out3 = Output('x.tw([1,3])', in1.tw([1, 3], offset=2))
+        out4 = Output('x.tw([-3,-2])', in1.tw([-3, -2], offset=-2))
+
+        # Finesatre nei samples
+        out5 = Output('x.sw([-1,0])', in1.sw([-1, 0], offset=0))
+        out6 = Output('x.sw([-3,1])', in1.sw([-3, 1], offset=-2))
+        out7 = Output('x.sw([0,1])', in1.sw([0, 1], offset=1))
+        out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=3))
+        out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=0))
+
+        test = Neu4mes(visualizer=None)
+        test.addModel([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9])
+
+        test.neuralizeModel(1)
+
+        # Single input
+        # Time                  -2,         -1,      0,      1,      2,       3 # zero represent the last passed instant
+        results = test({'in1': [[-2,3,4],[-1,2,2],[0,0,0],[1,2,3],[2,7,3],[3,3,3]],'in2':[1,2,3,4,5,6]})
+        # Time window
+        # TODO Sistemare
+        self.assertEqual((1,1,3), np.array(results['x.tw(1)']).shape)
+        self.TestAlmostEqual([[[0,0,0]]], results['x.tw(1)'])
+        self.assertEqual((1,1,3), np.array(results['x.tw([-1,0])']).shape)
+        self.TestAlmostEqual([[[0,0,0]]], results['x.tw([-1,0])'])
+        self.assertEqual((1,2,3), np.array(results['x.tw([1,3])']).shape)
+        self.TestAlmostEqual([[[0,0,0], [1,-4,0]]], results['x.tw([1,3])'])
+        self.assertEqual((1,1,3), np.array(results['x.tw([-3,-2])']).shape)
+        self.TestAlmostEqual([[[0,0,0]]], results['x.tw([-3,-2])'])
+        # # Sample window
+        self.assertEqual((1,1,3), np.array(results['x.sw([-1,0])']).shape)
+        self.TestAlmostEqual([[[0,0,0]]], results['x.sw([-1,0])'])
+        self.assertEqual((1,4,3), np.array(results['x.sw([-3,1])']).shape)
+        self.TestAlmostEqual([[[0,0,0], [1,-1,-2], [2,-3,-4], [3,-1,-1]]], results['x.sw([-3,1])'])
+        self.assertEqual((1,1,3), np.array(results['x.sw([0,1])']).shape)
+        self.TestAlmostEqual([[[0,0,0]]], results['x.sw([0,1])'])
+        self.assertEqual((1,6,3), np.array(results['x.sw([-3, 3])']).shape)
+        self.TestAlmostEqual([[[-5,0,1],[-4,-1,-1], [-3,-3,-3], [-2,-1,0], [-1,4,0], [0,0,0]]], results['x.sw([-3, 3])'])
+        self.assertEqual((1,6,3), np.array(results['x.sw([-3, 3])-2']).shape)
+        self.TestAlmostEqual([[[-2,3,4],[-1,2,2],[0,0,0],[1,2,3],[2,7,3],[3,3,3]]], results['x.sw([-3, 3])-2'])
+
+        # Multi input
+        results = test({'in1': [[-2, 3, 4], [-1, 2, 2], [0, 0, 0], [1, 2, 3], [2, 7, 3], [3, 3, 3], [2, 2, 2]],
+                        'in2': [1, 2, 3, 4, 5, 6, 7]})
+        self.assertEqual((2,6,3), np.array(results['x.sw([-3, 3])']).shape)
+        self.TestAlmostEqual([[[-5,0,1], [-4,-1,-1], [-3,-3,-3], [-2,-1,0], [-1,4,0], [0,0,0]],
+                                    [[-3,0,0], [-2,-2,-2], [-1,0,1],   [0,5,1],   [1,1,1],  [0,0,0]]], results['x.sw([-3, 3])'])
+        self.assertEqual((2,6,3), np.array(results['x.sw([-3, 3])-2']).shape)
+        self.TestAlmostEqual([[[-2,3,4],[-1,2,2],[0,0,0],[1,2,3],[2,7,3],[3,3,3]],
+                                    [[-2,0,-1],[-1,-2,-3],[0,0,0],[1,5,0],[2,1,0],[1,0,-1]]], results['x.sw([-3, 3])-2'])
+
+    def test_single_in_window_offset_aritmetic(self):
+        # Elementwise arithmetic, Activation, Trigonometric
+        # the dimensions and time window remain unchanged, for the
+        # binary operators must be equal
+        # TODO add the activation fucntion and the trigonometric test
+
+        in1 = Input('in1')
+        in2 = Input('in2', dimensions=2)
+        out1 = Output('sum', in1.tw(1, offset=0) + in1.tw([-1,0]))
+        out2 = Output('sub', in1.tw([1, 3], offset=2) - in1.tw([-3, -1], offset=-1))
+        out3 = Output('mul', in1.tw([-2, 2]) * in1.tw([-3, 1], offset=-1))
+
+        out4 = Output('sum2', in2.tw(1, offset=0) + in2.tw([-1,0]))
+        out5 = Output('sub2', in2.tw([1, 3], offset=2) - in2.tw([-3, -1], offset=-1))
+        out6 = Output('mul2', in2.tw([-2, 2]) * in2.tw([-3, 1], offset=-1))
+
+        test = Neu4mes(visualizer=None)
+        test.addModel([out1, out2, out3, out4, out5, out6])
+
+        test.neuralizeModel(1)
+        # Single input
+        #Time                  -2 -1  0  1   2  3              -2       -1      0        1      2        3
+        results = test({'in1': [1, 2, 8, 4, -1, 6], 'in2': [[-2, 3], [-1, 2], [0, 5], [1, 2], [2, 7], [3, 3]]})
+
+        self.assertEqual((1,), np.array(results['sum']).shape)
+        self.TestAlmostEqual([8], results['sum'])
+        self.assertEqual((1,2), np.array(results['sub']).shape) # [-1,6]+1 - [1,2]-2
+        self.TestAlmostEqual([[1,7]], results['sub'])
+        self.assertEqual((1,4), np.array(results['mul']).shape)
+        self.TestAlmostEqual([[2,16,32,-4]], results['mul'])
+
+        self.assertEqual((1,1,2), np.array(results['sum2']).shape)
+        self.TestAlmostEqual([[[0,5]]], results['sum2'])
+        self.assertEqual((1,2,2), np.array(results['sub2']).shape) #[[2,7],[3,3]]-[2,7] - [[-2,3],[-1,2]]-[-1,2]
+        self.TestAlmostEqual([[[-1,1],[1,-4]]], results['sub2']) # [[0,0],[1,-4]] - [[-1,1],[0,0]]
+        #[[-1, 2], [0, 5], [1, 2], [2, 7]] * [[-2, 3], [-1, 2], [0, 5], [1, 2]]-[-1, 2]
+        # [[-1, 2], [0, 5], [1, 2], [2, 7]] * [[-1, 1], [0, 0], [1, 3], [2, 0]]
+        self.assertEqual((1,4,2), np.array(results['mul2']).shape)
+        self.TestAlmostEqual([[[1, 2], [0, 0], [1, 6], [4, 0]]], results['mul2'])
+
+        # Multi input
+        # Time                  -2 -1  0  1  2  3  4             -2       -1      0        1      2        3         4
+        results = test({'in1': [1, 2, 8, 4, -1, 6, 9], 'in2': [[-2, 3], [-1, 2], [0, 5], [1, 2], [2, 7], [3, 3], [0, 0]]})
+        self.assertEqual((2,), np.array(results['sum']).shape)
+        self.TestAlmostEqual([8,4], results['sum'])
+        # [6,9]-6 - [2,8]-8 = [0,3] - [-6,0]
+        self.assertEqual((2,2), np.array(results['sub']).shape) # [-1,6]+1 - [1,2]-2
+        self.TestAlmostEqual([[1,7],[6,3]], results['sub'])
+        #[8, 4, -1, 6] * [2, 8, 4, -1]-8 = [8, 4, -1, 6] * [-6, 0, -4, -9]
+        self.assertEqual((2,4), np.array(results['mul']).shape)
+        self.TestAlmostEqual([[2,16,32,-4],[-48,0,4,-54]], results['mul'])
+
+        self.assertEqual((2,1,2), np.array(results['sum2']).shape)
+        self.TestAlmostEqual([[[0,5]],[[1, 2]]], results['sum2'])
+        self.assertEqual((2,2,2), np.array(results['sub2']).shape)
+        #[[3, 3], [0, 0]]-[3,3] - [[-1, 2], [0, 5]]-[0, 5] = [[0, 0], [-3, -3]] - [[-1, -3], [0, 0]]
+        self.TestAlmostEqual([[[-1,1],[1,-4]],[[-1,-3],[-3,-3]]], results['sub2'])
+        #[[0, 5], [1, 2], [2, 7], [3, 3]] * [[-1, 2], [0, 5], [1, 2], [2, 7]]-[0, 5]
+        #[[0, 5], [1, 2], [2, 7], [3, 3]] * [[-1, -3], [0, 0], [1, -3], [2, 2]]
+        self.assertEqual((2,4,2), np.array(results['mul2']).shape)
+        self.TestAlmostEqual([[[1, 2], [0, 0], [1, 6], [4, 0]],[[0, -15], [0, 0], [2, -21], [6, 6]]], results['mul2'])
+
+    def test_single_in_window_offset_fir(self):
+        # The input must be scalar and the time dimension is compress to 1,
+        # Vector input not allowed, it could be done that a number of fir filters equal to the size of the vector are constructed
+        # Should weights be shared or not?
         torch.manual_seed(1)
         in1 = Input('in1')
-        f = Fir(3)
-        out_fun = f(in1.tw(0.1))
-        out1 = Output('out', out_fun)
-        out2 = Output('intw2', in1.tw(1))
-        out3 = Output('intw3', in1.tw(0.2))
-        out4 = Output('intw4', in1.tw([-0.2,0.2]))
-        out5 = Output('intw5', in1.tw(0.1))
+        out1 = Output('Fir3', Fir(3)(in1))
+        out2 = Output('Fir5', Fir(5)(in1.tw(1)))
+        out3 = Output('Fir2', Fir(2)(in1.tw([-1,0])))
+        out4 = Output('Fir1', Fir(1)(in1.tw([-3,3])))
+        out5 = Output('Fir7', Fir(7)(in1.tw(3,offset=0)))
+        out6 = Output('Fir4', Fir(4)(in1.tw([2,3],offset=3)))
+        out7 = Output('Fir6', Fir(6)(in1.sw([-2,-1], offset=-1)))
+
         test = Neu4mes(visualizer=None)
-        test.addModel(out1)
-        test.addModel(out2)
-        test.addModel(out3)
-        test.addModel(out4)
-        test.addModel(out5)
-        test.neuralizeModel(0.1)
-        results = test({'in1': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]})
+        test.addModel([out1,out2,out3,out4,out5,out6,out7])
+        test.neuralizeModel(1)
+        # Single input
+        # Time                 -2 -1  0  1  2  3
+        results = test({'in1': [1, 2, 7, 4, 5, 6]})
         #TODO
         # La prima dimensione è quella temporale
         # la seconda dimensione è il numero di elementi temporali per ogni istante
         # la terza è la dimensione del segnale
-        #self.assertEqual((1,1,3), np.array(results['out']).shape)
-        #self.TestAlmostEqual(results['out'],[[[7.576315879821777, 2.7931089401245117, 4.0306925773620605]]])
-        self.assertEqual((1, 10), np.array(results['intw2']).shape)
-        self.TestAlmostEqual(results['intw2'], [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
-        self.assertEqual((1, 2), np.array(results['intw3']).shape)
-        self.TestAlmostEqual(results['intw3'], [[9, 10]])
-        self.assertEqual((1, 4), np.array(results['intw4']).shape)
-        self.TestAlmostEqual(results['intw4'], [[9, 10, 11, 12]])
-        self.assertEqual((1,), np.array(results['intw5']).shape)
-        self.TestAlmostEqual(results['intw5'], [10])
-    
-    ## don't know why but the indentation fails when trying to build the function
-    def test_parametric_function(self): 
+        self.assertEqual((1,1,3), np.array(results['Fir3']).shape)
+        self.assertEqual((1,1,5), np.array(results['Fir5']).shape)
+        self.assertEqual((1,1,2), np.array(results['Fir2']).shape)
+        self.assertEqual((1,), np.array(results['Fir1']).shape)
+        self.assertEqual((1,1,7), np.array(results['Fir7']).shape)
+        self.assertEqual((1,1,4), np.array(results['Fir4']).shape)
+        self.assertEqual((1,1,6), np.array(results['Fir6']).shape)
+
+        # Multi input there are 3 temporal instant
+        # Time                 -2 -1  0  1  2  3  4  5
+        results = test({'in1': [1, 2, 7, 4, 5, 6, 7, 8]})
+        self.assertEqual((3,1,3), np.array(results['Fir3']).shape)
+        self.assertEqual((3,1,5), np.array(results['Fir5']).shape)
+        self.assertEqual((3,1,2), np.array(results['Fir2']).shape)
+        self.assertEqual((3,), np.array(results['Fir1']).shape)
+        self.assertEqual((3,1,7), np.array(results['Fir7']).shape)
+        self.assertEqual((3,1,4), np.array(results['Fir4']).shape)
+        self.assertEqual((3,1,6), np.array(results['Fir6']).shape)
+
+    def test_single_in_window_offset_parametric_function(self):
+        # An input dimension is temporal and does not remain unchanged unless redefined on output
+        # If there are multiple inputs the function returns an error if the dimensions are not defined
         torch.manual_seed(1)
         in1 = Input('in1')
         parfun = ParamFun(myfun, 1)
@@ -251,7 +393,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [1,2]})
         self.TestAlmostEqual(results['out'],[1,4])
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(KeyError):
             Output('out', ParamFun(myfun)(in1.tw(1), in1))
 
         out = Output('out', ParamFun(myfun)(in1.tw(0.1), in1.tw(0.1)))
@@ -321,7 +463,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [1, 2, 2, 4, 5]})
         self.TestAlmostEqual(results['out'], [-0.03262542188167572, -0.001211121678352356])
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4),in2.tw(0.2))))
 
         out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4),in2.tw(0.4))))

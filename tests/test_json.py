@@ -60,7 +60,7 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1}, out.dim)
         out = ParamFun(myFun,5)(input)
         self.assertEqual({'dim': 5}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = Fir(Fir(7)(input))
         #
         with self.assertRaises(AssertionError):
@@ -101,7 +101,7 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1, 'tw' : 1}, out.dim)
         out = ParamFun(myFun,5)(input.tw(2))
         self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = ParamFun(myFun,5)(input.tw(2),input.tw(1))
         inpart = ParamFun(myFun, 5)(input.tw(2))
         out = Part(inpart,0,4)
@@ -171,7 +171,7 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
         out = Relu(input.tw(1))
         self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             Fir(7)(input)
         with self.assertRaises(AssertionError):
             Fuzzify(7)(input)
@@ -179,7 +179,7 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1, 'tw' : 1}, out.dim)
         out = ParamFun(myFun,5)(input.tw(2))
         self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = ParamFun(myFun,5)(input.tw(2),input.tw(1))
 
     def test_output(self):
