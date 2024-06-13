@@ -245,6 +245,7 @@ class Neu4mes:
         self.model_def["SampleTime"] = sample_time
         self.visualizer.showModel()
 
+        check(self.model_def['Inputs'] != {}, RuntimeError, "No model is defined!")
 
         for key, value in self.model_def['Inputs'].items():
             self.input_tw_backward[key] = -value['tw'][0]
