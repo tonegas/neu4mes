@@ -15,7 +15,7 @@ k = Parameter('k', dimensions=3, tw=4)
 fir1 = Fir(3, parameter=k)
 fir2 = Fir(3, parameter=k)
 out = Output('out', fir1(x.tw(4))+fir2(F.tw(4)))
-example = Neu4mes(verbose = False)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
@@ -29,7 +29,7 @@ def fun(x, k, t):
     return x*k*t
 p = ParamFun(fun, output_dimension=3, parameters=[k,t])
 out = Output('out', p(x.tw(1)))
-example = Neu4mes(verbose = False)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 #
