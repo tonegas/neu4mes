@@ -46,7 +46,7 @@ class Model(nn.Module):
                 continue
             
             ## Check shared layers
-            if len(inputs) >= 3:
+            if len(inputs) >= 3 and rel_name not in ('TimePart','SamplePart'): #TODO must to be fixed
                 if inputs[2] in self.relation_parameters.keys(): ## we have a shared layer
                     self.relation_forward[relation] = self.relation_forward[self.relation_parameters[inputs[2]]]
                     self.relation_inputs[relation] = input_var
@@ -65,7 +65,7 @@ class Model(nn.Module):
                 self.relation_inputs[relation] = input_var
 
                 ## Add the shared layers
-                if len(inputs) >= 3:
+                if len(inputs) >= 3 and rel_name not in ('TimePart','SamplePart'): #TODO must to be fixed
                     if inputs[2] not in self.relation_parameters.keys():
                         self.relation_parameters[inputs[2]] = relation   
             else:

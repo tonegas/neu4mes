@@ -31,20 +31,32 @@ class Neu4mesJson(unittest.TestCase):
         out = input+input
         self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add1': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)
         out = input.tw(1) + input.tw(1)
-        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add4': ['Add', [('in', {'tw':[-1,0]}), ('in',{'tw':[-1,0]})]]}, 'SampleTime': 0},out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add6': ['Add', ['TimePart3', 'TimePart5']],
+               'TimePart3': ['TimePart', ['in'], [-1, 0]],
+               'TimePart5': ['TimePart', ['in'], [-1, 0]]}, 'SampleTime': 0},out.json)
         out = input.tw(1) * input.tw(1)
-        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Mul7': ['Mul', [('in', {'tw':[-1,0]}), ('in',{'tw':[-1,0]})]]}, 'SampleTime': 0},out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Mul11': ['Mul', ['TimePart8', 'TimePart10']],
+               'TimePart10': ['TimePart', ['in'], [-1, 0]],
+               'TimePart8': ['TimePart', ['in'], [-1, 0]]}, 'SampleTime': 0},out.json)
         out = input.tw(1) - input.tw(1)
-        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Sub10': ['Sub', [('in', {'tw':[-1,0]}), ('in',{'tw':[-1,0]})]]}, 'SampleTime': 0},out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 1, 'tw': [-1,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Sub16': ['Sub', ['TimePart13', 'TimePart15']],
+               'TimePart13': ['TimePart', ['in'], [-1, 0]],
+               'TimePart15': ['TimePart', ['in'], [-1, 0]]}, 'SampleTime': 0},out.json)
         input = Input('in', dimensions = 5)
         out = input + input
-        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add12': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [0,0], 'sw': [0, 0]}},'Functions' : {}, 'Parameters' : {}, 'Outputs': {}, 'Relations': {'Add18': ['Add', ['in', 'in']]}, 'SampleTime': 0},out.json)
         out = input.tw(1) + input.tw(1)
-        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [-1, 0], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add15': ['Add', [('in', {'tw': [-1, 0]}), ('in', {'tw': [-1, 0]})]]},'SampleTime': 0}, out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [-1, 0], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add23': ['Add', ['TimePart20', 'TimePart22']],
+               'TimePart20': ['TimePart', ['in'], [-1, 0]],
+               'TimePart22': ['TimePart', ['in'], [-1, 0]]},'SampleTime': 0}, out.json)
         out = input.tw([2,5]) + input.tw([3,6])
-        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [2, 6], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add18': ['Add', [('in', {'tw': [2, 5]}), ('in', {'tw': [3, 6]})]]},'SampleTime': 0}, out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [2, 6], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add28': ['Add', ['TimePart25', 'TimePart27']],
+               'TimePart25': ['TimePart', ['in'], [2, 5]],
+               'TimePart27': ['TimePart', ['in'], [3, 6]]},'SampleTime': 0}, out.json)
         out = input.tw([-5,-2]) + input.tw([-6,-3])
-        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [-6, -2], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add21': ['Add', [('in', {'tw': [-5, -2]}), ('in', {'tw': [-6, -3]})]]},'SampleTime': 0}, out.json)
+        self.assertEqual({'Inputs': {'in': {'dim': 5, 'tw': [-6, -2], 'sw': [0, 0]}}, 'Functions': {}, 'Parameters': {},'Outputs': {}, 'Relations': {'Add33': ['Add', ['TimePart30', 'TimePart32']],
+               'TimePart30': ['TimePart', ['in'], [-5, -2]],
+               'TimePart32': ['TimePart', ['in'], [-6, -3]]},'SampleTime': 0}, out.json)
 
     def test_scalar_input_dimensions(self):
         input = Input('in')
@@ -63,7 +75,7 @@ class Neu4mesJson(unittest.TestCase):
         with self.assertRaises(ValueError):
             out = Fir(Fir(7)(input))
         #
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(IndexError):
             out = Part(input,0,4)
         inpart = ParamFun(myFun, 5)(input)
         out = Part(inpart,0,4)
@@ -74,13 +86,13 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 2}, out.dim)
         out = Select(inpart,0)
         self.assertEqual({'dim': 1}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(IndexError):
             out = Select(inpart,5)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(IndexError):
             out = Select(inpart,-1)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(KeyError):
             out = TimePart(inpart,-1,0)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(KeyError):
             out = TimeSelect(inpart,-1)
 
     def test_scalar_input_tw_dimensions(self):
@@ -112,15 +124,15 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 2,'tw': 2}, out.dim)
         out = Select(inpart,0)
         self.assertEqual({'dim': 1,'tw': 2}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(IndexError):
             out = Select(inpart,5)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(IndexError):
             out = Select(inpart,-1)
-        out = TimePart(inpart,-1,0)
+        out = TimePart(inpart, -1,0)
         self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
         out = TimeSelect(inpart,-1)
         self.assertEqual({'dim': 5}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = TimeSelect(inpart,-3)
         twinput = input.tw([-2,4])
         out = TimePart(twinput, -1, 0)
