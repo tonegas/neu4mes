@@ -5,7 +5,7 @@ import numpy as np
 from neu4mes.relation import NeuObj, Stream
 from neu4mes.utilis import check
 from neu4mes.visualizer import Visualizer
-from neu4mes.part import SamplePart, TimePart
+from neu4mes.part import InputSamplePart, InputTimePart
 
 class Input(NeuObj, Stream):
     def __init__(self, name, dimensions:int = 1, values = None):
@@ -32,7 +32,7 @@ class Input(NeuObj, Stream):
             check(json['Inputs'][self.name]['tw'][0] < offset <= json['Inputs'][self.name]['tw'][1],
                   IndexError,
                   "The offset must be inside the time window")
-        return TimePart(Stream(self.name, json, dim), json['Inputs'][self.name]['tw'][0], json['Inputs'][self.name]['tw'][1], offset)
+        return InputTimePart(Stream(self.name, json, dim), json['Inputs'][self.name]['tw'][0], json['Inputs'][self.name]['tw'][1], offset)
 
     # Select a sample window
     # Example T = [-3,-2,-1,0,1,2]       # time vector 0 represent the last passed instant
@@ -62,7 +62,7 @@ class Input(NeuObj, Stream):
             check(json['Inputs'][self.name]['sw'][0] < offset <= json['Inputs'][self.name]['sw'][1],
                   IndexError,
                   "The offset must be inside the time window")
-        return SamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], offset)
+        return InputSamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], offset)
 
     # def sw(self, sw, offset=None):
     #     dim = copy.deepcopy(self.dim)
@@ -91,7 +91,7 @@ class Input(NeuObj, Stream):
         dim = copy.deepcopy(self.dim)
         json = copy.deepcopy(self.json)
         json['Inputs'][self.name]['sw'] = [(-delay)-1,(-delay)]
-        return SamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], None)
+        return InputSamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], None)
 
     # def s(self, derivate):
     #     return Stream((self.name, {'s':derivate}), self.json, self.dim)

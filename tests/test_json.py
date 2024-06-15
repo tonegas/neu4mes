@@ -128,14 +128,14 @@ class Neu4mesJson(unittest.TestCase):
             out = Select(inpart,5)
         with self.assertRaises(IndexError):
             out = Select(inpart,-1)
-        out = TimePart(inpart, -1,0)
+        out = TimePart(inpart, 0,1)
         self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
-        out = TimeSelect(inpart,-1)
+        out = TimeSelect(inpart,0)
         self.assertEqual({'dim': 5}, out.dim)
         with self.assertRaises(ValueError):
             out = TimeSelect(inpart,-3)
         twinput = input.tw([-2,4])
-        out = TimePart(twinput, -1, 0)
+        out = TimePart(twinput, 0, 1)
         self.assertEqual({'dim': 1, 'tw': 1}, out.dim)
 
     def test_scalar_input_tw2_dimensions(self):
