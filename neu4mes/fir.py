@@ -65,13 +65,17 @@ def createLinear(self, input_size, output_size, param=None):
     return linear
 '''
 
+class Fir_Layer(nn.Module):
+    def __init__(self, **kwargs):
+        super(Fir_Layer, self).__init__()
+        self.lin = nn.Linear(**kwargs)
+
+    def forward(self, x):
+        return self.lin(x.permute(0, 2, 1))
+
 def createLinear(self, weights):
-    layer = nn.Linear(in_features=weights.size(1), out_features=weights.size(0), bias=False)
-    layer.weight = weights
+    layer = Fir_Layer(in_features=weights.size(1), out_features=weights.size(0), bias=False)
+    layer.lin.weight = weights
     return layer
 
-def createLinearBias(self, input_size, output_size):
-    return nn.Linear(in_features=input_size, out_features=output_size, bias=True)
-
 setattr(Model, fir_relation_name, createLinear)
-#setattr(Model, fir_bias_relation_name, createLinearBias)
