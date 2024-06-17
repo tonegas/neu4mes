@@ -64,24 +64,6 @@ class Input(NeuObj, Stream):
                   "The offset must be inside the time window")
         return InputSamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], offset)
 
-    # def sw(self, sw, offset=None):
-    #     dim = copy.deepcopy(self.dim)
-    #     json = copy.deepcopy(self.json)
-    #     if type(sw) is list:
-    #         check(type(sw[0]) == int and type(sw[1]) == int, TypeError, "The sample window must be integer")
-    #         json['Inputs'][self.name]['sw'] = sw
-    #         sw = sw[1] - sw[0]
-    #     else:
-    #         check(type(sw) == int, TypeError, "The sample window must be integer")
-    #         json['Inputs'][self.name]['sw'][0] = -sw
-    #     check(sw > 0, ValueError, "The time window must be positive")
-    #     dim['sw'] = sw
-    #     if offset is not None:
-    #         check(json['Inputs'][self.name]['sw'][0] < offset <= json['Inputs'][self.name]['sw'][1], IndexError,
-    #               "The offset must be inside the time window")
-    #         return Stream((self.name, {'sw': json['Inputs'][self.name]['sw'], 'offset': offset}), json, dim)
-    #     return Stream((self.name, {'sw': json['Inputs'][self.name]['sw']}), json, dim)
-
     # Select the unitary delay
     # Example T = [-3,-2,-1,0,1,2] # time vector 0 represent the last passed instant
     # T.z(-1) = 1
@@ -90,8 +72,16 @@ class Input(NeuObj, Stream):
     def z(self, delay):
         dim = copy.deepcopy(self.dim)
         json = copy.deepcopy(self.json)
-        json['Inputs'][self.name]['sw'] = [(-delay)-1,(-delay)]
+        sw = [(-delay) - 1, (-delay)]
+        json['Inputs'][self.name]['sw'] = sw
+        dim['sw'] = sw[1] - sw[0]
         return InputSamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], None)
+
+    def last(self):
+        return self.z(1)
+
+    def next(self):
+        return self.z(-1)
 
     # def s(self, derivate):
     #     return Stream((self.name, {'s':derivate}), self.json, self.dim)
