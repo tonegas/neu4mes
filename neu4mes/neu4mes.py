@@ -865,21 +865,23 @@ class Neu4mes:
                     if X[key].ndim >= 2:
                         check(X[key].shape[1] == input_dim, ValueError, 'The second dimension must be equal to the input dimension')
 
-                    if X[key].ndim == 0: ## add the batch dimension
-                        X[key] = X[key].unsqueeze(0)
-                    if X[key].ndim == 1:
-                        X[key] = X[key].unsqueeze(0)
+                    # if X[key].ndim == 0: ## add the batch dimension
+                    #     X[key] = X[key].unsqueeze(0)
+                    #if X[key].ndim == 1:
+                    #    X[key] = X[key].unsqueeze(0)
                     if input_dim == 1: ## add the input dimension
                         X[key] = X[key].unsqueeze(-1)
+                    if X[key].ndim <= 2: ## add the batch dimension
+                        X[key] = X[key].unsqueeze(0)
             result, _  = self.model(X)
-            print('result: ', result)
+            #print('result: ', result)
             for key in self.model_def['Outputs'].keys():
                 if result[key].shape[-1] == 1:
                     result[key] = result[key].squeeze(-1)
                     if result[key].shape[-1] == 1: 
                         result[key] = result[key].squeeze(-1)
                 result_dict[key].append(result[key].detach().squeeze(dim=0).tolist())
-            print('result after detach: ', result_dict)
+            #print('result after detach: ', result_dict)
 
         return result_dict
 
@@ -963,12 +965,12 @@ class Neu4mes:
 
 
         ## Build the network
-        print('[LOG] max_samples_backward: ', self.max_samples_backward)
-        print('[LOG] max_samples_forward: ', self.max_samples_forward)
-        print('[LOG] input_ns_backward: ', self.input_ns_backward)
-        print('[LOG] input_ns_forward: ', self.input_ns_forward)
-        print('[LOG] minimize_list: ', self.minimize_list)
-        print('[LOG] minimize_dict: ', self.minimize_dict)
+        #print('[LOG] max_samples_backward: ', self.max_samples_backward)
+        #print('[LOG] max_samples_forward: ', self.max_samples_forward)
+        #print('[LOG] input_ns_backward: ', self.input_ns_backward)
+        #print('[LOG] input_ns_forward: ', self.input_ns_forward)
+        #print('[LOG] minimize_list: ', self.minimize_list)
+        #print('[LOG] minimize_dict: ', self.minimize_dict)
 
         self.model = Model(self.model_def, self.minimize_list)
         self.visualizer.showBuiltModel()
