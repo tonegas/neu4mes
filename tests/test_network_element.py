@@ -23,7 +23,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[1, 1], [1, 1]]
         for ind, (key, value) in enumerate({k: v for k, v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
     def test_network_building_simple(self):
         input1 = Input('in1')
         rel1 = Fir(input1.tw(0.05))
@@ -36,7 +36,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         
         list_of_dimensions = [[5,1], [1,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
     def test_network_building_tw(self):
         input1 = Input('in1')
@@ -53,7 +53,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         
         list_of_dimensions = [[5,1], [1,1], [5,1], [4,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
     def test_network_building_tw2(self):
         input2 = Input('in2')
@@ -73,7 +73,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         
         list_of_dimensions = [[5,1], [4,1], [6,1], [3,1], [3,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual( list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual( list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
 
     def test_network_building_tw3(self):
@@ -89,7 +89,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[5,1], [4,1], [5,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
 
     def test_network_building_tw_with_offest(self):
@@ -106,7 +106,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
     def test_network_building_tw_negative(self):
         input2 = Input('in2')
@@ -120,7 +120,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[3,1], [3,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
     def test_network_building_tw_positive(self):
         input2 = Input('in2')
@@ -134,7 +134,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[3,1], [3,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
 
     def test_network_building_sw_with_offset(self):
@@ -151,7 +151,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
 
     def test_network_building_sw_and_tw(self):
@@ -168,7 +168,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[6,1], [1,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.in_features, value.out_features])
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
 
     '''
