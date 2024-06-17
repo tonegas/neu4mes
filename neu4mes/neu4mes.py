@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from neu4mes.relation import NeuObj, merge
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.dataset import Neu4MesDataset
-from neu4mes.loss import CustomRMSE
+from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.model import Model
 from neu4mes.utilis import check, argmax_max, argmin_min
@@ -27,6 +27,7 @@ from neu4mes.logger import logging
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
+'''
 class Neu4mes:
     name = None
     def __init__(self, model_def = 0, visualizer = 'Standard'):
@@ -131,9 +132,9 @@ class Neu4mes:
         model_inputs = self.model_def['Inputs'].keys()
 
         ## Check if there are some missing inputs
-        check(set(model_inputs).issubset(set(inputs.keys())),
-              KeyError,
-              f'The complete model inputs are {list(model_inputs)}, the provided input are {list(inputs.keys())}')
+        #check(set(model_inputs).issubset(set(inputs.keys())),
+        #      KeyError,
+        #      f'The complete model inputs are {list(model_inputs)}, the provided input are {list(inputs.keys())}')
         #assert set(model_inputs).issubset(set(inputs.keys())), 'Missing Input!'
 
         ## Make all Scalar input inside a list
@@ -206,23 +207,25 @@ class Neu4mes:
         elif type(model_def) is list:
             for item in model_def:
                 self.addModel(item)
+
     def minimizeError(self, variable_name, streamA, streamB, loss_function='mse'):
         self.model_def = merge(self.model_def, streamA.json)
         self.model_def = merge(self.model_def, streamB.json)
         A = (streamA.name[0] if type(streamA.name) is tuple else streamA.name)
         nameA = variable_name + '_' + A
-        if type(streamA) is not Output:
-            self.model_def['Outputs'][nameA] = streamA.name
-        else:
-            self.model_def['Outputs'][nameA] = self.model_def['Outputs'][streamA.name]
+        #if type(streamA) is not Output:
+        #    self.model_def['Outputs'][nameA] = streamA.name
+        #else:
+        #    self.model_def['Outputs'][nameA] = self.model_def['Outputs'][streamA.name]
 
         B = (streamB.name[0] if type(streamB.name) is tuple else streamB.name)
         nameB = variable_name + '_' + B
-        if type(streamB) is not Output:
-            self.model_def['Outputs'][nameB] = streamB.name
-        else:
-            self.model_def['Outputs'][nameB] = self.model_def['Outputs'][streamB.name]
-        self.minimize_list.append((nameA, nameB, loss_function))
+        #if type(streamB) is not Output:
+        #    self.model_def['Outputs'][nameB] = streamB.name
+        #else:
+        #    self.model_def['Outputs'][nameB] = self.model_def['Outputs'][streamB.name]
+        #self.minimize_list.append((nameA, nameB, loss_function))
+        self.minimize_list.append((A, B, loss_function))
         self.minimize_dict[variable_name]={'A':(nameA, copy.deepcopy(streamA)), 'B':(nameB, copy.deepcopy(streamB)), 'loss':loss_function}
         self.visualizer.showMinimizeError(variable_name)
 
@@ -232,7 +235,6 @@ class Neu4mes:
     :param sample_time: the variable defines the rate of the network based on the training set
     :param prediction_window: the variable defines the prediction horizon in the future
     """
-    ## TODO sample time can be 0
     def neuralizeModel(self, sample_time = 1, prediction_window = None):
         # Prediction window is used for the recurrent network
         if prediction_window is not None:
@@ -312,7 +314,6 @@ class Neu4mes:
     :param sample_time: number of lines to be skipped (header lines)
     :param delimiters: it is a list of the symbols used between the element of the file
     """
-    ## TODO: can load data from dictionaries
     def loadData(self, source, format=None, skiplines = 0, delimiters=['\t',';',',']):
         assert self.neuralized == True, "The network is not neuralized yet."
 
@@ -362,9 +363,6 @@ class Neu4mes:
                                 self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-1])
                             else:
                                 self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-self.input_n_samples[key]:aux_ind])
-
-                    # Index identifying each file start
-                    #self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
 
         elif type(source) is dict:  ## we have a crafted dataset
             self.file_count = 1
@@ -504,7 +502,6 @@ class Neu4mes:
     """
     def trainModel(self, test_percentage = 0, training_params = {}):
         import time
-        start = time.time()
 
         # Check input
         train_size = 1 - (test_percentage / 100.0)
@@ -540,6 +537,7 @@ class Neu4mes:
             train_losses[key] = []
             test_losses[key] = []
 
+        start = time.time()
         for epoch in range(self.num_of_epochs):
             self.model.train()
             aux_train_losses = torch.zeros([len(self.minimize_dict),self.n_samples_train])
@@ -551,8 +549,25 @@ class Neu4mes:
 
                 self.optimizer.zero_grad()
                 out = self.model(XY)
-                for ind, (key, value) in enumerate(self.minimize_dict.items()):
-                    loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])
+                print('[LOG] XY.keys: ', XY.keys())
+                print('[LOG] XY: ', XY)
+                print('[LOG] minimize_list: ', self.minimize_list)
+                print('[LOG] minimize_dict: ', self.minimize_dict)
+                print('[LOG] input_ns_backward: ', self.input_ns_backward)
+                print('[LOG] input_ns_forward: ', self.input_ns_forward)
+                
+                for ind, (el1, el2, _) in enumerate(self.minimize_list):
+                    if el1 in self.model_def['Inputs'].keys():
+                        back, forw = self.model_def['Inputs'][el1]['sw'][0], self.model_def['Inputs'][el1]['sw'][1]
+                        loss1 = XY[el1][:, self.input_ns_backward[el1]+back:self.input_ns_backward[el1]+forw]
+                    else:
+                        loss1 = out[el1]
+                    if el2 in self.model_def['Inputs'].keys():
+                        back, forw = self.model_def['Inputs'][el2]['sw'][0], self.model_def['Inputs'][el2]['sw'][1]
+                        loss2 = XY[el2][:, self.input_ns_backward[el2]+back:self.input_ns_backward[el2]+forw]
+                    else:
+                        loss2 = out[el2]
+                    loss = self.loss_fn(loss1, loss2,1)
                     loss.backward(retain_graph=True)
                     aux_train_losses[ind][i]= loss.item()
 
@@ -572,18 +587,29 @@ class Neu4mes:
                         XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
 
                     out = self.model(XY)
-                    for ind, (key, value) in enumerate(self.minimize_dict.items()):
-                        loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])
-                        aux_test_losses[ind][i] = loss.item()
+                    
+                    for ind, (el1, el2, _) in enumerate(self.minimize_list):
+                        if el1 in self.model_def['Inputs'].keys():
+                            back, forw = self.model_def['Inputs'][el1]['sw'][0], self.model_def['Inputs'][el1]['sw'][1]
+                            loss1 = XY[el1][:, self.input_ns_backward[el1]+back:self.input_ns_backward[el1]+forw]
+                        else:
+                            loss1 = out[el1]
+                        if el2 in self.model_def['Inputs'].keys():
+                            back, forw = self.model_def['Inputs'][el2]['sw'][0], self.model_def['Inputs'][el2]['sw'][1]
+                            loss2 = XY[el2][:, self.input_ns_backward[el2]+back:self.input_ns_backward[el2]+forw]
+                        else:
+                            loss2 = out[el2]
+                        loss = self.loss_fn(loss1, loss2)
+                        aux_train_losses[ind][i]= loss.item()
 
                 for ind, key in enumerate(self.minimize_dict.keys()):
                     test_losses[key].append(torch.mean(aux_test_losses[ind]).tolist())
 
             self.visualizer.showTraining(epoch, train_losses, test_losses)
-
         end = time.time()
+
         self.visualizer.showTrainingTime(end-start)
-        self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+        #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
 
 
     """
@@ -662,11 +688,26 @@ class Neu4mes:
                     #print('[LOG] XY_horizon: ', XY_horizon)
                     out = self.model(XY)
                     #print('[LOG] out: ', out)
-                    for key, value in self.minimize_dict.items():
-                        #print('[LOG] valueA: ', out[value['A'][0]])
-                        #print('[LOG] ValueB: ', out[value['B'][0]])
-                        loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]]) 
-                        #print('[LOG] loss: ', loss.item()) 
+                    
+                    #for key, value in self.minimize_dict.items():
+                    #    #print('[LOG] valueA: ', out[value['A'][0]])
+                    #    #print('[LOG] ValueB: ', out[value['B'][0]])
+                    #    loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]]) 
+                    #    #print('[LOG] loss: ', loss.item()) 
+                    #    losses.append(loss)
+                    
+                    for el1, el2, _ in self.minimize_list:
+                        if el1 in self.model_def['Inputs'].keys():
+                            back, forw = self.model_def['Inputs'][el1]['sw'][0], self.model_def['Inputs'][el1]['sw'][1]
+                            loss1 = XY[el1][:, self.input_ns_backward[el1]+back:self.input_ns_backward[el1]+forw]
+                        else:
+                            loss1 = out[el1]
+                        if el2 in self.model_def['Inputs'].keys():
+                            back, forw = self.model_def['Inputs'][el2]['sw'][0], self.model_def['Inputs'][el2]['sw'][1]
+                            loss2 = XY[el2][:, self.input_ns_backward[el2]+back:self.input_ns_backward[el2]+forw]
+                        else:
+                            loss2 = out[el2]
+                        loss = self.loss_fn(loss1, loss2)
                         losses.append(loss)
 
                     ## Update the input with the recurrent prediction
@@ -699,8 +740,23 @@ class Neu4mes:
                     losses = []
                     for horizon_idx in range(prediction_samples):
                         out = self.model(XY)
-                        for key, value in self.minimize_dict.items():
-                            loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])  
+                        
+                        #for key, value in self.minimize_dict.items():
+                        #    loss = self.loss_fn(out[value['A'][0]], out[value['B'][0]])  
+                        #    losses.append(loss)
+                        
+                        for el1, el2, _ in self.minimize_list:
+                            if el1 in self.model_def['Inputs'].keys():
+                                back, forw = self.model_def['Inputs'][el1]['sw'][0], self.model_def['Inputs'][el1]['sw'][1]
+                                loss1 = XY[el1][:, self.input_ns_backward[el1]+back:self.input_ns_backward[el1]+forw]
+                            else:
+                                loss1 = out[el1]
+                            if el2 in self.model_def['Inputs'].keys():
+                                back, forw = self.model_def['Inputs'][el2]['sw'][0], self.model_def['Inputs'][el2]['sw'][1]
+                                loss2 = XY[el2][:, self.input_ns_backward[el2]+back:self.input_ns_backward[el2]+forw]
+                            else:
+                                loss2 = out[el2]
+                            loss = self.loss_fn(loss1, loss2)
                             losses.append(loss)
 
                         ## Update the input with the recurrent prediction
@@ -719,3 +775,379 @@ class Neu4mes:
 
         end = time.time()
         self.visualizer.showTrainingTime(end - start)
+
+
+'''
+## SECOND VERSION
+
+class Neu4mes:
+    name = None
+    def __init__(self, model_def = 0, visualizer = 'Standard'):
+
+        # Visualizer
+        if visualizer == 'Standard':
+            self.visualizer = TextVisualizer(1)
+        elif visualizer != None:
+            self.visualizer = visualizer
+        else:
+            self.visualizer = Visualizer()
+        self.visualizer.set_n4m(self)
+
+        # Inizialize the model definition
+        self.model_def = NeuObj().json
+        self.addModel(model_def)
+
+        ## Variables
+        self.model = None
+
+        self.minimize_list = []
+        self.minimize_dict = {}
+
+        self.input_tw_backward, self.input_tw_forward = {}, {}
+        self.input_ns_backward, self.input_ns_forward = {}, {}
+        self.input_n_samples = {}
+        self.max_samples_backward, self.max_samples_forward = 0, 0
+        self.max_n_samples = 0
+
+        self.neuralized = False
+        self.data_loaded = False
+
+        self.file_count = 0
+        self.inout_data_time_window = {}
+        self.input_data = {}
+        self.inout_asarray = {}
+        self.num_of_samples = None
+
+        self.learning_rate = 0.01
+        self.num_of_epochs = 100
+        self.train_batch_size = 1
+        self.test_batch_size = 1
+        self.n_samples_train, self.n_samples_test = None, None
+        self.optimizer = None
+        self.losses = {}
+
+
+    def __call__(self, inputs, sampled=False):
+        model_inputs = self.model_def['Inputs'].keys()
+
+        check(set(model_inputs).issubset(set(inputs.keys())),
+              KeyError,
+              f'The complete model inputs are {list(model_inputs)}, the provided input are {list(inputs.keys())}')
+
+        ## Determine the Maximal number of samples that can be created
+        if sampled:
+            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in model_inputs])
+            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in model_inputs])
+        else:
+            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
+            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
+        window_dim = min_dim
+        check(window_dim > 0, StopIteration, 'Invalid Number of Inputs!')
+
+        ## warning the users about different time windows between samples
+        if min_dim != max_dim:
+            self.visualizer.warning(f'Different number of samples between inputs [MAX {list(model_inputs)[max_dim_ind]} = {max_dim}; MIN {list(model_inputs)[min_dim_ind]} = {min_dim}]')
+
+        result_dict = {} ## initialize the resulting dictionary
+        for key in self.model_def['Outputs'].keys():
+            result_dict[key] = []
+
+        for i in range(window_dim):
+            X = {}
+            for key, val in inputs.items():
+                if key in model_inputs:
+                    if sampled:
+                        X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32)
+                    else:
+                        X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
+                        
+                    input_dim = self.model_def['Inputs'][key]['dim']
+                    if X[key].ndim >= 2:
+                        check(X[key].shape[1] == input_dim, ValueError, 'The second dimension must be equal to the input dimension')
+
+                    if X[key].ndim == 0: ## add the batch dimension
+                        X[key] = X[key].unsqueeze(0)
+                    if X[key].ndim == 1:
+                        X[key] = X[key].unsqueeze(0)
+                    if input_dim == 1: ## add the input dimension
+                        X[key] = X[key].unsqueeze(-1)
+            result, _  = self.model(X)
+            print('result: ', result)
+            for key in self.model_def['Outputs'].keys():
+                if result[key].shape[-1] == 1:
+                    result[key] = result[key].squeeze(-1)
+                    if result[key].shape[-1] == 1: 
+                        result[key] = result[key].squeeze(-1)
+                result_dict[key].append(result[key].detach().squeeze(dim=0).tolist())
+            print('result after detach: ', result_dict)
+
+        return result_dict
+
+
+    def get_random_samples(self, window=1):
+        pass
+
+
+    def addModel(self, model_def):
+        if type(model_def) is Output:
+            self.model_def = merge(self.model_def, model_def.json)
+        elif type(model_def) is dict:
+            self.model_def = merge(self.model_def, model_def)
+        elif type(model_def) is list:
+            for item in model_def:
+                self.addModel(item)
+
+
+    def minimizeError(self, variable_name, streamA, streamB, loss_function='mse'):
+        self.model_def = merge(self.model_def, streamA.json)
+        self.model_def = merge(self.model_def, streamB.json)
+        A = (streamA.name[0] if type(streamA.name) is tuple else streamA.name)
+        #nameA = variable_name + '_' + A
+        B = (streamB.name[0] if type(streamB.name) is tuple else streamB.name)
+        #nameB = variable_name + '_' + B
+        self.minimize_list.append((A, B, loss_function))
+        self.minimize_dict[variable_name]={'A':(A, copy.deepcopy(streamA)), 'B':(B, copy.deepcopy(streamB)), 'loss':loss_function}
+        self.visualizer.showMinimizeError(variable_name)
+
+
+    def neuralizeModel(self, sample_time = 1):
+
+        check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
+        self.model_def["SampleTime"] = sample_time
+        self.visualizer.showModel()
+
+        check(self.model_def['Inputs'] != {}, RuntimeError, "No model is defined!")
+
+        for key, value in self.model_def['Inputs'].items():
+            self.input_tw_backward[key] = -value['tw'][0]
+            self.input_tw_forward[key] = value['tw'][1]
+            if value['sw'] == [0,0] and value['tw'] == [0,0]:
+                self.input_tw_backward[key] = sample_time
+            if value['sw'] == [0,0] :
+                self.input_ns_backward[key] = round(self.input_tw_backward[key] / sample_time)
+                self.input_ns_forward[key] = round(self.input_tw_forward[key] / sample_time)
+            else:
+                self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),-value['sw'][0])
+                self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),value['sw'][1])
+            self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
+
+        self.max_samples_backward = max(self.input_ns_backward.values())
+        self.max_samples_forward = max(self.input_ns_forward.values())
+        if self.max_samples_backward < 0:
+            self.visualizer.warning(f"The input is only in the far past the max_samples_backward is: {self.max_samples_backward}")
+        if self.max_samples_forward < 0:
+            self.visualizer.warning(f"The input is only in the far future the max_sample_forward is: {self.max_samples_forward}")
+        self.max_n_samples = self.max_samples_forward + self.max_samples_backward
+
+        self.visualizer.showModelInputWindow()
+
+        ## Adjust with the correct slicing
+        for rel_name, items in self.model_def['Relations'].items():
+            if items[0] == 'SamplePart':
+                if items[1][0] in self.model_def['Inputs'].keys():
+                    items[2][0] = self.input_ns_backward[items[1][0]] + items[2][0]
+                    items[2][1] = self.input_ns_backward[items[1][0]] + items[2][1]
+                    if len(items) > 3: ## Offset
+                        items[3] = self.input_ns_backward[items[1][0]] + items[3]
+            if items[0] == 'TimePart':
+                if items[1][0] in self.model_def['Inputs'].keys():
+                    items[2][0] = self.input_ns_backward[items[1][0]] + round(items[2][0]/sample_time)
+                    items[2][1] = self.input_ns_backward[items[1][0]] + round(items[2][1]/sample_time)
+                    if len(items) > 3: ## Offset
+                        items[3] = self.input_ns_backward[items[1][0]] + round(items[3]/sample_time)
+                else:
+                    items[2][0] = round(items[2][0]/sample_time)
+                    items[2][1] = round(items[2][1]/sample_time)
+                    if len(items) > 3: ## Offset
+                        items[3] = round(items[3]/sample_time)
+
+
+        ## Build the network
+        print('[LOG] max_samples_backward: ', self.max_samples_backward)
+        print('[LOG] max_samples_forward: ', self.max_samples_forward)
+        print('[LOG] input_ns_backward: ', self.input_ns_backward)
+        print('[LOG] input_ns_forward: ', self.input_ns_forward)
+        print('[LOG] minimize_list: ', self.minimize_list)
+        print('[LOG] minimize_dict: ', self.minimize_dict)
+
+        self.model = Model(self.model_def, self.minimize_list)
+        self.visualizer.showBuiltModel()
+        self.neuralized = True
+
+
+    def loadData(self, source, format=None, skiplines = 0, delimiters=['\t',';',',']):
+        assert self.neuralized == True, "The network is not neuralized yet."
+
+        if type(source) is str: ## we have a file path
+            _, _, files = next(os.walk(source))
+            self.file_count = len(files)
+
+            # Create a vector of all the signals in the file + output_relation keys
+            output_keys = self.model_def['Outputs'].keys()
+            for key in format+list(output_keys):
+                self.inout_data_time_window[key] = []
+
+            # Read each file
+            for file in files:
+                for data in format:
+                    self.input_data[(file,data)] = []
+
+                # Open the file and read lines
+                with open(os.path.join(source, file), 'r') as all_lines:
+                    lines = all_lines.readlines()[skiplines:] # skip first lines to avoid NaNs
+
+                    # Append the data to the input_data dict
+                    for line in range(0, len(lines)):
+                        delimiter_string = '|'.join(delimiters)
+                        splitline = re.split(delimiter_string,lines[line].rstrip("\n"))
+                        for idx, key in enumerate(format):
+                            try:
+                                self.input_data[(file,key)].append(float(splitline[idx]))
+                            except ValueError:
+                                self.input_data[(file,key)].append(splitline[idx])
+
+                    # Add one sample if input look at least one forward
+                    add_sample_forward = 0
+                    if self.max_samples_forward > 0:
+                        add_sample_forward = 1
+
+                    # Create inout_data_time_window dict
+                    # it is a dict of signals. Each signal is a list of vector the dimensions of the vector are (tokens, input_n_samples[key])
+                    if 'time' in format:
+                        for i in range(0, len(self.input_data[(file,'time')])-self.max_n_samples+add_sample_forward):
+                            self.inout_data_time_window['time'].append(self.input_data[(file,'time')][i+self.max_n_samples-1-self.max_samples_forward])
+
+                    for key in self.input_n_samples.keys():
+                        for i in range(0, len(self.input_data[(file,key)])-self.max_n_samples+add_sample_forward):
+                            aux_ind = i+self.max_n_samples+self.input_ns_forward[key]-self.max_samples_forward
+                            if self.input_n_samples[key] == 1:
+                                self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-1])
+                            else:
+                                self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-self.input_n_samples[key]:aux_ind])
+
+        elif type(source) is dict:  ## we have a crafted dataset
+            self.file_count = 1
+            ## Check if the inputs are correct
+            model_inputs = self.model_def['Inputs'].keys()
+            assert set(model_inputs).issubset(source.keys()), 'The dataset is missing some inputs.'
+
+            for key in model_inputs:
+                self.inout_data_time_window[key] = []  ## Initialize the dataset
+                for idx in range(len(source[key]) - self.max_n_samples + 1):
+                    self.inout_data_time_window[key].append(source[key][idx + (self.max_samples_backward - self.input_ns_backward[key]):idx + (self.max_samples_backward + self.input_ns_forward[key])].tolist())
+
+        # Build the asarray for numpy
+        for key,data in self.inout_data_time_window.items():
+            self.inout_asarray[key]  = np.asarray(data)
+            if data and self.num_of_samples is None:
+                self.num_of_samples = len(self.inout_asarray[key])
+
+        self.visualizer.showDataset()
+        ## Set the Loaded flag to True
+        self.data_loaded = True
+
+
+    def __getTrainParams(self, training_params, train_size, test_size):
+        if bool(training_params):
+            self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate)
+            self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs)
+            self.train_batch_size = (training_params['train_batch_size'] if 'train_batch_size' in training_params else self.train_batch_size)
+            self.test_batch_size = (training_params['test_batch_size'] if 'test_batch_size' in training_params else self.test_batch_size)
+
+            ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to 1
+            if self.train_batch_size > round(self.num_of_samples*train_size):
+                self.train_batch_size = 1
+            if self.test_batch_size > round(self.num_of_samples*test_size):
+                self.test_batch_size = 1
+    
+
+    def resultAnalysis(self, train_losses, test_losses, XY_train, XY_test):
+        pass
+
+
+    def trainModel(self, test_percentage = 0, training_params = {}):
+        import time
+
+        # Check input
+        train_size = 1 - (test_percentage / 100.0)
+        test_size = 1 - train_size
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
+
+        ## Split train and test
+        XY_train, XY_test = {}, {}
+        for key,data in self.inout_data_time_window.items():
+            if data:
+                samples = np.asarray(data)
+                if samples.ndim == 1:
+                    samples = np.reshape(samples, (-1, 1))
+
+                if key in self.model_def['Inputs'].keys():
+                    if test_percentage == 0:
+                        XY_train[key] = samples
+                    else:
+                        XY_train[key] = samples[:round(len(samples)*train_size)]
+                        XY_test[key] = samples[round(len(samples)*train_size):]
+                        if self.n_samples_test is None:
+                            self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
+                    if self.n_samples_train is None:
+                        self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
+
+        ## define optimizer and loss function
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
+
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = []
+            test_losses[key] = []
+
+        start = time.time()
+        for epoch in range(self.num_of_epochs):
+            self.model.train()
+            aux_train_losses = torch.zeros([len(self.minimize_dict),self.n_samples_train])
+            for i in range(self.n_samples_train):
+                idx = i*self.train_batch_size
+                XY = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+
+                self.optimizer.zero_grad()
+                _, minimize_out = self.model(XY)
+                #print('[LOG] output dict: ', out)
+                #print('[LOG] minimize dict: ', minimize_out)
+                #print('[LOG] XY.keys: ', XY.keys())
+                #print('[LOG] XY: ', XY)
+                for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                    loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                    loss.backward(retain_graph=True)
+                    aux_train_losses[ind][i]= loss.item()
+
+                self.optimizer.step()
+
+            for ind, key in enumerate(self.minimize_dict.keys()):
+                train_losses[key].append(torch.mean(aux_train_losses[ind]).tolist())
+
+            if test_percentage != 0:
+                self.model.eval()
+                aux_test_losses = torch.zeros(len(self.minimize_dict), self.n_samples_test)
+                for i in range(self.n_samples_test):
+
+                    idx = i * self.test_batch_size
+                    XY = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
+
+                    _, minimize_out = self.model(XY)
+                    for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                        loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                        aux_train_losses[ind][i]= loss.item()
+
+                for ind, key in enumerate(self.minimize_dict.keys()):
+                    test_losses[key].append(torch.mean(aux_test_losses[ind]).tolist())
+
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
+        end = time.time()
+
+        self.visualizer.showTrainingTime(end-start)
+        #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)

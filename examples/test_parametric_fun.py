@@ -87,9 +87,12 @@ print("------------------------EXAMPLE 4------------------------")
 # The parametric function takes a parameter of size 4
 # The function has three inputs, the first two are inputs and the second is a K parameter
 # The function creates a tensor performs a dot product between input 1 and p1 (which is effectively K Parameter)
-K = Parameter('k', dimensions =  [1,4])
+def myFun(K1,p1):
+    import torch
+    return torch.tensor(K1*p1)
+K = Parameter('k', dimensions =  4, tw = 1)
 parfun = ParamFun(myFun, output_dimension = 1, parameters = [K] )
-out = Output('out',parfun(x,F))
+out = Output('out',parfun(x.tw(1)))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.25)

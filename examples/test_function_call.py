@@ -53,27 +53,3 @@ print('EXAMPLE 6')
 results = example1(inputs={'F':[5,2,4,5,1,7,8,9,10],'x':[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,5]}) # 9 window (F = 9 ; x = 20) -> 9 output
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
-
-## Now we try to use the random sampler
-print('EXAMPLE 7')
-theta = Input('theta')
-T     = Input('torque')
-out = Output('theta_s', Fir(theta.tw(0.1))+Fir(T))
-example2 = Neu4mes()
-example2.addModel(out)
-example2.neuralizeModel(0.05)
-# Data load
-data_struct = ['time','theta','theta_s','','','torque']
-data_folder = './examples/datasets/pendulum/data/'
-example2.loadData(source=data_folder, format=data_struct)
-sample = example2.get_random_samples(window=3)
-print('random sample: ', sample)
-results = example2(inputs=sample) # 3 sample -> 3 output
-for output, result in results.items():
-    print(f'prediction for {output}: {result}')
-
-
-#print('EXAMPLE 8') ##WORK IN PROGRESS
-# La funzione prende in ingresso due Stream
-# Adesso facciamo che funziona come prima e non gestisce due reti poi faremo anche la cosa che gestisce due reti
-example2.minimizeError('out', x.z(-1),x_k1)

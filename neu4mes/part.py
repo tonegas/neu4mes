@@ -153,8 +153,25 @@ def createPart(self, *inputs):
 def createSelect(self, *inputs):
     pass
 
-def createTimePart(self, *inputs):
-    pass
+class TimePart_Layer(nn.Module):
+    def __init__(self, part, offset, sample_time):
+        super(TimePart_Layer, self).__init__()
+        self.back, self.forw = part[0], part[1]
+        self.offset = offset
+
+    def forward(self, x):
+        print('x: ', x)
+        print('back: ', self.back)
+        print('forw: ', self.forw)
+        if self.offset:
+            #x = x - x[:, self.offset:self.offset+1]
+            x = x - x[:, self.offset-1]
+            print('x after offset: ', x)
+        print('x after partitioning: ', x[:, self.back:self.forw])
+        return x[:, self.back:self.forw]
+    
+def createTimePart(self, part, offset, sample_time):
+    return TimePart_Layer(part=part, offset=offset, sample_time=sample_time)
 
 def createInputTimePart(self, *inputs):
     pass
@@ -162,8 +179,20 @@ def createInputTimePart(self, *inputs):
 def createTimeSelect(self, *inputs):
     pass
 
-def createSamplePart(self, *inputs):
-    pass
+class SamplePart_Layer(nn.Module):
+    def __init__(self, part, offset):
+        super(SamplePart_Layer, self).__init__()
+        self.back, self.forw = part[0], part[1]
+        self.offset = offset
+
+    def forward(self, x):
+        if self.offset:
+            #x = x - x[:, self.offset:self.offset+1]
+            x = x - x[:, self.offset-1]
+        return x[:, self.back:self.forw]
+
+def createSamplePart(self, part, offset):
+    return SamplePart_Layer(part=part, offset=offset)
 
 def createInputSamplePart(self, *inputs):
     pass
