@@ -160,14 +160,14 @@ class TimePart_Layer(nn.Module):
         self.offset = offset
 
     def forward(self, x):
-        print('x: ', x)
-        print('back: ', self.back)
-        print('forw: ', self.forw)
+        #print('x: ', x)
+        #print('back: ', self.back)
+        #print('forw: ', self.forw)
         if self.offset:
             #x = x - x[:, self.offset:self.offset+1]
             x = x - x[:, self.offset-1]
-            print('x after offset: ', x)
-        print('x after partitioning: ', x[:, self.back:self.forw])
+            #print('x after offset: ', x)
+        #print('x after partitioning: ', x[:, self.back:self.forw])
         return x[:, self.back:self.forw]
     
 def createTimePart(self, part, offset, sample_time):
