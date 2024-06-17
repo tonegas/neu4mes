@@ -211,9 +211,9 @@ class Model(nn.Module):
         self.all_parameters = nn.ParameterDict(self.all_parameters)
 
         #print('[LOG] relation forward: ', self.relation_forward)
-        print('[LOG] all_parameters: ', self.all_parameters)
-        print('[LOG] relation inputs: ', self.relation_inputs)
-        print('[LOG] relation parameters: ', self.relation_parameters)
+        #print('[LOG] all_parameters: ', self.all_parameters)
+        #print('[LOG] relation inputs: ', self.relation_inputs)
+        #print('[LOG] relation parameters: ', self.relation_parameters)
 
         self.network_output_predictions = set(self.outputs.values())
         self.network_output_minimizers = []  ## TODO: the minimize list now already has the correct relations
@@ -224,9 +224,9 @@ class Model(nn.Module):
         #self.network_output_minimizers = set([i[0] for i in self.minimizers] + [i[1] for i in self.minimizers] - self.outputs.keys())
         self.network_outputs = self.network_output_predictions.union(self.network_output_minimizers)
 
-        print('[LOG] network_output_predictions: ', self.network_output_predictions)
-        print('[LOG] network_output_minimizers: ', self.network_output_minimizers)
-        print('[LOG] network_outputs: ', self.network_outputs)
+        #print('[LOG] network_output_predictions: ', self.network_output_predictions)
+        #print('[LOG] network_output_minimizers: ', self.network_output_minimizers)
+        #print('[LOG] network_outputs: ', self.network_outputs)
     
     def forward(self, kwargs):
         result_dict = {}
