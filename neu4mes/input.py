@@ -78,7 +78,7 @@ class Input(NeuObj, Stream):
         return InputSamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], None)
 
     def last(self):
-        return self.z(1)
+        return self.z(0)
 
     def next(self):
         return self.z(-1)
