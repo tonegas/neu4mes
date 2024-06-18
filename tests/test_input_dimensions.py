@@ -21,14 +21,14 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
     def test_network_building_very_simple(self):
 
         input1 = Input('in1')
-        rel1 = Fir(input1)
+        rel1 = Fir(input1.last())
         fun = Output('out', rel1)
 
         test = Neu4mes(visualizer=None)
         test.addModel(fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(0.01,test.input_tw_backward['in1'])
+        self.assertEqual(0,test.input_tw_backward['in1'])
         self.assertEqual(0,test.input_tw_forward['in1'])
         self.assertEqual(1,test.input_ns_backward['in1'])
         self.assertEqual(0,test.input_ns_forward['in1'])

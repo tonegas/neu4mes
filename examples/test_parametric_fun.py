@@ -17,8 +17,8 @@ def myFun(K1,K2,p1,p2):
     import torch
     return p1*K1+p2*torch.sin(K2)
 
-parfun = ParamFun(myFun,1)
-out = Output('fun',parfun(x,F))
+parfun = ParamFun(myFun)
+out = Output('fun',parfun(x.last(),F.last()))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel()
@@ -35,8 +35,8 @@ print("------------------------EXAMPLE 2------------------------")
 def myFun(K1,K2,p1,p2):
     import torch
     return torch.tensor([p1,p1,p1,p1])*K1+p2*torch.sin(K2)
-parfun = ParamFun(myFun, output_dimension = 4) # definisco una funzione scalare basata su myFun
-out = Output('out',parfun(x,F))
+parfun = ParamFun(myFun) # definisco una funzione scalare basata su myFun
+out = Output('out',parfun(x.last(),F.last()))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel()
@@ -52,7 +52,7 @@ print("------------------------EXAMPLE 3------------------------")
 def myFun(K1,K2,p1,p2):
     import torch
     return p1*K1+p2*torch.sin(K2)
-parfun = ParamFun(myFun, output_dimension = 4) # definisco una funzione scalare basata su myFun
+parfun = ParamFun(myFun) # definisco una funzione scalare basata su myFun
 out = Output('out',parfun(x.tw(2),F.tw(2)))
 example = Neu4mes()
 example.addModel(out)
@@ -72,9 +72,9 @@ print("------------------------EXAMPLE 4------------------------")
 # In the second call parfun(x,F) is an instant output
 def myFun(K1,K2,p1):
     import torch
-    return torch.tensor([K1,2*K1,3*K1,4*K1])*p1+K2
-parfun = ParamFun(myFun,4, parameters_dimensions = {'p1':[1,4]})
-out = Output('out',parfun(x,F))
+    return torch.stack([K1,2*K1,3*K1,4*K1],dim=2).squeeze(-1)*p1+K2
+parfun = ParamFun(myFun,parameters_dimensions = {'p1':(1,4)})
+out = Output('out',parfun(x.last(),F.last()))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel()
@@ -88,10 +88,9 @@ print("------------------------EXAMPLE 4------------------------")
 # The function has three inputs, the first two are inputs and the second is a K parameter
 # The function creates a tensor performs a dot product between input 1 and p1 (which is effectively K Parameter)
 def myFun(K1,p1):
-    import torch
-    return torch.tensor(K1*p1)
+    return K1*p1
 K = Parameter('k', dimensions =  4, tw = 1)
-parfun = ParamFun(myFun, output_dimension = 1, parameters = [K] )
+parfun = ParamFun(myFun, parameters = [K] )
 out = Output('out',parfun(x.tw(1)))
 example = Neu4mes()
 example.addModel(out)

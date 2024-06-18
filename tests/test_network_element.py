@@ -13,7 +13,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
     def test_network_building_very_simple(self):
 
-        input1 = Input('in1')
+        input1 = Input('in1').last()
         rel1 = Fir(input1)
         fun = Output('out', rel1)
 

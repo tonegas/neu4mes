@@ -172,7 +172,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
         rel2 = Fir(input2.tw(0.02))
         rel3 = Fir(input1.tw([-0.01,0.01]))
-        rel4 = Fir(input2)
+        rel4 = Fir(input2.last())
         fun = Output('out',rel1+rel2+rel3+rel4)
 
         test = Neu4mes(visualizer=None)
