@@ -56,7 +56,7 @@ results = mass_spring_damper(sample, sampled=True)
 print('results: ', results)
 
 #Neural network train
-mass_spring_damper.trainModel(test_percentage = 10, training_params = {'num_of_epochs': 30, 'train_batch_size': 128, 'test_batch_size':128})
+mass_spring_damper.trainModel(test_percentage = 10, training_params = {'num_of_epochs': 300, 'train_batch_size': 128, 'test_batch_size':128})
 
 print('AFTER TRAINING')
 sample = {'F':[[0.18]], 'x':[[0.252052135551559, 0.261737549977622, 0.271139578427331, 0.280243115135341, 0.289033038425828]]}
