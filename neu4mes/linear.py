@@ -9,7 +9,7 @@ from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 
 FC_relation_name = 'FullyConnected'
-list_of_activations = ['ReLU']
+list_of_activations = ['ReLU','Tanh','Sign','Elu']
 class FullyConnected(NeuObj, AutoToStream):
     def __init__(self, sequence = []):
         self.relation_name = FC_relation_name
