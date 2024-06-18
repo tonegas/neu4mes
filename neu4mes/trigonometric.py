@@ -12,7 +12,7 @@ tan_relation_name = 'Tan'
 class Sin(Stream, ToStream):
     def __init__(self, obj):
         super().__init__(sin_relation_name + str(Stream.count),obj.json,obj.dim)
-        if (type(obj) is Input or type(obj) is Stream):
+        if type(obj) is Stream:
             self.json['Relations'][self.name] = [sin_relation_name, [obj.name]]
         else:
             raise Exception('Type is not supported!')
@@ -20,7 +20,7 @@ class Sin(Stream, ToStream):
 class Cos(Stream, ToStream):
     def __init__(self, obj):
         super().__init__(cos_relation_name + str(Stream.count),obj.json,obj.dim)
-        if (type(obj) is Input or type(obj) is Stream):
+        if type(obj) is Stream:
             self.json['Relations'][self.name] = [cos_relation_name, [obj.name]]
         else:
             raise Exception('Type is not supported!')
@@ -28,7 +28,7 @@ class Cos(Stream, ToStream):
 class Tan(Stream, ToStream):
     def __init__(self, obj):
         super().__init__(tan_relation_name + str(Stream.count),obj.json,obj.dim)
-        if (type(obj) is Input or type(obj) is Stream):
+        if type(obj) is Stream:
             self.json['Relations'][self.name] = [tan_relation_name, [obj.name]]
         else:
             raise Exception('Type is not supported!')

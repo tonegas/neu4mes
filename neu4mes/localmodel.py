@@ -3,7 +3,6 @@ import inspect, copy
 import torch.nn as nn
 
 from neu4mes.relation import NeuObj, Stream, merge
-from neu4mes.input import Input
 from neu4mes.model import Model
 from neu4mes.part import Select
 from neu4mes.fir import Fir

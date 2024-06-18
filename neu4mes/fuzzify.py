@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch
 
 from neu4mes.relation import NeuObj, Stream, merge
-from neu4mes.input import Input
 from neu4mes.model import Model
 
 from neu4mes import LOG_LEVEL
@@ -59,7 +58,7 @@ class Fuzzify(NeuObj):
         #else:
         #    self.json['Functions'][self.name]['dim_out'] = [self.output_dimension, obj.dim]
         stream_json = merge(self.json, obj.json)
-        if type(obj) is Input or type(obj) is Stream:
+        if type(obj) is Stream:
             stream_json['Relations'][stream_name] = [fuzzify_relation_name, [obj.name],self.name]
             return Stream(stream_name, stream_json,output_dimension)
         else:

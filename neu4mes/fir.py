@@ -5,7 +5,6 @@ import torch
 
 from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
 from neu4mes.utilis import check
-from neu4mes.input import Input
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 
@@ -52,9 +51,9 @@ class Fir(NeuObj, AutoToStream):
                 check(cond, KeyError,'The parameter have a time window and the input no')
 
         stream_json = merge(self.json,obj.json)
-        if type(obj) is Input or type(obj) is Stream:
+        if type(obj) is Stream:
             stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
-            return Stream(stream_name, stream_json,{'dim':self.output_dimension})
+            return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
         else:
             raise Exception('Type is not supported!')
 '''

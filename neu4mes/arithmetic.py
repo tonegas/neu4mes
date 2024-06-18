@@ -3,7 +3,6 @@ import torch
 
 from neu4mes.relation import ToStream, merge, NeuObj, Stream, Relation
 from neu4mes.model import Model
-from neu4mes.input import Input
 
 add_relation_name = 'Add'
 sub_relation_name = 'Sub'
@@ -15,25 +14,28 @@ class Add(Stream, ToStream):
     def __init__(self, obj1, obj2):
         assert obj1.dim == obj2.dim
         super().__init__(add_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
-        if ((type(obj1) is Input or type(obj1) is Stream) and
-                (type(obj2) is Input or type(obj2) is Stream)):
+        if (type(obj1) is Stream) and (type(obj2) is Stream):
             self.json['Relations'][self.name] = [add_relation_name,[obj1.name,obj2.name]]
+        else:
+            raise Exception('Type is not supported!')
 
 class Sub(Stream, ToStream):
     def __init__(self, obj1, obj2):
         assert obj1.dim == obj2.dim
         super().__init__(sub_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
-        if ((type(obj1) is Input or type(obj1) is Stream) and
-                (type(obj2) is Input or type(obj2) is Stream)):
+        if (type(obj1) is Stream) and (type(obj2) is Stream):
             self.json['Relations'][self.name] = [sub_relation_name,[obj1.name,obj2.name]]
+        else:
+            raise Exception('Type is not supported!')
 
 class Mul(Stream, ToStream):
     def __init__(self, obj1, obj2):
         assert obj1.dim == obj2.dim
         super().__init__(mul_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
-        if ((type(obj1) is Input or type(obj1) is Stream) and
-                (type(obj2) is Input or type(obj2) is Stream)):
+        if (type(obj1) is Stream) and (type(obj2) is Stream):
             self.json['Relations'][self.name] = [mul_relation_name,[obj1.name,obj2.name]]
+        else:
+            raise Exception('Type is not supported!')
 
 class Neg(Stream, ToStream):
     def __init__(self, obj):
