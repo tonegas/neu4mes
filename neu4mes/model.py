@@ -159,7 +159,7 @@ class Model(nn.Module):
                 sample_window = round(param_dimensions[window] / aux_sample_time)
             else:
                 sample_window = 1
-            if type(param_dimensions['dim']) is list:
+            if type(param_dimensions['dim']) is tuple:
                 param_size = tuple(param_dimensions['dim'])
             else:
                 param_size = (param_dimensions['dim'], sample_window)
