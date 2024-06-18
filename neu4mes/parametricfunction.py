@@ -2,81 +2,127 @@ import inspect, copy
 
 import torch.nn as nn
 
-from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
-from neu4mes.input import Input
+from neu4mes.relation import NeuObj, Stream, merge
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.utilis import check
 
+
 paramfun_relation_name = 'ParamFun'
 
 class ParamFun(NeuObj):
-    def __init__(self, param_fun, output_dimension = 1, parameters_dimensions = None, parameters = None):
+    def __init__(self, param_fun, parameters_dimensions = None, parameters = None):
         self.relation_name = paramfun_relation_name
         self.param_fun = param_fun
-        self.output_dimension = {'dim' : output_dimension }
+        #self.output_dimension = {'dim' : output_dimension }
+        self.output_dimension = {}
         super().__init__('F'+paramfun_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {
             'code' : inspect.getsource(param_fun),
             'name' : param_fun.__name__
         }
-        self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
-
+        #self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
         self.json['Functions'][self.name]['parameters'] = []
         self.__set_params(parameters_dimensions = parameters_dimensions, parameters = parameters)
 
     def __call__(self, *obj):
         stream_name = paramfun_relation_name + str(Stream.count)
-        output_dimension = copy.deepcopy(self.output_dimension)
-
         self.json['Functions'][self.name]['n_input'] = len(obj)
-        self.__set_params(n_input = len(obj))
-        names = []
+        self.__set_params(n_input=len(obj))
+        input_names = []
+        input_dimensions = []
         stream_json = copy.deepcopy(self.json)
-
-        window_val = None
         for ind,o in enumerate(obj):
-            window = 'tw' if 'tw' in o.dim else ('sw' if 'sw' in o.dim else None)
-            if window_val is not None:
-                check(o.dim[window] == window_val,ValueError, 'The time window of the input must be the same for all the inputs')
-            if window:
-                window_val = o.dim[window]
-
             stream_json = merge(stream_json,o.json)
-            if type(o) is Input or type(o) is Stream:
-                names.append(o.name)
+            if type(o) is Stream:
+                input_names.append(o.name)
+                input_dimensions.append(o.dim)
             else:
                 raise Exception('Type is not supported!')
 
-        if window is not None:
-            output_dimension[window] = window_val
+        stream_json['Relations'][stream_name] = [paramfun_relation_name, input_names, self.name]
 
-        # self.json['Functions'][self.name]['out_dim'].update(self.output_dimension)
-        stream_json['Relations'][stream_name] = [paramfun_relation_name, names, self.name]
-        #self.__infer_output_dimensions(stream_json, stream_name)
+        self.__infer_output_dimensions(input_dimensions)
+
+
+
+        # output_dimension = copy.deepcopy(self.output_dimension)
+        #
+        #
+        #
+        # window_val = None
+        # for ind,o in enumerate(obj):
+        #     window = 'tw' if 'tw' in o.dim else ('sw' if 'sw' in o.dim else None)
+        #     if window:
+        #         window_val = o.dim[window]
+        #
+        #     stream_json = merge(stream_json,o.json)
+        #     if type(o) is Input or type(o) is Stream:
+        #         names.append(o.name)
+        #     else:
+        #         raise Exception('Type is not supported!')
+        #
+        # if window is not None:
+        #     output_dimension[window] = window_val
+        #
+        # # self.json['Functions'][self.name]['out_dim'].update(self.output_dimension)
+        # stream_json['Relations'][stream_name] = [paramfun_relation_name, names, self.name]
+        # self.__infer_output_dimensions(stream_json, stream_name)
+
+        output_dimension = copy.deepcopy(self.output_dimension)
+        self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
 
         return Stream(stream_name, stream_json, output_dimension)
 
-    def __infer_output_dimensions(self, stream_json, stream_name):
+    def __infer_output_dimensions(self, input_dimensions):
         import torch
+        batch_dim = 10
+        # Build input with right dimensions
         inputs = []
-        for input in stream_json['Relations'][stream_name][1]:
-            if type(input) is tuple:
-                window = 'tw' if 'tw' in input[1] else ('sw' if 'sw' in input[1] else None)
-                window_val = abs(input[1][window][0]-input[1][window][1])
-                inputs.append(torch.rand(size=(window_val,)))
+        inputs_win_type = []
+        inputs_win = []
+        for dim in input_dimensions:
+            window = 'tw' if 'tw' in dim else ('sw' if 'sw' in dim else None)
+            if window == 'tw':
+                input_win = round(dim[window]*1000)
+            elif window == 'sw':
+                input_win = dim[window]
             else:
-                inputs.append(torch.rand(size=(1,)))
+                input_win = 1
+            inputs.append(torch.rand(size=(batch_dim, input_win, dim['dim'])))
+            inputs_win_type.append(window)
+            inputs_win.append(input_win)
 
-        for name in stream_json['Functions'][self.name]['parameters']:
-            param_dimensions = stream_json['Parameters'][name]
-            if type(param_dimensions['dim']) is list:
-                param_size = tuple(param_dimensions['dim'])
+
+        for name in self.json['Functions'][self.name]['parameters']:
+            dim = self.json['Parameters'][name]
+            window = 'tw' if 'tw' in dim else ('sw' if 'sw' in dim else None)
+            if window == 'tw':
+                dim_win = round(dim[window] * 1000)
+            elif window == 'sw':
+                dim_win = dim[window]
             else:
-                param_size = (param_dimensions['dim'], 1)
-            inputs.append(torch.rand(size=param_size))
+                dim_win = 1
+            if type(dim['dim']) is tuple:
+                inputs.append(torch.rand(size=(dim_win,) + dim['dim']))
+            else:
+                inputs.append(torch.rand(size=(dim_win,dim['dim'])))
+
         out = self.param_fun(*inputs)
-        print(out.shape)
+        out_shape = out.shape
+        out_dim = list(out_shape[2:])
+        check(len(out_dim) == 1, ValueError, "The output dimension of the function is bigger than a vector.")
+        out_win_from_input = False
+        for idx, win in enumerate(inputs_win):
+            if out_shape[1] == win:
+                out_win_from_input = True
+                out_win_type = inputs_win_type[idx]
+                out_win = input_dimensions[idx][out_win_type]
+        if out_win_from_input == False:
+            out_win_type = 'sw'
+            out_win = out_shape[1]
+            print("The window dimension of the output is not referred to any input.")
+        self.output_dimension = {'dim': out_dim[0], out_win_type : out_win}
 
     def __set_params(self, n_input = None, parameters_dimensions = None, parameters = None):
         if parameters is not None:
