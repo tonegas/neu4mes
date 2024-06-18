@@ -104,9 +104,9 @@ class ParamFun(NeuObj):
             else:
                 dim_win = 1
             if type(dim['dim']) is tuple:
-                inputs.append(torch.rand(size=(dim_win,) + dim['dim']))
+                inputs.append(torch.rand(size= dim['dim'] + (dim_win,) ))
             else:
-                inputs.append(torch.rand(size=(dim_win,dim['dim'])))
+                inputs.append(torch.rand(size=(dim['dim'], dim_win)))
 
         out = self.param_fun(*inputs)
         out_shape = out.shape

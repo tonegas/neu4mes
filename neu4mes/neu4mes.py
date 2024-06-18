@@ -842,7 +842,7 @@ class Neu4mes:
             min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
             max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
         window_dim = min_dim
-        check(window_dim > 0, StopIteration, 'Invalid Number of Inputs!')
+        check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
