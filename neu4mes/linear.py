@@ -7,43 +7,60 @@ from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
 from neu4mes.input import Input
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
+from neu4mes.utilis import check
 
-FC_relation_name = 'FullyConnected'
-list_of_activations = ['ReLU','Tanh','Sign','Elu']
-class FullyConnected(NeuObj, AutoToStream):
-    def __init__(self, sequence = []):
-        self.relation_name = FC_relation_name
-        self.sequence = sequence
-        pass
+linear_relation_name = 'Linear'
+class Linear(NeuObj, AutoToStream):
+    def __init__(self, output_dimension:int = None, W:Parameter = None, b:bool = True):
+        self.relation_name = linear_relation_name
+        self.parameter = W
+        self.bias = b
 
-        # if parameter is None:
-        #     super().__init__('P' + fir_relation_name + str(NeuObj.count))
-        #     self.json['Parameters'][self.name] = { 'dim': self.output_dimension }
-        # else:
-        #     assert type(parameter) is Parameter, 'input parameter must be of type Parameter'
-        #     assert parameter.dim['dim'] == self.output_dimension, 'output_dimension must be equal to dim of the parameter'
-        #     super().__init__(parameter.name)
-        #     self.json['Parameters'][self.name] = copy.deepcopy(parameter.dim)
+        if W is None:
+            self.output_dimension = 1 if output_dimension is None else output_dimension
+            super().__init__('P' + linear_relation_name + str(NeuObj.count))
+        else:
+            check(type(W) is Parameter, TypeError, 'The parameter must be of type Parameter')
+            window = 'tw' if 'tw' in W.dim else ('sw' if 'sw' in W.dim else None)
+            check(window == None, ValueError, 'The parameter must not have window dimension')
+            check(len(W.dim['dim']) == 2, ValueError,'The parameter dimensions must be a tuple of 2.')
+            self.output_dimension = W.dim['dim'][0]
+            if output_dimension is not None:
+                check(W.dim['dim'][0] == output_dimension, ValueError, 'output_dimension must be equal to the second dim of the parameter')
+            super().__init__(W.name)
+            self.json['Parameters'][self.name] = copy.deepcopy(W.dim)
 
     def __call__(self, obj):
-        pass
-        # stream_name = fir_relation_name + str(Stream.count)
-        # #TODO remove this limit the input can have different dimension
-        # #The output dimensions will be equal to the input dimension
-        # assert 'dim' in obj.dim and obj.dim['dim'] == 1, 'Input dimension must be scalar'
-        # window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
-        # if window:
-        #     if self.parameter:
-        #         assert self.json['Parameters'][self.name][window] == obj.dim[window], 'Time window of the input dimension must be the same of the parameter'
-        #     else:
-        #         self.json['Parameters'][self.name][window] = obj.dim[window]
-        # else:
-        #     if self.parameter:
-        #         assert window not in self.json['Parameters'][self.name], 'The parameter have a time window and the input no'
-        #
-        # stream_json = merge(self.json,obj.json)
-        # if type(obj) is Input or type(obj) is Stream:
-        #     stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
-        #     return Stream(stream_name, stream_json,{'dim':self.output_dimension})
-        # else:
-        #     raise Exception('Type is not supported!')
+        stream_name = linear_relation_name + str(Stream.count)
+        #TODO remove this limit the input can have different dimension
+        window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
+        check(window != 'tw', KeyError, 'The input with a time window is not supported')
+
+        if self.parameter is None:
+            self.json['Parameters'][self.name] = { 'dim': (self.output_dimension,obj.dim['dim'],) }
+        else:
+            self.json['Parameters'][self.name] = {'dim': self.parameter.dim['dim']}
+            check(self.parameter.dim['dim'][1] == obj.dim['dim'], ValueError,
+                  'the input dimension must be equal to the first dim of the parameter')
+
+        stream_json = merge(self.json,obj.json)
+        if type(obj) is Stream:
+            stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.name, self.bias]
+            return Stream(stream_name, stream_json,{'dim': self.output_dimension, 'sw': 1})
+        else:
+            raise Exception(f'The type of the input \'{obj.name}\' for the Linear is not correct.')
+
+class Linear_Layer(nn.Module):
+    def __init__(self, **kwargs):
+        super(Linear_Layer, self).__init__()
+        self.lin = nn.Linear(**kwargs)
+
+    def forward(self, x):
+        return self.lin(x)
+
+def createLinear(self, weights, bias):
+    layer = Linear_Layer(in_features=weights.size(1), out_features=weights.size(0), bias=bias)
+    layer.lin.weight = weights
+    return layer
+
+setattr(Model, linear_relation_name, createLinear)

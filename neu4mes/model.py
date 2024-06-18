@@ -173,7 +173,7 @@ class Model(nn.Module):
             input_var = [i[0] if type(i) is tuple else i for i in inputs[1]]
             
             ## Check shared layers
-            if rel_name in ['Fir',]: 
+            if rel_name in ['Fir','Linear',]:
                 if inputs[2] in self.relation_parameters.keys(): ## we have a shared layer
                     self.relation_forward[relation] = self.relation_forward[self.relation_parameters[inputs[2]]]
                     self.relation_inputs[relation] = input_var
@@ -187,6 +187,8 @@ class Model(nn.Module):
                     self.relation_forward[relation] = func(self.functions[inputs[2]])
                 elif rel_name == 'Fir':  ## Linear module requires 2 inputs: input_size and output_size
                     self.relation_forward[relation] = func(self.all_parameters[inputs[2]])
+                elif rel_name == 'Linear':
+                    self.relation_forward[relation] = func(self.all_parameters[inputs[2]],inputs[3])
                 elif rel_name == 'TimePart':
                     part = inputs[2]
                     offset = inputs[3] if len(inputs) > 3 else None
