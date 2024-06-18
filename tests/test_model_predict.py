@@ -81,7 +81,7 @@ class MyTestCase(unittest.TestCase):
         out14 = Output('x.sw([-3,-2])',  in1.sw([-3, -2]))
         out15 = Output('x.sw([0,1])',  in1.sw([0, 1]))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         #test.addModel([out0,out1,out2,out3,out4,out5,out6,out7,out11,out12,out13,out14,out15])
         test.addModel([out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15])
 
@@ -480,7 +480,7 @@ class MyTestCase(unittest.TestCase):
         test = Neu4mes(visualizer=None)
         test.addModel(out)
         test.neuralizeModel(0.1)
-        with self.assertRaises(KeyError): ## TODO: change to KeyError when checking the inputs
+        with self.assertRaises(StopIteration): ## TODO: change to KeyError when checking the inputs
             test({'in1': [[1, 2, 2, 4]]})
         results = test({'in1': [1, 2, 2, 4], 'in2': [1, 2, 2, 4]})
 
@@ -520,7 +520,7 @@ class MyTestCase(unittest.TestCase):
 
         parfun = ParamFun(myfun2)
         out = Output('out', parfun(Fir(3)(parfun(in1.tw(0.4)))))
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel(out)
         test.neuralizeModel(0.1)
 

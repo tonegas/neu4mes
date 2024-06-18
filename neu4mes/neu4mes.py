@@ -828,25 +828,43 @@ class Neu4mes:
 
 
     def __call__(self, inputs, sampled=False):
-        model_inputs = self.model_def['Inputs'].keys()
+        model_inputs = list(self.model_def['Inputs'].keys())
+        provided_inputs = list(inputs.keys())
+        missing_inputs = list(set(model_inputs) - set(provided_inputs))
+        extra_inputs = list(set(provided_inputs) - set(model_inputs))
 
-        check(set(model_inputs).issubset(set(inputs.keys())),
-              KeyError,
-              f'The complete model inputs are {list(model_inputs)}, the provided input are {list(inputs.keys())}')
+        ## Ignoring extra inputs not necessary
+        if not set(provided_inputs).issubset(set(model_inputs)):
+            self.visualizer.warning(f'The complete model inputs are {model_inputs}, the provided input are {provided_inputs}. Ignoring {extra_inputs}...')
+            for key in extra_inputs:
+                del inputs[key]
+            provided_inputs = list(inputs.keys())
+
+        #check(set(provided_inputs).issubset(set(model_inputs)),
+        #      KeyError,
+        #      f'The complete model inputs are {model_inputs}, the provided input are {provided_inputs}')
 
         ## Determine the Maximal number of samples that can be created
         if sampled:
-            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in model_inputs])
-            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in model_inputs])
+            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in provided_inputs])
+            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in provided_inputs])
         else:
-            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
-            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in model_inputs])
+            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in provided_inputs])
+            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in provided_inputs])
         window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
             self.visualizer.warning(f'Different number of samples between inputs [MAX {list(model_inputs)[max_dim_ind]} = {max_dim}; MIN {list(model_inputs)[min_dim_ind]} = {min_dim}]')
+
+        #print('inputs: ', inputs)
+        ## Autofill the missing inputs
+        if missing_inputs:
+            self.visualizer.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
+            for key in missing_inputs:
+                inputs[key] = np.zeros(shape=(window_dim, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
+        #print('inputs after filling: ', inputs)
 
         result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
@@ -873,6 +891,7 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(-1)
                     if X[key].ndim <= 2: ## add the batch dimension
                         X[key] = X[key].unsqueeze(0)
+            #print('X: ', X)
             result, _  = self.model(X)
             #print('result: ', result)
             for key in self.model_def['Outputs'].keys():
@@ -887,7 +906,19 @@ class Neu4mes:
 
 
     def get_random_samples(self, window=1):
-        pass
+        if self.data_loaded:
+            result_dict = {}
+            for key in self.model_def['Inputs'].keys():
+                result_dict[key] = []
+            random_idx = random.randint(0, self.num_of_samples - window)
+            for idx in range(window):
+                for key ,data in self.inout_data_time_window.items():
+                    if key in self.model_def['Inputs'].keys() and data is not None:
+                        result_dict[key].append(data[random_idx+idx])
+            return result_dict
+        else:
+            print('The Dataset must first be loaded using <loadData> function!')
+            return {}
 
 
     def addModel(self, model_def):
@@ -1113,13 +1144,17 @@ class Neu4mes:
                 XY = {}
                 for key, val in XY_train.items():
                     XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+                    if XY[key].ndim == 2:
+                        XY[key] = XY[key].unsqueeze(-1)
 
                 self.optimizer.zero_grad()
-                _, minimize_out = self.model(XY)
-                #print('[LOG] output dict: ', out)
-                #print('[LOG] minimize dict: ', minimize_out)
                 #print('[LOG] XY.keys: ', XY.keys())
                 #print('[LOG] XY: ', XY)
+                #for key, item in XY.items():
+                #    print(f'key: {key} , shape: {item.shape}')
+                out, minimize_out = self.model(XY)
+                #print('[LOG] output dict: ', out)
+                #print('[LOG] minimize dict: ', minimize_out)
                 for ind, (name, items) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
                     loss.backward(retain_graph=True)
@@ -1139,6 +1174,8 @@ class Neu4mes:
                     XY = {}
                     for key, val in XY_test.items():
                         XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
+                        if XY[key].ndim == 2:
+                            XY[key] = XY[key].unsqueeze(-1)
 
                     _, minimize_out = self.model(XY)
                     for ind, (name, items) in enumerate(self.minimize_dict.items()):
@@ -1153,3 +1190,176 @@ class Neu4mes:
 
         self.visualizer.showTrainingTime(end-start)
         #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+
+    ## TODO: adjust the recurrent train
+    def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
+        import time
+
+        sample_time = self.model_def['SampleTime']
+        if prediction_horizon is None:
+            prediction_horizon = sample_time
+
+        # Initialize input
+        prediction_samples = round(prediction_horizon / sample_time)
+        train_size = 1 - (test_percentage / 100.0)
+        test_size = 1 - train_size
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
+
+        ## Split train and test
+        XY_train = {}
+        XY_test = {}
+        for key,data in self.inout_data_time_window.items():
+            if data:
+                samples = np.asarray(data)
+                if samples.ndim == 1:
+                    samples = np.reshape(samples, (-1, 1))
+                if key in self.model_def['Inputs'].keys():
+                    if test_percentage == 0:
+                        XY_train[key] = samples
+                    else:
+                        XY_train[key] = samples[:round(len(samples)*train_size)]
+                        XY_test[key] = samples[round(len(samples)*train_size):]
+                        if self.n_samples_test is None:
+                            self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
+                    if self.n_samples_train is None:
+                        self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
+
+        ## Check input
+        assert self.n_samples_train > prediction_samples and self.n_samples_test > prediction_samples, f'Error: The Prediction window is set to large (Max {(min(self.n_samples_test,self.n_samples_train)-1)*sample_time})'
+
+        ## define optimizer and loss function
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
+
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = np.zeros(self.num_of_epochs)
+            test_losses[key] = np.zeros(self.num_of_epochs)
+
+        start = time.time()
+        #print('[LOG] n_samples_train: ', self.n_samples_train)
+        #print('[LOG] prediction_samples: ', prediction_samples)
+        for epoch in range(self.num_of_epochs):
+            self.model.train()
+            train_loss = []
+            for i in range(0, (self.n_samples_train - prediction_samples), step):
+
+                idx = i*self.train_batch_size
+                XY = {}
+                XY_horizon = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+                    ## This dictionary contains the horizon labels
+                    XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.train_batch_size+prediction_samples+1]).to(torch.float32)
+                    if XY[key].ndim == 2:
+                        XY[key] = XY[key].unsqueeze(-1)
+                        XY_horizon[key] = XY_horizon[key].unsqueeze(-1)
+
+                self.optimizer.zero_grad()  
+                losses = []
+                #print('[LOG] prediction samples: ', prediction_samples)
+                for horizon_idx in range(prediction_samples):
+                    #print('[LOG] XY: ', XY)
+                    #print('[LOG] XY_horizon: ', XY_horizon)
+                    #for x, y in XY.items():
+                    #    print(f'x: {x} shape: {y.shape}')
+                    out, minimize_out = self.model(XY)
+                    #print('[LOG] out: ', out)
+                    #print('[LOG] minimize_out: ', minimize_out)
+                    
+                    for name, items in self.minimize_dict.items():
+                        loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                        losses.append(loss)
+                    '''
+                    for el1, el2, _ in self.minimize_list:
+                        if el1 in self.model_def['Inputs'].keys():
+                            back, forw = self.model_def['Inputs'][el1]['sw'][0], self.model_def['Inputs'][el1]['sw'][1]
+                            loss1 = XY[el1][:, self.input_ns_backward[el1]+back:self.input_ns_backward[el1]+forw]
+                        else:
+                            loss1 = out[el1]
+                        if el2 in self.model_def['Inputs'].keys():
+                            back, forw = self.model_def['Inputs'][el2]['sw'][0], self.model_def['Inputs'][el2]['sw'][1]
+                            loss2 = XY[el2][:, self.input_ns_backward[el2]+back:self.input_ns_backward[el2]+forw]
+                        else:
+                            loss2 = out[el2]
+                        loss = self.loss_fn(loss1, loss2)
+                        losses.append(loss)
+                    '''
+                    ## Update the input with the recurrent prediction
+                    for key in XY.keys():
+                        #print('[LOG] key: ', key)
+                        #print('[LOG] XY[key] before roll: ', XY[key])
+                        XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                        #print('[LOG] XY[key] after roll: ', XY[key])
+                        #XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1, :]
+                        #print('[LOG] XY[key] after horizon: ', XY[key])
+                        if key in close_loop.keys():
+                            XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
+                        else:
+                            XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1, :]
+                        #print('[LOG] XY[key] after horizon: ', XY[key])
+                #loss = sum(losses) / prediction_samples
+                loss = sum(losses)
+                loss.backward()
+                self.optimizer.step()
+                train_loss.append(loss.item())
+            train_loss = np.mean(train_loss)
+            train_losses[epoch] = train_loss
+
+            if test_percentage != 0:
+                self.model.eval()
+                test_loss = []
+                for i in range(0, (self.n_samples_test - prediction_samples), step):
+
+                    idx = i*self.test_batch_size
+                    XY = {}
+                    XY_horizon = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx+self.test_batch_size]).to(torch.float32)
+                        XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.test_batch_size+prediction_samples+1]).to(torch.float32)
+                        if XY[key].ndim == 2:
+                            XY[key] = XY[key].unsqueeze(-1)
+                            XY_horizon[key] = XY_horizon[key].unsqueeze(-1)
+
+                    losses = []
+                    for horizon_idx in range(prediction_samples):
+                        out, minimize_out = self.model(XY)
+                        
+                        for name, items in self.minimize_dict.items():
+                            loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                            losses.append(loss)
+                        '''
+                        for el1, el2, _ in self.minimize_list:
+                            if el1 in self.model_def['Inputs'].keys():
+                                back, forw = self.model_def['Inputs'][el1]['sw'][0], self.model_def['Inputs'][el1]['sw'][1]
+                                loss1 = XY[el1][:, self.input_ns_backward[el1]+back:self.input_ns_backward[el1]+forw]
+                            else:
+                                loss1 = out[el1]
+                            if el2 in self.model_def['Inputs'].keys():
+                                back, forw = self.model_def['Inputs'][el2]['sw'][0], self.model_def['Inputs'][el2]['sw'][1]
+                                loss2 = XY[el2][:, self.input_ns_backward[el2]+back:self.input_ns_backward[el2]+forw]
+                            else:
+                                loss2 = out[el2]
+                            loss = self.loss_fn(loss1, loss2)
+                            losses.append(loss)
+                        '''
+                        ## Update the input with the recurrent prediction
+                        for key in XY.keys():
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                            #XY[key][:, -1] = XY_horizon[key][horizon_idx:horizon_idx+self.test_batch_size, -1]
+                            if key in close_loop.keys():
+                                XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
+                            else:
+                                XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1, :]
+
+                    loss = sum(losses) / prediction_samples
+                    test_loss.append(loss.item())
+                test_loss = np.mean(test_loss)
+                test_losses[epoch] = test_loss
+
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
+
+        end = time.time()
+        self.visualizer.showTrainingTime(end - start)
+        #self.resultAnalysis(train_losses=train_loss, test_losses=test_loss, XY_train=XY_train, XY_test=XY_test)

@@ -17,7 +17,7 @@ T     = Input('torque')
 c = Parameter('c')
 lin_theta = Fir(theta.tw(1.5))
 sin_theta = Fir(Sin(theta.tw(1)))#+c
-torque = Fir(T)
+torque = Fir(T.tw(1))
 out = Output('theta_s', sin_theta+torque+c)
 
 # Add the neural model to the neu4mes structure and neuralization of the model

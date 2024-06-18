@@ -51,11 +51,11 @@ class Fir(NeuObj, AutoToStream):
                 check(cond, KeyError,'The parameter have a time window and the input no')
 
         stream_json = merge(self.json,obj.json)
-        if type(obj) is Stream:
-            stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
-            return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
-        else:
-            raise Exception('Type is not supported!')
+        #if type(obj) is Stream:
+        stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
+        return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
+        #else:
+        #    raise Exception('Type is not supported!')
 '''
 def createLinear(self, input_size, output_size, param=None):
     linear = nn.Linear(in_features=input_size, out_features=output_size, bias=False)
