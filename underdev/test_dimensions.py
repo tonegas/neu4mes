@@ -9,11 +9,6 @@ import torch
 in1 = Input('in1',dimensions=3)
 inFir = Input('in2')
 # TODO se rimuovo questo togliendo questo modello dalla lista non funziona più
-# -----
-f = Fir(1)
-out_fun = f(inFir.tw(1))
-out0 = Output('out', out_fun)
-# -----
 
 # Finestre nel tempo
 out1 = Output('x.tw(1)', in1.tw(1, offset=0))
@@ -30,7 +25,7 @@ out3 = Output('x.tw([1,3])', in1.tw([1, 3], offset=2))
 
 test = Neu4mes()
 #test.addModel([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9])
-test.addModel([out0, out1, out3])
+test.addModel([out1, out3])
 
 test.neuralizeModel(1)
 

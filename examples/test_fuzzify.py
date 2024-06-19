@@ -22,16 +22,18 @@ dataset = {'x': data_x, 'target_y': (data_a*data_x) + data_b}
 #opt_fun = Neu4mes(visualizer=MPLVisulizer())
 print('EXAMPLE 1')
 fuz = Fuzzify(11,centers=[-5,-4,-3,-2,-1,0,1,2,3,4,5],functions='Triangular')
-out = Output('out', fuz(x))
+out = Output('out', fuz(x.last()))
 
 opt_fun = Neu4mes()
-opt_fun.minimizeError('x', target_y, out, 'mse')
+opt_fun.addModel(out)
+#opt_fun.minimizeError('x', target_y, out, 'mse')
 opt_fun.neuralizeModel()
-opt_fun.loadData(dataset)
+#opt_fun.loadData(dataset)
 
-random_sample = opt_fun.get_random_samples(window=2)
-print('X: ',random_sample['x'])
-results = opt_fun(random_sample, sampled=True)
+#random_sample = opt_fun.get_random_samples(window=2)
+#print('X: ',random_sample['x'])
+#results = opt_fun(random_sample, sampled=True)
+results = opt_fun({'x':[0.4,0.2]}, sampled=True)
 print('activation function: ', results['out'])
 
 

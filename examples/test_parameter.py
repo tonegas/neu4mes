@@ -36,7 +36,7 @@ example.neuralizeModel(0.05)
 #
 
 print("------------------------EXAMPLE 3------------------------")
-# Example 2
+# Example 3
 # Create
 g = Parameter('g', dimensions=3 , sw=5)
 def fun(x, g):
@@ -48,3 +48,14 @@ example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 example({'x':[1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0]})
+
+print("------------------------EXAMPLE 4------------------------")
+# Example 4
+# Create
+g = Parameter('g',sw=1)
+out = Output('out', x+g)
+example = Neu4mes()
+example.addModel(out)
+example.neuralizeModel(0.5)
+example({'x':[1,2]})
+

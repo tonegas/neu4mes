@@ -856,7 +856,7 @@ class Neu4mes:
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
-            self.visualizer.warning(f'Different number of samples between inputs [MAX {list(model_inputs)[max_dim_ind]} = {max_dim}; MIN {list(model_inputs)[min_dim_ind]} = {min_dim}]')
+            self.visualizer.warning(f'Different number of samples between inputs [MAX {list(provided_inputs)[max_dim_ind]} = {max_dim}; MIN {list(provided_inputs)[min_dim_ind]} = {min_dim}]')
 
         #print('inputs: ', inputs)
         ## Autofill the missing inputs

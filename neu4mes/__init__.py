@@ -24,8 +24,9 @@ from neu4mes.relation import ToStream, Stream, NeuObj, merge
 from neu4mes.input import Input
 from neu4mes.output import Output
 
-from neu4mes.activation import Relu
+from neu4mes.activation import Relu, Tanh
 from neu4mes.fir import Fir
+from neu4mes.linear import Linear
 from neu4mes.arithmetic import Add, Sub, Mul, Neg, Square
 from neu4mes.trigonometric import Sin, Cos, Tan
 from neu4mes.parametricfunction import ParamFun
