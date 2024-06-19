@@ -32,9 +32,7 @@ class Linear(NeuObj, AutoToStream):
 
     def __call__(self, obj):
         stream_name = linear_relation_name + str(Stream.count)
-        #TODO remove this limit the input can have different dimension
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
-        check(window != 'tw', KeyError, 'The input with a time window is not supported')
 
         if self.parameter is None:
             self.json['Parameters'][self.name] = { 'dim': (self.output_dimension,obj.dim['dim'],) }
@@ -46,7 +44,7 @@ class Linear(NeuObj, AutoToStream):
         stream_json = merge(self.json,obj.json)
         if type(obj) is Stream:
             stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.name, self.bias]
-            return Stream(stream_name, stream_json,{'dim': self.output_dimension, 'sw': 1})
+            return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
         else:
             raise Exception(f'The type of the input \'{obj.name}\' for the Linear is not correct.')
 
