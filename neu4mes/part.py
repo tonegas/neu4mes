@@ -165,7 +165,7 @@ class TimePart_Layer(nn.Module):
         #print('forw: ', self.forw)
         if self.offset:
             #x = x - x[:, self.offset:self.offset+1]
-            x = x - x[:, self.offset-1]
+            x = x - x[:, self.offset-1].unsqueeze(1)
             #print('x after offset: ', x)
         #print('x after partitioning: ', x[:, self.back:self.forw])
         return x[:, self.back:self.forw]
@@ -188,7 +188,7 @@ class SamplePart_Layer(nn.Module):
     def forward(self, x):
         if self.offset:
             #x = x - x[:, self.offset:self.offset+1]
-            x = x - x[:, self.offset-1]
+            x = x - x[:, self.offset-1].unsqueeze(1)
         return x[:, self.back:self.forw]
 
 def createSamplePart(self, part, offset):
