@@ -58,18 +58,15 @@ random_sample = mass_spring_damper.get_random_samples(window=2)
 print('random sample: ',random_sample)
 results = mass_spring_damper(random_sample, sampled=True)
 print('prediction: ', results['xk1'])
-print('label: ', results['out_x'])
 
 print('EXAMPLE 2')
 sample = {'x':[1.0,2.0,3.0,4.0,5.0,6.0], 'F':[25.0, 30.0, 35.0, 40.0, 45.0]}
 print('sample: ', sample)
 results = mass_spring_damper(sample)
 print('prediction: ', results['xk1'])
-print('label: ', results['out_x'])
 
 print('EXAMPLE 3')
 sample = {'x':[1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0], 'F':[25.0,30.0,35.0,40.0,45.0]}
 print('sample: ', sample)
 results = mass_spring_damper(sample)
 print('prediction: ', results['xk1'])
-print('label: ', results['out_x'])

@@ -1180,11 +1180,10 @@ class Neu4mes:
                     _, minimize_out = self.model(XY)
                     for ind, (name, items) in enumerate(self.minimize_dict.items()):
                         loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
-                        aux_train_losses[ind][i]= loss.item()
+                        aux_test_losses[ind][i]= loss.item()
 
                 for ind, key in enumerate(self.minimize_dict.keys()):
                     test_losses[key].append(torch.mean(aux_test_losses[ind]).tolist())
-
             self.visualizer.showTraining(epoch, train_losses, test_losses)
         end = time.time()
 
@@ -1351,7 +1350,7 @@ class Neu4mes:
                             if key in close_loop.keys():
                                 XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
                             else:
-                                XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1, :]
+                                XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.test_batch_size, -1, :]
 
                     loss = sum(losses) / prediction_samples
                     test_loss.append(loss.item())
