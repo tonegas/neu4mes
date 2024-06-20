@@ -103,8 +103,8 @@ for i in range(len(chan_centers)):
   #   activ_fun = custom_function(fun1, x_test, i, chan_centers)
   # else:
   #   activ_fun = custom_function(fun2, x_test, i, chan_centers)
-  activ_fun = triangular(x_test, i, chan_centers)
-  #activ_fun = custom_function(fun3,x_test, i, chan_centers)
+  #activ_fun = triangular(x_test, i, chan_centers)
+  activ_fun = custom_function(fun3,x_test, i, chan_centers)
   ax.plot(x_test,activ_fun,linewidth=3,label='Channel '+str(i+1))
 ax.legend()
 
