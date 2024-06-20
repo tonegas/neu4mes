@@ -4,11 +4,21 @@ import torch
 from neu4mes.relation import ToStream, merge, NeuObj, Stream, Relation
 from neu4mes.model import Model
 
+sum_relation_name = 'Sum'
 add_relation_name = 'Add'
 sub_relation_name = 'Sub'
 mul_relation_name = 'Mul'
 neg_relation_name = 'Neg'
 square_relation_name = 'Square'
+
+
+class Sum(Stream, ToStream):
+    def __init__(self, obj1):
+        super().__init__(sum_relation_name + str(Stream.count),obj1.json,obj1.dim)
+        if (type(obj1) is Stream):
+            self.json['Relations'][self.name] = [sum_relation_name,[obj1.name]]
+        else:
+            raise Exception('Type is not supported!')
 
 class Add(Stream, ToStream):
     def __init__(self, obj1, obj2):
@@ -57,12 +67,22 @@ class Minus_Layer(nn.Module):
 def createMinus(self, *inputs):
     return Minus_Layer()
 
+class Add_Layer(nn.Module):
+    def __init__(self):
+        super(Add_Layer, self).__init__()
+
+    def forward(self, inputs):
+        return torch.add(inputs[0], inputs[1])
+
+def createAdd(name, *inputs):
+    return Add_Layer()
+
 class Sum_Layer(nn.Module):
     def __init__(self):
         super(Sum_Layer, self).__init__()
 
     def forward(self, inputs):
-        return torch.add(inputs[0], inputs[1])
+        return torch.sum(inputs, dim = 2)
 
 def createSum(name, *inputs):
     return Sum_Layer()
@@ -72,7 +92,7 @@ class Mul_Layer(nn.Module):
         super(Mul_Layer, self).__init__()
 
     def forward(self, inputs):
-        return torch.mul(inputs[0], inputs[1])
+        return inputs[0]*inputs[1]
     
 def createMul(name, *inputs):
     return Mul_Layer()
@@ -99,7 +119,8 @@ def createSquare(self, *inputs):
     return Square_Layer()
 
 setattr(Model, neg_relation_name, createMinus)
-setattr(Model, add_relation_name, createSum)
+setattr(Model, add_relation_name, createAdd)
+setattr(Model, sum_relation_name, createSum)
 setattr(Model, mul_relation_name, createMul)
 setattr(Model, sub_relation_name, createSubtract)
 setattr(Model, square_relation_name, createSquare)
