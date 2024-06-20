@@ -13,7 +13,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         F = Input('F')  # Force
 
         # List the output of the model
-        x_z = Output('x_z', Fir(x.tw(0.3)) + Fir(F))
+        x_z = Output('x_z', Fir(x.tw(0.3)) + Fir(F.last()))
 
         # Add the neural model to the neu4mes structure and neuralization of the model
         test = Neu4mes(visualizer=None)

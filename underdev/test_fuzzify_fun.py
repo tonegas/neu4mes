@@ -29,6 +29,9 @@ example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 print(example({'x':[2,2]}))
+print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0]
+print(example({'x':[2.5]})) ## should give [0, 0.5, 0.5, 0, 0]
+print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0]
 #
 
 print("------------------------EXAMPLE 3------------------------")
@@ -41,7 +44,9 @@ out = Output('out',fuz(x.last()))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
-print(example({'x':[2,4]}))
+print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]
+print(example({'x':[2.5]})) ## should give [0, 0, 1, 0, 0, 0]
+print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0, 0]
 #
 
 print("------------------------EXAMPLE 4------------------------")
@@ -56,6 +61,7 @@ example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
 print(example({'x':[2.5]}))
+print(example({'x':[0]})) ## should return 0 near the center, 0.99 near -5 and -0.99 near 5
 #
 
 print("------------------------EXAMPLE 5------------------------")
@@ -67,12 +73,17 @@ def fun1(x):
 def fun2(x):
     return np.cos(x)
 fuz = Fuzzify(2,range=[-1,5],functions=[fun1,fun2]) # Crea 2 memebership function custom
+#fuz = Fuzzify(5,range=[1,5],functions=[fun1,fun2]) # Crea 2 memebership function custom
 out = Output('out',fuz(x.last()))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
-print(example({'x':[2]}))
 
+print(example({'x':[1]}))
+print(example({'x':[2]}))
+print(example({'x':[3]}))
+print(example({'x':[4]}))
+print(example({'x':[5]}))
 #
 print("------------------------EXAMPLE 6------------------------")
 # Example 6
@@ -86,8 +97,9 @@ out = Output('out',fuz(x.last())+fuz(F.last()))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.5)
-print(example({'x':[2,2]}))
-print(example({'x':[2,2,3]}))
+print(example({'x':[-1,0], 'F':[-1,0]}))
+print(example({'x':[0,3], 'F':[0,3]}))
+print(example({'x':[3,5], 'F':[3,5]}))
 #
 '''
 ## TODO work in progress:

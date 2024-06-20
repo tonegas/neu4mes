@@ -68,26 +68,7 @@ def rectangular(x, idx_channel, chan_centers):
   return act_fcn
 
 def custom_function(func, x, idx_channel, chan_centers):
-  ## compute number of channels
-  num_channels = len(chan_centers)
-
-  ## First dimension of activation
-  if idx_channel == 0:
-    if num_channels != 1:
-      width = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
-      #act_fcn = torch.where(x < (chan_centers[idx_channel] + width), func(x-chan_centers[idx_channel]), torch.tensor(0.0))
-      act_fcn = np.where(x < (chan_centers[idx_channel] + width), np.where(x >= (chan_centers[idx_channel] - width), func(x-chan_centers[idx_channel]), 1.0), 0.0)
-    else:
-      # In case the user only wants one channel
-      act_fcn = 1.0
-  elif idx_channel != 0 and idx_channel == (num_channels - 1):
-    width = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-    act_fcn = np.where(x >= chan_centers[idx_channel] - width, np.where(x < (chan_centers[idx_channel] + width), func(x-chan_centers[idx_channel]), 1.0), 0.0)
-  else:
-    width_forward = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2  
-    width_backward = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-    act_fcn = np.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), func(x-chan_centers[idx_channel]), 0.0)
-  
+  act_fcn = func(x-chan_centers[idx_channel])
   return act_fcn
 
 # -------------------------------------------------------
@@ -98,12 +79,14 @@ def custom_function(func, x, idx_channel, chan_centers):
 x_test = np.linspace(-15.0,15.0,num=1000) 
 
 # Array of the channel centers
-chan_centers = np.array([-5.0,0.0,3.0])
+chan_centers = np.array([-5,-2,1,4])
 
 def fun1(x):
   return np.cos(x)
 def fun2(x):
   return np.sin(x)
+def fun3(x):
+  return np.tanh(x)
 
 def fun3(x):
   return np.tanh(x)
@@ -121,6 +104,7 @@ for i in range(len(chan_centers)):
   # else:
   #   activ_fun = custom_function(fun2, x_test, i, chan_centers)
   activ_fun = triangular(x_test, i, chan_centers)
+  #activ_fun = custom_function(fun3,x_test, i, chan_centers)
   ax.plot(x_test,activ_fun,linewidth=3,label='Channel '+str(i+1))
 ax.legend()
 
