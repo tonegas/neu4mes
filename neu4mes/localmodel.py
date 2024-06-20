@@ -5,8 +5,6 @@ import torch.nn as nn
 from neu4mes.relation import NeuObj, Stream, merge
 from neu4mes.model import Model
 from neu4mes.part import Select
-from neu4mes.fir import Fir
-from neu4mes.parametricfunction import ParamFun
 
 localmodel_relation_name = 'LocalModel'
 
@@ -70,6 +68,7 @@ class LocalModel(NeuObj):
                     self.out_sum.append(self.output_function(prod))
             else:
                 self.out_sum.append(prod)
+
 
 
 def createLocalModel(self):
