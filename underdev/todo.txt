@@ -1,16 +1,10 @@
-1. Add 'values' inside json parameter and make parameters values not random 
-2. add tests for fuzzify -> DONE
-3. drop minimize values from the output json, so that when u call the function u don't need to also include labels -> DONE
-4. add custom fuzzify function and the 'name' in the json  -> DONE
-5. add vectoral inputs
+1. Add 'values' inside json parameter and make parameters values not random
+5. fix the loading the vectorial input
 6. investigate on why the program crashes if i force close the training plots
 7. adjust the metrics of the visualizer
 8. add the activation functions to the visualizer
 9. Adjust the 'ResultAnalysis' function
-10. Add multiple loss function for each minimize
-11. adjust fuzzy dimensions -> DONE
-12. adjust fuzzy custom functions -> DONE
-13. implement select, part, sampleselect
+
 
 CHECKS:
 1. check that inside the minimize are given only Input or Ouput values
