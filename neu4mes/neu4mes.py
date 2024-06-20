@@ -1284,7 +1284,7 @@ class Neu4mes:
         end = time.time()
 
         self.visualizer.showTrainingTime(end-start)
-        #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+        self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
 
     ## TODO: adjust the recurrent train
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):

@@ -152,18 +152,21 @@ class Model(nn.Module):
         self.relation_parameters = {}
 
         ## Create all the parameters
-        for name, param_dimensions in self.params.items():
-            window = 'tw' if 'tw' in param_dimensions.keys() else ('sw' if 'sw' in self.params[name].keys() else None)
+        for name, param_data in self.params.items():
+            window = 'tw' if 'tw' in param_data.keys() else ('sw' if 'sw' in self.params[name].keys() else None)
             aux_sample_time = self.sample_time if 'tw' == window else 1
             if window:
-                sample_window = round(param_dimensions[window] / aux_sample_time)
+                sample_window = round(param_data[window] / aux_sample_time)
             else:
                 sample_window = 1
-            if type(param_dimensions['dim']) is tuple:
-                param_size = tuple(param_dimensions['dim'])
+            if type(param_data['dim']) is tuple:
+                param_size = tuple(param_data['dim'])
             else:
-                param_size = (param_dimensions['dim'], sample_window)
-            self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size), requires_grad=True)
+                param_size = (param_data['dim'], sample_window)
+            if 'values' in param_data:
+                self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values']), requires_grad=True)
+            else:
+                self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size), requires_grad=True)
 
         ## Create all the relations
         for relation, inputs in self.relations.items():
@@ -211,7 +214,7 @@ class Model(nn.Module):
                 ## Add the shared layers
                 if rel_name in ['Fir',]:
                     if inputs[2] not in self.relation_parameters.keys():
-                        self.relation_parameters[inputs[2]] = relation   
+                        self.relation_parameters[inputs[2]] = relation
             else:
                 print(f"Key Error: [{rel_name}] Relation not defined")
 
@@ -227,7 +230,7 @@ class Model(nn.Module):
         self.network_output_minimizers = []  ## TODO: the minimize list now already has the correct relations
         for el1, el2, _ in self.minimizers:
             self.network_output_minimizers.append(self.outputs[el1]) if el1 in self.outputs.keys() else self.network_output_minimizers.append(el1)
-            self.network_output_minimizers.append(self.outputs[el2]) if el2 in self.outputs.keys() else self.network_output_minimizers.append(el2)    
+            self.network_output_minimizers.append(self.outputs[el2]) if el2 in self.outputs.keys() else self.network_output_minimizers.append(el2)
         self.network_output_minimizers = set(self.network_output_minimizers)
         #self.network_output_minimizers = set([i[0] for i in self.minimizers] + [i[1] for i in self.minimizers] - self.outputs.keys())
         self.network_outputs = self.network_output_predictions.union(self.network_output_minimizers)
@@ -235,7 +238,7 @@ class Model(nn.Module):
         #print('[LOG] network_output_predictions: ', self.network_output_predictions)
         #print('[LOG] network_output_minimizers: ', self.network_output_minimizers)
         #print('[LOG] network_outputs: ', self.network_outputs)
-    
+
     def forward(self, kwargs):
         result_dict = {}
 

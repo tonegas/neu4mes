@@ -28,7 +28,8 @@ class Linear(NeuObj, AutoToStream):
             if output_dimension is not None:
                 check(W.dim['dim'][0] == output_dimension, ValueError, 'output_dimension must be equal to the second dim of the parameter')
             super().__init__(W.name)
-            self.json['Parameters'][self.name] = copy.deepcopy(W.dim)
+            #self.json['Parameters'][self.name] = copy.deepcopy(W.dim)
+            self.json['Parameters'][self.name] = copy.deepcopy(W.json['Parameters'][W.name])
 
     def __call__(self, obj):
         stream_name = linear_relation_name + str(Stream.count)
@@ -37,7 +38,7 @@ class Linear(NeuObj, AutoToStream):
         if self.parameter is None:
             self.json['Parameters'][self.name] = { 'dim': (self.output_dimension,obj.dim['dim'],) }
         else:
-            self.json['Parameters'][self.name] = {'dim': self.parameter.dim['dim']}
+            #self.json['Parameters'][self.name] = {'dim': self.parameter.dim['dim']}
             check(self.parameter.dim['dim'][1] == obj.dim['dim'], ValueError,
                   'the input dimension must be equal to the first dim of the parameter')
 

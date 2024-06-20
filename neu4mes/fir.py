@@ -28,7 +28,8 @@ class Fir(NeuObj, AutoToStream):
                 self.output_dimension = output_dimension
                 check(parameter.dim['dim'] == self.output_dimension, ValueError, 'output_dimension must be equal to dim of the Parameter')
             super().__init__(parameter.name)
-            self.json['Parameters'][self.name] = copy.deepcopy(parameter.dim)
+            #self.json['Parameters'][self.name] = copy.deepcopy(parameter.dim)
+            self.json['Parameters'][self.name] = copy.deepcopy(parameter.json['Parameters'][parameter.name])
 
     def __call__(self, obj):
         stream_name = fir_relation_name + str(Stream.count)

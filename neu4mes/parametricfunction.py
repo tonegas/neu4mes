@@ -131,7 +131,8 @@ class ParamFun(NeuObj):
             for param in parameters:
                 if type(param) is Parameter:
                     self.json['Functions'][self.name]['parameters'].append(param.name)
-                    self.json['Parameters'][param.name] = param.dim
+                    #self.json['Parameters'][param.name] = param.dim
+                    self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param.name])
 
         elif parameters_dimensions is not None:
             assert type(parameters_dimensions) is dict, 'parameters_dimensions must be a dict'
