@@ -28,7 +28,6 @@ out = Output('out',fuz(x.last()))
 example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.05)
-print(example({'x':[2,2]}))
 print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0]
 print(example({'x':[2.5]})) ## should give [0, 0.5, 0.5, 0, 0]
 print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0]
