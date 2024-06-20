@@ -1191,7 +1191,6 @@ class Neu4mes:
         self.visualizer.showResults()
 
 
-
     def trainModel(self, test_percentage = 0, training_params = {}):
         if not list(self.model.parameters()):
             print('There are no modules with learnable parameters! The Training will stop.')
