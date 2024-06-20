@@ -197,6 +197,12 @@ class Model(nn.Module):
                     part = inputs[2]
                     offset = inputs[3] if len(inputs) > 3 else None
                     self.relation_forward[relation] = func(part, offset)
+                elif rel_name == 'Part':
+                    part_start_idx, part_end_idx = inputs[2][0], inputs[2][1]
+                    self.relation_forward[relation] = func(part_start_idx, part_end_idx)
+                elif rel_name == 'Select' or rel_name == 'SampleSelect':
+                    select_idx = inputs[2]
+                    self.relation_forward[relation] = func(select_idx)
                 else: ## Functions that takes no parameters
                     self.relation_forward[relation] = func()
 
@@ -258,6 +264,8 @@ class Model(nn.Module):
                                 layer_parameters.append(self.all_parameters[func_par])
                             result_dict[relation] = self.relation_forward[relation](layer_inputs, layer_parameters)
                     else:
+                        #print('relation: ', relation)
+                        #print('layer_inputs: ', layer_inputs)
                         if len(layer_inputs) <= 1: ## i have a single forward pass
                             result_dict[relation] = self.relation_forward[relation](layer_inputs[0])
                         else:

@@ -109,6 +109,7 @@ def rectangular(x, idx_channel, chan_centers):
   
     return act_fcn
 
+'''
 def custom_function(func, x, idx_channel, chan_centers):
     ## compute number of channels
     num_channels = len(chan_centers)
@@ -129,6 +130,10 @@ def custom_function(func, x, idx_channel, chan_centers):
         width_backward = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
         act_fcn = torch.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), func(x-chan_centers[idx_channel]), torch.tensor(0.0))
   
+    return act_fcn
+'''
+def custom_function(func, x, idx_channel, chan_centers):
+    act_fcn = func(x-chan_centers[idx_channel])
     return act_fcn
 
 class Fuzzify_Layer(nn.Module):
@@ -157,28 +162,31 @@ class Fuzzify_Layer(nn.Module):
                     print(f"An error occurred: {e}")
 
     def forward(self, x):
-        res = torch.empty((x.size(0), self.dimension), dtype=torch.float32)
+        res = torch.empty((x.size(0), x.size(1), self.dimension), dtype=torch.float32)
 
         if self.function == 'Triangular':
             for i in range(len(self.centers)):
-                res[:, i] = triangular(x, i, self.centers)
+                res[:, :, i:i+1] = triangular(x, i, self.centers)
         elif self.function == 'Rectangular':
             for i in range(len(self.centers)):
-                res[:, i] = rectangular(x, i, self.centers)
+                res[:, :, i:i+1] = rectangular(x, i, self.centers)
         else: ## Custom_function
             if self.n_func == 1:
                 # Retrieve the function object from the globals dictionary
                 function_to_call = globals()[self.name]
                 for i in range(len(self.centers)):
-                    res[:, i] = custom_function(function_to_call, x, i, self.centers)
+                    res[:, :, i:i+1] = custom_function(function_to_call, x, i, self.centers)
             else: ## we have multiple functions
                 for i in range(len(self.centers)):
                     if i >= self.n_func:
-                        func_idx = i - self.n_func
+                        func_idx = i - round(self.n_func * (i // self.n_func))
                     else:
                         func_idx = i
                     function_to_call = globals()[self.name[func_idx]]
-                    res[:, i] = custom_function(function_to_call, x, i, self.centers)
+                    res[:, :, i:i+1] = custom_function(function_to_call, x, i, self.centers)
+
+        #if res.ndim == 2:
+        #    res = res.unsqueeze(1)  ## add the window dimension
         return res
 
 def createFuzzify(self, params):

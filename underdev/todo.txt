@@ -8,6 +8,9 @@
 8. add the activation functions to the visualizer
 9. Adjust the 'ResultAnalysis' function
 10. Add multiple loss function for each minimize
+11. adjust fuzzy dimensions -> DONE
+12. adjust fuzzy custom functions -> DONE
+13. implement select, part, sampleselect
 
 CHECKS:
 1. check that inside the minimize are given only Input or Ouput values

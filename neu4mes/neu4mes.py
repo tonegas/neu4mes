@@ -1099,6 +1099,10 @@ class Neu4mes:
 
 
     def trainModel(self, test_percentage = 0, training_params = {}):
+        if not list(self.model.parameters()):
+            print('There are no modules with learnable parameters! The Training will stop.')
+            return
+         
         import time
 
         # Check input
@@ -1146,7 +1150,6 @@ class Neu4mes:
                     XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
                     if XY[key].ndim == 2:
                         XY[key] = XY[key].unsqueeze(-1)
-
                 self.optimizer.zero_grad()
                 #print('[LOG] XY.keys: ', XY.keys())
                 #print('[LOG] XY: ', XY)

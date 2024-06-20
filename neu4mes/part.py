@@ -30,7 +30,7 @@ class Part(Stream, ToStream):
 
 class Select(Stream, ToStream):
     def __init__(self, obj, i):
-        check(i >= 0 and i < obj.dim['dim'] - 1,
+        check(i >= 0 and i < obj.dim['dim'],
               IndexError,
               f"i={i} are not in the range [0,{obj.dim['dim']}]")
         dim = copy.deepcopy(obj.dim)
@@ -89,9 +89,9 @@ class SampleSelect(Stream, ToStream):
         check(i >= backward_idx and i <= forward_idx, ValueError, 'i must be in the sample window of the input')
         dim = copy.deepcopy(obj.dim)
         del dim['sw']
-        super().__init__(timeselect_relation_name + str(Stream.count),obj.json,dim)
+        super().__init__(sampleselect_relation_name + str(Stream.count),obj.json,dim)
         if (type(obj) is Stream):
-            self.json['Relations'][self.name] = [timeselect_relation_name,[obj.name],i]
+            self.json['Relations'][self.name] = [sampleselect_relation_name,[obj.name],i]
 
 class TimePart(Stream, ToStream):
     def __init__(self, obj, i, j, offset = None):
@@ -146,12 +146,31 @@ class TimeSelect(Stream, ToStream):
         if (type(obj) is Stream):
             self.json['Relations'][self.name] = [timeselect_relation_name,[obj.name],i]
 
+class Part_Layer(nn.Module):
+    def __init__(self, i, j):
+        super(Part_Layer, self).__init__()
+        self.i, self.j = i, j
 
-def createPart(self, *inputs):
-    pass
+    def forward(self, x):
+        assert x.ndim >= 3, 'The Part Relation Works only for 3D inputs'
+        return x[:, :, self.i:self.j]
+    
+## seleziona sulla terza dimensiona un range [i,j]
+def createPart(self, i, j):
+    return Part_Layer(i, j)
 
-def createSelect(self, *inputs):
-    pass
+class Select_Layer(nn.Module):
+    def __init__(self, idx):
+        super(Select_Layer, self).__init__()
+        self.idx = idx
+
+    def forward(self, x):
+        assert x.ndim >= 3, 'The Part Relation Works only for 3D inputs'
+        return x[:, :, self.idx]
+    
+## seleziona sulla terza dimensione un indice i
+def createSelect(self, idx):
+    return Select_Layer(idx)
 
 class TimePart_Layer(nn.Module):
     def __init__(self, part, offset, sample_time):
@@ -173,11 +192,11 @@ class TimePart_Layer(nn.Module):
 def createTimePart(self, part, offset, sample_time):
     return TimePart_Layer(part=part, offset=offset, sample_time=sample_time)
 
-def createInputTimePart(self, *inputs):
-    pass
+#def createInputTimePart(self, *inputs):
+#    pass
 
-def createTimeSelect(self, *inputs):
-    pass
+#def createTimeSelect(self, *inputs):
+#    pass
 
 class SamplePart_Layer(nn.Module):
     def __init__(self, part, offset):
@@ -194,18 +213,28 @@ class SamplePart_Layer(nn.Module):
 def createSamplePart(self, part, offset):
     return SamplePart_Layer(part=part, offset=offset)
 
-def createInputSamplePart(self, *inputs):
-    pass
+#def createInputSamplePart(self, *inputs):
+#    pass
 
-def createSampleSelect(self, *inputs):
-    pass
+class Sample_Select_Layer(nn.Module):
+    def __init__(self, idx):
+        super(Sample_Select_Layer, self).__init__()
+        self.idx = idx
+
+    def forward(self, x):
+        assert x.ndim >= 2, 'The Part Relation Works only for 2D inputs'
+        return x[:, self.idx, :]
+    
+## seleziona 1 elemento sulla seconda dimensione
+def createSampleSelect(self, idx):
+    return Sample_Select_Layer(idx)
 
 setattr(Model, part_relation_name, createPart)
 setattr(Model, select_relation_name, createSelect)
 setattr(Model, timepart_relation_name, createTimePart)
-setattr(Model, input_timepart_relation_name, createInputTimePart)
-setattr(Model, timeselect_relation_name, createTimeSelect)
+#setattr(Model, input_timepart_relation_name, createInputTimePart)
+#setattr(Model, timeselect_relation_name, createTimeSelect)
 setattr(Model, samplepart_relation_name, createSamplePart)
-setattr(Model, input_samplepart_relation_name, createInputSamplePart)
+#setattr(Model, input_samplepart_relation_name, createInputSamplePart)
 setattr(Model, sampleselect_relation_name, createSampleSelect)
 
