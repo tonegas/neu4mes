@@ -20,7 +20,7 @@ x_win = x.tw(0.5)
 # Next represents the next instant value of the variable
 next_x = x.next()
 # Prediction model
-model_next_x = Fir(x)+Fir(f_last)
+model_next_x = Fir(x_win)+Fir(f_last)
 
 # Define one or multiple Outputs to be added to the model
 out_model_next_x = Output('model_next_x',model_next_x)
