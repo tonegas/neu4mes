@@ -11,3 +11,14 @@
 
 CHECKS:
 1. check that inside the minimize are given only Input or Ouput values
+
+
+
+FIR
+(batch, window, 1) -> (batch, 1, dim_out_fir)
+
+Linear
+(batch, window, DIM_IN) -> (batch, window, DIM_OUT)
+
+Fuzzy
+(batch, window, 1) -> (batch, window, fuzzy_dim_out)

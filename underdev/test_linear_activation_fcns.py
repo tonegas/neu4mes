@@ -98,12 +98,15 @@ def custom_function(func, x, idx_channel, chan_centers):
 x_test = np.linspace(-15.0,15.0,num=1000) 
 
 # Array of the channel centers
-chan_centers = np.array([-9.0,-3.0,3.0,9.0])
+chan_centers = np.array([-5.0,0.0,3.0])
 
 def fun1(x):
   return np.cos(x)
 def fun2(x):
   return np.sin(x)
+
+def fun3(x):
+  return np.tanh(x)
 
 # Plot the activation functions
 fig = plt.figure(figsize=(10,5))
@@ -113,10 +116,11 @@ plt.grid(True)
 
 for i in range(len(chan_centers)):
   ax.axvline(x=chan_centers[i], color='r', linestyle='--')
-  if i % 2 == 0:
-    activ_fun = custom_function(fun1, x_test, i, chan_centers)
-  else:
-    activ_fun = custom_function(fun2, x_test, i, chan_centers)
+  # if i % 2 == 0:
+  #   activ_fun = custom_function(fun1, x_test, i, chan_centers)
+  # else:
+  #   activ_fun = custom_function(fun2, x_test, i, chan_centers)
+  activ_fun = triangular(x_test, i, chan_centers)
   ax.plot(x_test,activ_fun,linewidth=3,label='Channel '+str(i+1))
 ax.legend()
 

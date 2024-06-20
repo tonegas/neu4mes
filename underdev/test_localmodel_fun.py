@@ -5,10 +5,10 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
-x = Input('x', )
+x = Input('x')
 F = Input('F')
-activationA = Fuzzify(2,[0,1],functions='Triangular')(x)
-activationB = Fuzzify(2,[0,1],functions='Triangular')(F)
+activationA = Fuzzify(2,[0,1],functions='Triangular')(x.last())
+activationB = Fuzzify(2,[0,1],functions='Triangular')(F.last())
 
 print("------------------------EXAMPLE 1------------------------")
 # Example 1
