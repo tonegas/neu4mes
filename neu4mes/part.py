@@ -166,7 +166,7 @@ class Select_Layer(nn.Module):
 
     def forward(self, x):
         assert x.ndim >= 3, 'The Part Relation Works only for 3D inputs'
-        return x[:, :, self.idx]
+        return x[:, :, self.idx:self.idx+1]
     
 ## seleziona sulla terza dimensione un indice i
 def createSelect(self, idx):
@@ -223,7 +223,7 @@ class Sample_Select_Layer(nn.Module):
 
     def forward(self, x):
         assert x.ndim >= 2, 'The Part Relation Works only for 2D inputs'
-        return x[:, self.idx, :]
+        return x[:, self.idx:self.idx+1, :]
     
 ## seleziona 1 elemento sulla seconda dimensione
 def createSampleSelect(self, idx):
