@@ -32,7 +32,6 @@ class Fir(NeuObj, AutoToStream):
 
     def __call__(self, obj):
         stream_name = fir_relation_name + str(Stream.count)
-        #TODO remove this limit the input can have different dimension
         check('dim' in obj.dim and obj.dim['dim'] == 1, ValueError, 'Input dimension must be scalar')
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
         if window:
