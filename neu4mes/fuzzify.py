@@ -60,7 +60,7 @@ class Fuzzify(NeuObj):
         stream_json = merge(self.json, obj.json)
         if type(obj) is Stream:
             stream_json['Relations'][stream_name] = [fuzzify_relation_name, [obj.name],self.name]
-            return Stream(stream_name, stream_json,output_dimension)
+            return Stream(stream_name, stream_json, output_dimension)
         else:
             raise Exception('Type is not supported!')
 
