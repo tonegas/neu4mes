@@ -30,7 +30,7 @@ class Part(Stream, ToStream):
 
 class Select(Stream, ToStream):
     def __init__(self, obj, i):
-        check(i >= 0 and i < obj.dim['dim'] - 1,
+        check(i >= 0 and i < obj.dim['dim'],
               IndexError,
               f"i={i} are not in the range [0,{obj.dim['dim']}]")
         dim = copy.deepcopy(obj.dim)
