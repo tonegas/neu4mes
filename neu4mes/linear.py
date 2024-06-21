@@ -50,16 +50,15 @@ class Linear(NeuObj, AutoToStream):
             raise Exception(f'The type of the input \'{obj.name}\' for the Linear is not correct.')
 
 class Linear_Layer(nn.Module):
-    def __init__(self, **kwargs):
+    def __init__(self, weights, bias):
         super(Linear_Layer, self).__init__()
-        self.lin = nn.Linear(**kwargs)
+        self.lin = nn.Linear(in_features=weights.size(0), out_features=weights.size(1), bias=bias)
+        self.lin.weight = nn.Parameter(weights.t())
 
     def forward(self, x):
         return self.lin(x)
 
 def createLinear(self, weights, bias):
-    layer = Linear_Layer(in_features=weights.size(1), out_features=weights.size(0), bias=bias)
-    layer.lin.weight = weights
-    return layer
+    return Linear_Layer(weights, bias)
 
 setattr(Model, linear_relation_name, createLinear)
