@@ -18,6 +18,7 @@ class Model(nn.Module):
         self.relation_forward = {}
         self.relation_inputs = {}
         self.relation_parameters = {}
+        self.constants = set()
 
         ## Create all the parameters
         for name, param_data in self.params.items():
@@ -41,7 +42,9 @@ class Model(nn.Module):
             ## Take the relation name
             rel_name = inputs[0]
             ## collect the inputs needed for the relation
-            input_var = [i[0] if type(i) is tuple else i for i in inputs[1]]
+            input_var = inputs[1]
+            ## collect the constants of the model
+            self.constants.update([item for item in inputs[1] if not isinstance(item, str)])
             
             ## Check shared layers
             if rel_name in ['Fir','Linear',]:
@@ -108,20 +111,23 @@ class Model(nn.Module):
     def forward(self, kwargs):
         result_dict = {}
 
-        ## Initially i have only the inputs from the dataset
-        available_keys = list(self.inputs.keys())
+        ## Initially i have only the inputs from the dataset, the parameters, and the constants
+        available_keys = list(self.inputs.keys()) + list(self.all_parameters.keys()) + list(self.constants)
 
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs
             for relation in self.relations.keys():
                 ## if i have all the variables i can calculate the relation
                 if set(self.relation_inputs[relation]).issubset(available_keys):
-
                     ## Collect all the necessary inputs for the relation
                     layer_inputs = []
                     for key in self.relation_inputs[relation]:
-                        if key in self.inputs.keys():
+                        if not isinstance(key, str): ## relation that takes a constant
+                            layer_inputs.append(torch.tensor(key, dtype=torch.float32))
+                        elif key in self.inputs.keys():  ## relation that takes inputs
                             layer_inputs.append(kwargs[key])
-                        else:
+                        elif key in self.all_parameters.keys(): ## relation that takes parameters
+                            layer_inputs.append(self.all_parameters[key])
+                        else: ## relation than takes another relation
                             layer_inputs.append(result_dict[key])
 
                     ## Execute the current relation

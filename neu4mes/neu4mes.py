@@ -300,6 +300,8 @@ class Neu4mes:
                 self.data[key] = np.stack(self.data[key])
                 if self.data[key].ndim == 2: ## Add the sample dimension
                     self.data[key] = np.expand_dims(self.data[key], axis=-1)
+                if self.data[key].ndim > 3:
+                    self.data[key] = np.squeeze(self.data[key], axis=1)
                 if self.num_of_samples is None:
                     self.num_of_samples = self.data[key].shape[0]
 

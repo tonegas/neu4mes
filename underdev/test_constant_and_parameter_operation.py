@@ -5,6 +5,8 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
+## TEST JSON
+'''
 inin = Input('in').last()
 par = Parameter('par',sw=1)
 inin4 = Input('in',dimensions=4).last()
@@ -34,3 +36,40 @@ out = Output('out',add+sub+mul+div+pow+Linear(add4+sub4+mul4+div4+pow4)+sin+cos+
 test = Neu4mes()
 test.addModel(out)
 test.neuralizeModel()
+'''
+
+## TEST TRAIN
+x = Input('x', dimensions=1)
+y = Input('y', dimensions=4)
+x_label = Input('x_label', dimensions=1)
+y_label = Input('y_label', dimensions=4)
+
+k = Parameter('k', dimensions=1, sw=1)
+w = Parameter('w', dimensions=4, sw=1)
+
+add = x.last()+k+5.0
+add_vectorial = y.last()+w+5.0
+
+out = Output('out', add)
+out_vectorial = Output('out_vec', add_vectorial)
+
+test = Neu4mes()
+test.addModel(out)
+test.addModel(out_vectorial)
+test.minimizeError('error', out, x_label.last())
+test.minimizeError('error_vectorial', out_vectorial, y_label.last())
+test.neuralizeModel()
+
+data_x = np.random.random((200, 1, 1))
+data_x_label = 2*data_x + 5
+data_y = np.random.random((200, 1, 4))
+data_y_label = 3*data_y - 4
+test.loadData(source={'x':data_x, 'y':data_y, 'x_label':data_x_label, 'y_label':data_y_label})
+
+sample = test.get_random_samples(window=1)
+print('random sample: ', sample)
+print('prediction before train', test(sample, sampled=True))
+
+test.trainModel(test_percentage=10, training_params={'num_of_epochs':100, 'train_batch_size':4, 'test_batch_size':4})
+
+print('prediction after train', test(sample, sampled=True))
