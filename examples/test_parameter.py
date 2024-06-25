@@ -58,4 +58,3 @@ example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.5)
 example({'x':[1,2]})
-

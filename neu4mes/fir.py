@@ -58,16 +58,16 @@ class Fir(NeuObj, AutoToStream):
             raise Exception(f'The type of the input \'{obj.name}\' for the Fir is not correct.')
 
 class Fir_Layer(nn.Module):
-    def __init__(self, **kwargs):
+    def __init__(self, weights):
         super(Fir_Layer, self).__init__()
-        self.lin = nn.Linear(**kwargs)
+        self.lin = nn.Linear(in_features=weights.size(0), out_features=weights.size(1), bias=False)
+        self.lin.weight = nn.Parameter(weights.t())
 
     def forward(self, x):
-        return self.lin(x.permute(0, 2, 1))
+        x = x.permute(0, 2, 1)
+        return self.lin(x)
 
 def createFir(self, weights):
-    layer = Fir_Layer(in_features=weights.size(1), out_features=weights.size(0), bias=False)
-    layer.lin.weight = weights
-    return layer
+    return Fir_Layer(weights)
 
 setattr(Model, fir_relation_name, createFir)

@@ -512,7 +512,7 @@ class MyTestCase(unittest.TestCase):
 
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [1, 2, 2, 4]]}, sampled=True)
         self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[-0.03118065930902958, 0.01680794171988964, 0.008526552468538284]], [[-0.03118065930902958, 0.01680794171988964, 0.008526552468538284]]])
+        self.TestAlmostEqual(results['out'], [[[-0.03303150087594986, 0.023659050464630127, 0.0185492392629385]], [[-0.03303150087594986, 0.023659050464630127, 0.0185492392629385]]])
 
         parfun = ParamFun(myfun2)
         with self.assertRaises(AssertionError):
@@ -526,14 +526,14 @@ class MyTestCase(unittest.TestCase):
 
         results = test({'in1': [[1, 2, 2, 4], [2, 1, 1, 3]]}, sampled=True)
         self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[0.6109480261802673, 0.60237056016922, 0.43050122261047363]], [[0.683874785900116, 0.6806684732437134,0.5364522337913513]]])
+        self.TestAlmostEqual(results['out'], [[[0.548146665096283, 0.6267049908638, 0.5457861423492432]], [[0.6165860891342163, 0.6518347859382629, 0.6502876281738281]]])
 
         results = test({'in1': [1, 2, 2, 4, 3],'in2': [6, 2, 2, 4, 4]})
         self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[0.6109480261802673, 0.60237056016922, 0.43050122261047363]], [[0.4087050557136535, 0.36707818508148193, 0.3159596920013428]]])
+        self.TestAlmostEqual(results['out'], [[[0.548146665096283, 0.6267049908638, 0.5457861423492432]], [[0.2763473391532898, 0.45648545026779175, 0.4165944457054138]]])
         results = test({'in1': [[1, 2, 2, 4],[2, 2, 4, 3]],'in2': [[6, 2, 2, 4],[2, 2, 4, 4]]}, sampled=True)
         self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[0.6109480261802673, 0.60237056016922, 0.43050122261047363]], [[0.4087050557136535, 0.36707818508148193, 0.3159596920013428]]])
+        self.TestAlmostEqual(results['out'], [[[0.548146665096283, 0.6267049908638, 0.5457861423492432]], [[0.2763473391532898, 0.45648545026779175, 0.4165944457054138]]])
 
 
 if __name__ == '__main__':

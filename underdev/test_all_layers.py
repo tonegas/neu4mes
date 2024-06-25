@@ -208,3 +208,73 @@ test.neuralizeModel()
 sample = {'x':[1,2,3,4], 'x_multi':[[1,2,3],[4,5,6],[7,8,9],[10,11,12]]}
 print('example: ', sample)
 pprint(test(sample))
+
+
+### EXAMPLE 6
+print('#### EXAMPLE 6 - TEST PARAMETER WITH FIR ####')
+
+# Create the dataset 
+data_x = np.asarray(range(1000), dtype=np.float32)
+data_a = 2
+data_b = -3
+dataset = {'x': data_x,
+           'target_y': parametric_fun(data_x,data_a,data_b), 
+           'target_y_multi': np.repeat(np.array(parametric_fun(data_x,data_a,data_b))[:, np.newaxis], 3, axis=1)}
+print('### EXAMPLE DATASET ###')
+print('x: ', dataset['x'][:3])
+print('target_y: ', dataset['target_y'][:3])
+print('target_y_multi: ', dataset['target_y_multi'][:3])
+print('x shape: ', dataset['x'].shape)
+print('target_y shape: ', dataset['target_y'].shape)
+print('target_y_multi shape: ', dataset['target_y_multi'].shape)
+
+# Input of the function
+x = Input('x')
+target_y = Input('target_y')
+target_y_multi = Input('target_y_multi', dimensions=3)
+
+## create parameters
+k = Parameter('k', dimensions=1, tw=1, values=[[0]])
+k_multi = Parameter('k_multi', dimensions=1, tw=5, values=[[0],[1],[2],[3],[4]])
+w = Parameter('w', dimensions=3, tw=1, values=[[1,2,3]])
+w_multi = Parameter('w_multi', dimensions=3, tw=5, values=[[1,2,3],[4,5,6],[7,8,9],[10,11,12],[13,14,15]])
+
+## FIR layers
+fir_mono_out_mono_window = Fir(output_dimension=1, parameter=k)
+fir_mono_out_multi_window = Fir(output_dimension=1, parameter=k_multi)
+fir_multi_out_mono_window = Fir(output_dimension=3, parameter=w)
+fir_multi_out_multi_window = Fir(output_dimension=3, parameter=w_multi)
+
+# Output of the function
+y1 = Output('fir_mono_out_mono_window',fir_mono_out_mono_window(x.tw([-1,0])))
+y2 = Output('fir_mono_out_multi_window',fir_mono_out_multi_window(x.tw([-5,0])))
+y3 = Output('fir_multi_out_mono_window',fir_multi_out_mono_window(x.tw([-1,0])))
+y4 = Output('fir_multi_out_multi_window',fir_multi_out_multi_window(x.tw([-5,0])))
+
+test = Neu4mes()
+
+test.minimizeError('out', target_y.sw(1), y1, 'rmse')
+test.minimizeError('out1', target_y.sw(1), y2, 'rmse')
+test.minimizeError('out2', target_y_multi.sw(1), y3, 'rmse')
+test.minimizeError('out3', target_y_multi.sw(1), y4, 'rmse')
+
+# Neuralize the models
+test.neuralizeModel()
+# Load the dataset create with the target function
+test.loadData(dataset)
+
+print('BEFORE TRAINING')
+sample = test.get_random_samples(1) 
+print('random sample: ', sample)
+results = test(sample, sampled=True)
+print('results')
+pprint(results)
+
+# Train the models
+test.trainModel(test_percentage = 20, training_params={'num_of_epochs':50, 'train_batch_size':4, 'test_batch_size':4})
+
+print('AFTER TRAINING')
+print('random sample: ', sample)
+results = test(sample, sampled=True)
+print('results')
+pprint(results)
