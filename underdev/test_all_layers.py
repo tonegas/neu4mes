@@ -14,7 +14,7 @@ def parametric_fun(x,a,b,c):
 # Linear function
 def parametric_fun(x,a,b):
     return x*a+b
-'''
+
 ### EXAMPLE 1
 print('#### EXAMPLE 1 - TEST FIR ####')
 
@@ -208,7 +208,7 @@ test.neuralizeModel()
 sample = {'x':[1,2,3,4], 'x_multi':[[1,2,3],[4,5,6],[7,8,9],[10,11,12]]}
 print('example: ', sample)
 pprint(test(sample))
-'''
+
 
 ### EXAMPLE 6
 print('#### EXAMPLE 6 - TEST PARAMETER WITH FIR ####')
@@ -264,13 +264,8 @@ test.neuralizeModel()
 test.loadData(dataset)
 
 print('BEFORE TRAINING')
-#sample = {'in1':[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]} ## 2 samples
 sample = test.get_random_samples(1) 
 print('random sample: ', sample)
-print('layer weights: ', test.model.relation_forward['Fir13'].lin.weight)
-print('layer weights: ', test.model.relation_forward['Fir17'].lin.weight)
-print('layer weights: ', test.model.relation_forward['Fir21'].lin.weight)
-print('layer weights: ', test.model.relation_forward['Fir9'].lin.weight)
 results = test(sample, sampled=True)
 print('results')
 pprint(results)
@@ -280,10 +275,6 @@ test.trainModel(test_percentage = 20, training_params={'num_of_epochs':50, 'trai
 
 print('AFTER TRAINING')
 print('random sample: ', sample)
-print('layer weights: ', test.model.relation_forward['Fir13'].lin.weight)
-print('layer weights: ', test.model.relation_forward['Fir17'].lin.weight)
-print('layer weights: ', test.model.relation_forward['Fir21'].lin.weight)
-print('layer weights: ', test.model.relation_forward['Fir9'].lin.weight)
 results = test(sample, sampled=True)
 print('results')
 pprint(results)

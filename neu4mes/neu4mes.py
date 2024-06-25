@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import numpy as np
+import pandas as pd
 from scipy.stats import norm
 import random
 import os
@@ -60,10 +61,11 @@ class Neu4mes:
         self.data_loaded = False
 
         self.file_count = 0
-        self.inout_data_time_window = {}
-        self.input_data = {}
-        self.inout_asarray = {}
+        #self.inout_data_time_window = {}  ## TODO: remove in new loadData
+        #self.input_data = {}  ## TODO: remove in new loadData
+        #self.inout_asarray = {}  ## TODO: remove in new loadData
         self.num_of_samples = None
+        self.data = {}
 
         self.learning_rate = 0.01
         self.num_of_epochs = 100
@@ -150,9 +152,9 @@ class Neu4mes:
                 result_dict[key] = []
             random_idx = random.randint(0, self.num_of_samples - window)
             for idx in range(window):
-                for key ,data in self.inout_data_time_window.items():
-                    if key in self.model_def['Inputs'].keys() and data is not None:
-                        result_dict[key].append(data[random_idx+idx])
+                for key ,samples in self.data.items():
+                    if key in self.model_def['Inputs'].keys():
+                        result_dict[key].append(samples[random_idx+idx])
             return result_dict
         else:
             print('The Dataset must first be loaded using <loadData> function!')
@@ -235,6 +237,77 @@ class Neu4mes:
         self.visualizer.showBuiltModel()
         self.neuralized = True
 
+
+    def loadData(self, source, format=None, skiplines=0, delimiter=','):
+        assert self.neuralized == True, "The network is not neuralized yet."
+        check(delimiter in ['\t', ';', ','], ValueError, 'delimiter not valid!')
+
+        model_inputs = list(self.model_def['Inputs'].keys())
+        ## Initialize the dictionary containing the data
+        self.data = {}
+
+        if type(source) is str: ## we have a directory path containing the files
+            ## Initialize each input key
+            for key in format:
+                if key in model_inputs:
+                    self.data[key] = []
+
+            ## obtain the file names
+            _,_,files = next(os.walk(source))
+            self.file_count = len(files)
+
+            ## Cycle through all the files
+            for file in files:
+                ## read the csv
+                df = pd.read_csv(os.path.join(source,file), skiprows=skiplines, delimiter=delimiter)
+                ## Cycle through all the windows
+                start_cols = 0
+                for key in format:
+                    if key not in model_inputs:
+                        start_cols += 1
+                        continue
+                    key_cols = self.model_def['Inputs'][key]['dim']
+                    back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
+                    for i in range(self.max_samples_backward, len(df)-self.max_samples_forward+1):
+                        ## Save as torch tensors the data
+                        self.data[key].append(df.iloc[i-back:i+forw , start_cols:start_cols+key_cols].to_numpy())
+                    start_cols += key_cols
+
+            ## Stack the files
+            self.num_of_samples = None
+            for key in format:
+                if key in model_inputs:
+                    self.data[key] = np.stack(self.data[key])
+                    if self.num_of_samples is None:
+                        self.num_of_samples = self.data[key].shape[0]
+
+        elif type(source) is dict:  ## we have a crafted dataset
+            self.file_count = 1
+
+            ## Check if the inputs are correct
+            assert set(model_inputs).issubset(source.keys()), f'The dataset is missing some inputs. Inputs needed for the model: {model_inputs}'
+
+            for key in model_inputs:
+                self.data[key] = []  ## Initialize the dataset
+
+                back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
+                for idx in range(len(source[key]) - self.max_n_samples+1):
+                    self.data[key].append(source[key][idx + (self.max_samples_backward - back):idx + (self.max_samples_backward + forw)])
+
+            ## Stack the files
+            self.num_of_samples = None
+            for key in model_inputs:
+                self.data[key] = np.stack(self.data[key])
+                if self.data[key].ndim == 2: ## Add the sample dimension
+                    self.data[key] = np.expand_dims(self.data[key], axis=-1)
+                if self.num_of_samples is None:
+                    self.num_of_samples = self.data[key].shape[0]
+
+        self.visualizer.showDataset()
+        ## Set the Loaded flag to True
+        self.data_loaded = True
+
+    '''
     ## TODO: Rebuild the function to make it work with vectorial data files
     def loadData(self, source, format=None, skiplines = 0, delimiters=['\t',';',',']):
         assert self.neuralized == True, "The network is not neuralized yet."
@@ -306,7 +379,7 @@ class Neu4mes:
         self.visualizer.showDataset()
         ## Set the Loaded flag to True
         self.data_loaded = True
-
+    '''
 
     def __getTrainParams(self, training_params, train_size, test_size):
         if bool(training_params):
@@ -417,6 +490,101 @@ class Neu4mes:
 
 
     def trainModel(self, test_percentage = 0, training_params = {}):
+        if not self.data_loaded:
+            print('There is no data loaded! The Training will stop.')
+            return
+        if not list(self.model.parameters()):
+            print('There are no modules with learnable parameters! The Training will stop.')
+            return
+         
+        import time
+
+        # Check input
+        train_size = 1 - (test_percentage / 100.0)
+        test_size = 1 - train_size
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
+
+        ## Split train and test
+        XY_train, XY_test = {}, {}
+        self.n_samples_test, self.n_samples_train = None, None
+        for key,samples in self.data.items():
+            if key in self.model_def['Inputs'].keys():
+                if test_percentage == 0:
+                    XY_train[key] = samples
+                else:
+                    XY_train[key] = samples[:round(len(samples)*train_size)]
+                    XY_test[key] = samples[round(len(samples)*train_size):]
+                    if self.n_samples_test is None:
+                        self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
+                if self.n_samples_train is None:
+                    self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
+
+        ## define optimizer and loss functions
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
+
+        ## Create the train and test loss dictionaries
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = []
+            test_losses[key] = []
+
+        ## start the train timer
+        start = time.time()
+
+        for epoch in range(self.num_of_epochs):
+            ## TRAIN
+            self.model.train()
+            aux_train_losses = torch.zeros([len(self.minimize_dict),self.n_samples_train])
+            for i in range(self.n_samples_train):
+                idx = i*self.train_batch_size
+                XY = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+
+                ## Reset gradient
+                self.optimizer.zero_grad()
+                ## Model Forward
+                _, minimize_out = self.model(XY)
+                ## Loss Calculation
+                for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                    loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                    loss.backward(retain_graph=True)
+                    aux_train_losses[ind][i]= loss.item()
+                ## Gradient step
+                self.optimizer.step()
+
+            for ind, key in enumerate(self.minimize_dict.keys()):
+                train_losses[key].append(torch.mean(aux_train_losses[ind]).tolist())
+
+            if test_percentage != 0:
+                ## TEST
+                self.model.eval()
+                aux_test_losses = torch.zeros(len(self.minimize_dict), self.n_samples_test)
+                for i in range(self.n_samples_test):
+
+                    idx = i * self.test_batch_size
+                    XY = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
+                    ## Model Forward
+                    _, minimize_out = self.model(XY)
+                    ## Test Loss
+                    for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                        loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                        aux_test_losses[ind][i]= loss.item()
+
+                for ind, key in enumerate(self.minimize_dict.keys()):
+                    test_losses[key].append(torch.mean(aux_test_losses[ind]).tolist())
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
+        end = time.time()
+
+        self.visualizer.showTrainingTime(end-start)
+        #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+
+    '''
+    def trainModel(self, test_percentage = 0, training_params = {}):
         if not list(self.model.parameters()):
             print('There are no modules with learnable parameters! The Training will stop.')
             return
@@ -514,7 +682,141 @@ class Neu4mes:
 
         self.visualizer.showTrainingTime(end-start)
         #self.resultAnalysis(train_losses, test_losses, XY_train, XY_test)
+    '''
+    def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
+        if not self.data_loaded:
+            print('There is no data loaded! The Training will stop.')
+            return
+        if not list(self.model.parameters()):
+            print('There are no modules with learnable parameters! The Training will stop.')
+            return
+        
+        import time
 
+        ## Calculate the Prediction Horizon
+        sample_time = self.model_def['SampleTime']
+        if prediction_horizon is None:
+            prediction_horizon = sample_time
+
+        # Initialize input
+        prediction_samples = round(prediction_horizon / sample_time)
+        train_size = 1 - (test_percentage / 100.0)
+        test_size = 1 - train_size
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
+
+        ## Split train and test
+        XY_train = {}
+        XY_test = {}
+        self.n_samples_test, self.n_samples_train = None, None
+        for key,samples in self.data.items():
+            if key in self.model_def['Inputs'].keys():
+                if test_percentage == 0:
+                    XY_train[key] = samples
+                else:
+                    XY_train[key] = samples[:round(len(samples)*train_size)]
+                    XY_test[key] = samples[round(len(samples)*train_size):]
+                    if self.n_samples_test is None:
+                        self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
+                if self.n_samples_train is None:
+                    self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
+
+        ## Check input
+        assert self.n_samples_train > prediction_samples and self.n_samples_test > prediction_samples, f'Error: The Prediction window is set to large (Max {(min(self.n_samples_test,self.n_samples_train)-1)*sample_time})'
+
+        ## define optimizer and loss functions
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
+
+        ## initialize the train and test loss dictionaries
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = np.zeros(self.num_of_epochs)
+            test_losses[key] = np.zeros(self.num_of_epochs)
+
+        ## start the training timer
+        start = time.time()
+
+        for epoch in range(self.num_of_epochs):
+            ## TRAIN
+            self.model.train()
+            train_loss = []
+            for i in range(0, (self.n_samples_train - prediction_samples), step):
+                idx = i*self.train_batch_size
+                XY = {}
+                XY_horizon = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+                    ## collect the horizon labels
+                    XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.train_batch_size+prediction_samples+1]).to(torch.float32)
+
+                self.optimizer.zero_grad()  
+                losses = []
+                ## Recurrent Training
+                for horizon_idx in range(prediction_samples):
+                    ## Model Forward
+                    out, minimize_out = self.model(XY)
+                    
+                    for name, items in self.minimize_dict.items():
+                        loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                        losses.append(loss)
+                    
+                    ## Update the input with the recurrent prediction
+                    for key in XY.keys():
+                        XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                        if key in close_loop.keys():
+                            XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
+                        else:
+                            XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1, :]
+
+                loss = sum(losses)
+                loss.backward()
+                self.optimizer.step()
+                train_loss.append(loss.item())
+            train_loss = np.mean(train_loss)
+            train_losses[epoch] = train_loss
+
+            if test_percentage != 0:
+                ## TEST
+                self.model.eval()
+                test_loss = []
+                for i in range(0, (self.n_samples_test - prediction_samples), step):
+                    idx = i*self.test_batch_size
+                    XY = {}
+                    XY_horizon = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx+self.test_batch_size]).to(torch.float32)
+                        XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.test_batch_size+prediction_samples+1]).to(torch.float32)
+
+                    losses = []
+                    ## Recurrent Training
+                    for horizon_idx in range(prediction_samples):
+                        ## Model Forward
+                        out, minimize_out = self.model(XY)
+                        
+                        for name, items in self.minimize_dict.items():
+                            loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                            losses.append(loss)
+                        
+                        ## Update the input with the recurrent prediction
+                        for key in XY.keys():
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                            if key in close_loop.keys():
+                                XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
+                            else:
+                                XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.test_batch_size, -1, :]
+
+                    loss = sum(losses) / prediction_samples
+                    test_loss.append(loss.item())
+                test_loss = np.mean(test_loss)
+                test_losses[epoch] = test_loss
+
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
+
+        end = time.time()
+        self.visualizer.showTrainingTime(end - start)
+        #self.resultAnalysis(train_losses=train_loss, test_losses=test_loss, XY_train=XY_train, XY_test=XY_test)
+    '''
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not list(self.model.parameters()):
             print('There are no modules with learnable parameters! The Training will stop.')
@@ -654,3 +956,4 @@ class Neu4mes:
         end = time.time()
         self.visualizer.showTrainingTime(end - start)
         #self.resultAnalysis(train_losses=train_loss, test_losses=test_loss, XY_train=XY_train, XY_test=XY_test)
+    '''

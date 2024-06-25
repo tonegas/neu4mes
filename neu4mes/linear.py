@@ -52,11 +52,12 @@ class Linear(NeuObj, AutoToStream):
 class Linear_Layer(nn.Module):
     def __init__(self, weights, bias):
         super(Linear_Layer, self).__init__()
-        self.lin = nn.Linear(in_features=weights.size(0), out_features=weights.size(1), bias=bias)
-        self.lin.weight = nn.Parameter(weights.t())
+        self.lin = nn.Linear(in_features=weights.size(1), out_features=weights.size(0), bias=bias)
+        self.lin.weight = nn.Parameter(weights)
 
     def forward(self, x):
-        return self.lin(x)
+        x = self.lin(x)
+        return x
 
 def createLinear(self, weights, bias):
     return Linear_Layer(weights, bias)
