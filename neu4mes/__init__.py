@@ -27,7 +27,7 @@ from neu4mes.output import Output
 from neu4mes.activation import Relu, Tanh
 from neu4mes.fir import Fir
 from neu4mes.linear import Linear
-from neu4mes.arithmetic import Add, Sum, Sub, Mul, Neg, Square
+from neu4mes.arithmetic import Add, Sum, Sub, Mul, Pow, Neg
 from neu4mes.trigonometric import Sin, Cos, Tan
 from neu4mes.parametricfunction import ParamFun
 from neu4mes.fuzzify import Fuzzify

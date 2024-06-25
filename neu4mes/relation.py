@@ -6,6 +6,15 @@ from neu4mes.logger import logging
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
+MAIN_JSON = {
+                'SampleTime': 0,
+                'Inputs' : {},
+                'Functions' : {},
+                'Parameters' : {},
+                'Outputs': {},
+                'Relations': {},
+            }
+
 def merge(source, destination, main = True):
     if main:
         log.debug("Merge Source")
@@ -34,6 +43,13 @@ def merge(source, destination, main = True):
         log.debug("\n" + pformat(result))
     return result
 
+def toStream(obj):
+    from neu4mes.parameter import Parameter
+    obj = Stream(obj, MAIN_JSON, {}) if type(obj) in (int,float) else obj
+    obj = Stream(obj.name, obj.json, obj.dim) if type(obj) is Parameter else obj
+    return obj
+
+
 class NeuObj():
     count = 0
     @classmethod
@@ -46,15 +62,7 @@ class NeuObj():
         if json:
             self.json = copy.deepcopy(json)
         else:
-            self.json = {
-                'SampleTime': 0,
-                'Inputs' : {},
-                'Functions' : {},
-                'Parameters' : {},
-                'Outputs': {},
-                'Relations': {},
-            }
-            #self.json['Objects'][name] = self
+            self.json = MAIN_JSON
 
 class Relation():
     def __add__(self, obj):
@@ -65,20 +73,21 @@ class Relation():
         from neu4mes.arithmetic import Sub
         return Sub(self, obj)
 
-    def __neg__(self):
-        from neu4mes.arithmetic import Neg
-        return Neg(self)
+    def __truediv__(self, obj):
+        from neu4mes.arithmetic import Div
+        return Div(self, obj)
 
     def __mul__(self, obj):
         from neu4mes.arithmetic import Mul
         return Mul(self, obj)
 
-    def __xor__(self, val):
-        from neu4mes.arithmetic import Square
-        if val == 2:
-            return Square(self)
-        else:
-            raise Exception("Operation not supported yet")
+    def __pow__(self, obj):
+        from neu4mes.arithmetic import Pow
+        return Pow(self, obj)
+
+    def __neg__(self):
+        from neu4mes.arithmetic import Neg
+        return Neg(self)
 
 class Stream(Relation):
     count = 0
