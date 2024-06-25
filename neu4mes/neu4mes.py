@@ -238,9 +238,9 @@ class Neu4mes:
         self.neuralized = True
 
 
-    def loadData(self, source, format=None, skiplines=0, delimiter=','):
+    def loadData(self, source, format=None, skiplines=0, delimiter=',', header='infer'):
         assert self.neuralized == True, "The network is not neuralized yet."
-        check(delimiter in ['\t', ';', ','], ValueError, 'delimiter not valid!')
+        check(delimiter in ['\t', '\n', ';', ',', ' '], ValueError, 'delimiter not valid!')
 
         model_inputs = list(self.model_def['Inputs'].keys())
         ## Initialize the dictionary containing the data
@@ -259,7 +259,7 @@ class Neu4mes:
             ## Cycle through all the files
             for file in files:
                 ## read the csv
-                df = pd.read_csv(os.path.join(source,file), skiprows=skiplines, delimiter=delimiter)
+                df = pd.read_csv(os.path.join(source,file), skiprows=skiplines, delimiter=delimiter, header=header)
                 ## Cycle through all the windows
                 start_cols = 0
                 for key in format:

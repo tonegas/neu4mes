@@ -5,7 +5,7 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
-data_folder = os.path.join(os.path.dirname(__file__), 'data2/')
+data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
 class Neu4mesTrainingTest(unittest.TestCase):
     def test_network_mass_spring_damper(self):
@@ -24,10 +24,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel(sample_time=0.05)  # The sampling time depends to the dataset
 
         # Data load
-        data_struct = ['x','F','x2','y2','A1x','A1y','B1x','B1y','A2x','A2y','B2x','out','x3','in1','in2','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=0)
+        data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         test.trainModel(test_percentage=30)
-
+    
     def test_build_dataset_batch(self):
         input1 = Input('in1')
         output = Input('out')
@@ -37,8 +37,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
-        data_struct = ['x1','y1','x2','y2','A1x','A1y','B1x','B1y','A2x','A2y','B2x','out','x3','in1','in2','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=0)
+        data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         self.assertEqual((10,5,1),test.data['in1'].shape)
 
         training_params = {}
@@ -69,8 +69,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
-        data_struct = ['x1','y1','x2','y2','A1x','A1y','B1x','B1y','A2x','A2y','B2x','out','x3','in1','in2','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=0)
+        data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         self.assertEqual((10,5,1),test.data['in1'].shape)
 
         training_params = {}
@@ -100,8 +100,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
-        data_struct = ['x1','y1','x2','y2','A1x','A1y','B1x','B1y','A2x','A2y','B2x','out','x3','in1','in2','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=0)
+        data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         self.assertEqual((10,5,1),test.data['in1'].shape)
 
         training_params = {}
@@ -136,8 +136,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.minimizeError('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
-        data_struct = ['x1','y1','x2','y2','A1x','A1y','B1x','B1y','A2x','A2y','B2x','out','x3','in1','in2','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=0)
+        data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         self.assertEqual((10,5,1),test.data['in1'].shape)
 
         training_params = {}

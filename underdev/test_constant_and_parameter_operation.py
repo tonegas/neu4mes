@@ -6,10 +6,9 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 ## TEST JSON
-'''
 inin = Input('in').last()
 par = Parameter('par',sw=1)
-inin4 = Input('in',dimensions=4).last()
+inin4 = Input('in4',dimensions=4).last()
 par4 = Parameter('par4',dimensions=4,sw=1)
 add = inin+par+5.2
 sub = inin-par-5.2
@@ -35,9 +34,15 @@ tanh4 = Tanh(par4)+Tanh(5.2)
 out = Output('out',add+sub+mul+div+pow+Linear(add4+sub4+mul4+div4+pow4)+sin+cos+tan+relu+tanh+Linear(sin4+cos4+tan4+relu4+tanh4))
 test = Neu4mes()
 test.addModel(out)
+test.minimizeError('error', out, inin)
 test.neuralizeModel()
-'''
+test.loadData(source={'in':np.random.random((200, 1, 1)), 'in4':np.random.random((200, 1, 4))})
 
+print('prediction before train', test({'in':[[1]], 'in4': [[1,2,3,4]]}))
+test.trainModel(test_percentage=10, training_params={'num_of_epochs':100, 'train_batch_size':4, 'test_batch_size':4})
+print('prediction after train', test({'in':[[1]], 'in4': [[1,2,3,4]]}))
+
+'''
 ## TEST TRAIN
 x = Input('x', dimensions=1)
 y = Input('y', dimensions=4)
@@ -73,3 +78,4 @@ print('prediction before train', test(sample, sampled=True))
 test.trainModel(test_percentage=10, training_params={'num_of_epochs':100, 'train_batch_size':4, 'test_batch_size':4})
 
 print('prediction after train', test(sample, sampled=True))
+'''

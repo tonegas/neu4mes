@@ -15,9 +15,10 @@ log.setLevel(logging.CRITICAL)
 # The shape and the value of the inputs
 
 import os
-data_folder = os.path.join(os.path.dirname(__file__), 'data2/')
+data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
 class Neu4mesCreateDatasetTest(unittest.TestCase):
+    
     def test_build_dataset_simple(self):
         input = Input('in')
         output = Input('out')
@@ -27,8 +28,8 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.minimizeError('out', output.z(-1), relation)
         test.neuralizeModel(0.01)
 
-        data_struct = ['x1','y1','x2','y2','A1x','A1y','B1x','B1y','A2x','A2y','B2x','out','x3','in','theta','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=0, delimiter=',')
+        data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         self.assertEqual((10,5,1),test.data['in'].shape)
         self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977]] , test.data['in'][0].tolist())
 
@@ -46,14 +47,15 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.minimizeError('out', output.z(-1), rel1 + rel2)
         test.neuralizeModel(0.01)
 
-        data_struct = ['x1','y1','x2','y2','A1x','A1y','B1x','B1y','A2x','A2y','B2x','out','x3','in','theta','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=0)
+        data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in','theta','time']
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         self.assertEqual((10,5,1),test.data['in'].shape)
         self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977]],test.data['in'][0].tolist())
 
         self.assertEqual((10,1,1),test.data['out'].shape)
         self.assertEqual([[[1.225]], [[1.224]], [[1.222]], [[1.22]], [[1.217]], [[1.214]], [[1.211]], [[1.207]], [[1.204]], [[1.2]]],test.data['out'].tolist())
-    '''
+    
+    
     def test_build_dataset_medium2(self):
         input1 = Input('in1')
         input2 = Input('in2')
@@ -67,34 +69,16 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=4)
-        self.assertEqual((10,5),test.inout_asarray['in1'].shape)
-        self.assertEqual([[0.984,0.983,0.982,0.98,0.977],
-                    [0.983,0.982,0.98,0.977,0.973],
-                    [0.982,0.98,0.977,0.973,0.969],
-                    [0.98,0.977,0.973,0.969,0.963],
-                    [0.977,0.973,0.969,0.963,0.957],
-                    [0.973,0.969,0.963,0.957,0.95],
-                    [0.969,0.963,0.957,0.95,0.942],
-                    [0.963,0.957,0.95,0.942,0.933],
-                    [0.957,0.95,0.942,0.933,0.923],
-                    [0.95,0.942,0.933,0.923,0.912]],test.inout_asarray['in1'].tolist())
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
+        self.assertEqual((10,5,1),test.data['in1'].shape)
+        self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977]],test.data['in1'][0].tolist())
 
-        self.assertEqual((10,2),test.inout_asarray['in2'].shape)
-        self.assertEqual([[12.498, 12.502],
-                    [12.502, 12.508],
-                    [12.508, 12.515],
-                    [12.515, 12.523],
-                    [12.523, 12.533],
-                    [12.533, 12.543],
-                    [12.543, 12.556],
-                    [12.556, 12.57 ],
-                    [12.57 , 12.585],
-                    [12.585, 12.602]],test.inout_asarray['in2'].tolist())
+        self.assertEqual((10,2,1),test.data['in2'].shape)
+        self.assertEqual([[12.498], [12.502]],test.data['in2'][0].tolist())
 
-        self.assertEqual((10,),test.inout_asarray['out'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204, 1.200],test.inout_asarray['out'].tolist())
-
+        self.assertEqual((10,1,1),test.data['out'].shape)
+        self.assertEqual([[[1.225]], [[1.224]], [[1.222]], [[1.22]], [[1.217]], [[1.214]], [[1.211]], [[1.207]], [[1.204]], [[1.2]]],test.data['out'].tolist())
+    
     def test_build_dataset_complex1(self):
         input1 = Input('in1')
         output = Input('out')
@@ -106,21 +90,13 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         data_struct = ['x1','y1','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(source=data_folder, format=data_struct, skiplines=4)
-        self.assertEqual((9,7),test.inout_asarray['in1'].shape)
-        self.assertEqual([[0.984,0.983,0.982,0.98,0.977,0.973,0.969],
-                    [0.983,0.982,0.98,0.977,0.973,0.969,0.963],
-                    [0.982,0.98,0.977,0.973,0.969,0.963,0.957],
-                    [0.98,0.977,0.973,0.969,0.963,0.957,0.95],
-                    [0.977,0.973,0.969,0.963,0.957,0.95,0.942],
-                    [0.973,0.969,0.963,0.957,0.95,0.942,0.933],
-                    [0.969,0.963,0.957,0.95,0.942,0.933,0.923],
-                    [0.963,0.957,0.95,0.942,0.933,0.923,0.912],
-                    [0.957,0.95,0.942,0.933,0.923,0.912,0.900]],test.inout_asarray['in1'].tolist())
+        test.loadData(source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
+        self.assertEqual((9,7,1),test.data['in1'].shape)
+        self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977],[0.973],[0.969]],test.data['in1'][0].tolist())
 
-        self.assertEqual((9,),test.inout_asarray['out'].shape)
-        self.assertEqual([1.225, 1.224, 1.222, 1.22, 1.217, 1.214, 1.211, 1.207, 1.204],test.inout_asarray['out'].tolist())
-
+        self.assertEqual((9,1,1),test.data['out'].shape)
+        self.assertEqual([[[1.225]], [[1.224]], [[1.222]], [[1.22]], [[1.217]], [[1.214]], [[1.211]], [[1.207]], [[1.204]]],test.data['out'].tolist())
+    '''
     def test_build_dataset_complex2(self):
         input1 = Input('in1')
         output = Input('out')
