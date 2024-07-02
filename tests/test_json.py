@@ -156,9 +156,9 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1, 'sw': 1}, out.dim)
         out = input.tw([-1,0])+input.tw([-4,-3])+input.tw(1)
         self.assertEqual({'dim': 1,'tw': 1}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
              out = input.tw([-2,0])-input.tw([-1,0])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
              out = input.tw([-2,0])+input.tw([-1,0])
 
     def test_scalar_input_sw_dimensions(self):
@@ -171,11 +171,11 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1, 'sw': 1}, out.dim)
         out = input.sw([-1,0])+input.sw([-4,-3])+input.sw(1)
         self.assertEqual({'dim': 1,'sw': 1}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = input.sw([-2,0])-input.sw([-1,0])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = input.sw([-2,0])+input.sw([-1,0])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = input.sw(1) + input.tw([-1, 0])
         with self.assertRaises(TypeError):
             out = input.sw(1.2)

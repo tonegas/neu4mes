@@ -444,7 +444,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
     def test_network_building_sw_and_tw(self):
         input2 = Input('in2')
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             input2.sw(5)+input2.tw(0.05)
 
         rel1 = Fir(input2.sw([-4,2]))+Fir(input2.tw([-0.01,0]))

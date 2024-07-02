@@ -62,7 +62,7 @@ class NeuObj():
         if json:
             self.json = copy.deepcopy(json)
         else:
-            self.json = MAIN_JSON
+            self.json = copy.deepcopy(MAIN_JSON)
 
 class Relation():
     def __add__(self, obj):
