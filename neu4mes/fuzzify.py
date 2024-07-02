@@ -6,6 +6,7 @@ import torch
 
 from neu4mes.relation import NeuObj, Stream, merge
 from neu4mes.model import Model
+from neu4mes.utilis import check
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -44,25 +45,16 @@ class Fuzzify(NeuObj):
             self.json['Functions'][self.name]['functions'] = inspect.getsource(functions)
             self.json['Functions'][self.name]['names'] = functions.__name__
 
-    def __call__(self, obj):
+    def __call__(self, obj:Stream) -> Stream:
         stream_name = fuzzify_relation_name + str(Stream.count)
-        assert 'dim' in obj.dim and obj.dim['dim'] == 1, 'Input dimension must be scalar'
+        check(type(obj) is Stream, TypeError,
+              f"The type of {obj} is {type(obj)} and is not supported for Fuzzify operation.")
+        check('dim' in obj.dim and obj.dim['dim'] == 1, ValueError,'Input dimension must be scalar' )
         output_dimension = copy.deepcopy(obj.dim)
         output_dimension.update(self.output_dimension)
-
-        #if 'dim' in obj.dim:
-        #    if obj.dim['dim_in'] == 1:
-        #        self.json['Functions'][self.name]['dim_out'] = self.output_dimension
-        #    else:
-        #        self.json['Functions'][self.name]['dim_out'] = [self.output_dimension, obj.dim['dim_in']]
-        #else:
-        #    self.json['Functions'][self.name]['dim_out'] = [self.output_dimension, obj.dim]
         stream_json = merge(self.json, obj.json)
-        if type(obj) is Stream:
-            stream_json['Relations'][stream_name] = [fuzzify_relation_name, [obj.name],self.name]
-            return Stream(stream_name, stream_json, output_dimension)
-        else:
-            raise Exception('Type is not supported!')
+        stream_json['Relations'][stream_name] = [fuzzify_relation_name, [obj.name],self.name]
+        return Stream(stream_name, stream_json, output_dimension)
 
 def triangular(x, idx_channel, chan_centers):
 

@@ -11,8 +11,8 @@ tanh_relation_name = 'Tanh'
 class Relu(Stream, ToStream):
     def __init__(self, obj:Stream) -> Stream:
         obj = toStream(obj)
-        check(type(obj) is Stream,TypeError,
-              f"The type of {obj.name} is {type(obj)} and is not supported for Relu operation.")
+        check(type(obj) is Stream, TypeError,
+              f"The type of {obj} is {type(obj)} and is not supported for Relu operation.")
         super().__init__(relu_relation_name + str(Stream.count),obj.json,obj.dim)
         self.json['Relations'][self.name] = [relu_relation_name,[obj.name]]
 
@@ -20,7 +20,7 @@ class Tanh(Stream, ToStream):
     def __init__(self, obj:Stream) -> Stream:
         obj = toStream(obj)
         check(type(obj) is Stream,TypeError,
-              f"The type of {obj.name} is {type(obj)} and is not supported for Tanh operation.")
+              f"The type of {obj} is {type(obj)} and is not supported for Tanh operation.")
         super().__init__(tanh_relation_name + str(Stream.count),obj.json,obj.dim)
         self.json['Relations'][self.name] = [tanh_relation_name,[obj.name]]
 

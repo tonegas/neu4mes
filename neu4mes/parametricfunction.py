@@ -34,40 +34,13 @@ class ParamFun(NeuObj):
         stream_json = copy.deepcopy(self.json)
         for ind,o in enumerate(obj):
             stream_json = merge(stream_json,o.json)
-            if type(o) is Stream:
-                input_names.append(o.name)
-                input_dimensions.append(o.dim)
-            else:
-                raise Exception('Type is not supported!')
+            check(type(o) is Stream, TypeError,
+                  f"The type of {o} is {type(o)} and is not supported for ParamFun operation.")
+            input_names.append(o.name)
+            input_dimensions.append(o.dim)
 
         stream_json['Relations'][stream_name] = [paramfun_relation_name, input_names, self.name]
-
         self.__infer_output_dimensions(input_dimensions)
-
-
-
-        # output_dimension = copy.deepcopy(self.output_dimension)
-        #
-        #
-        #
-        # window_val = None
-        # for ind,o in enumerate(obj):
-        #     window = 'tw' if 'tw' in o.dim else ('sw' if 'sw' in o.dim else None)
-        #     if window:
-        #         window_val = o.dim[window]
-        #
-        #     stream_json = merge(stream_json,o.json)
-        #     if type(o) is Input or type(o) is Stream:
-        #         names.append(o.name)
-        #     else:
-        #         raise Exception('Type is not supported!')
-        #
-        # if window is not None:
-        #     output_dimension[window] = window_val
-        #
-        # # self.json['Functions'][self.name]['out_dim'].update(self.output_dimension)
-        # stream_json['Relations'][stream_name] = [paramfun_relation_name, names, self.name]
-        # self.__infer_output_dimensions(stream_json, stream_name)
 
         output_dimension = copy.deepcopy(self.output_dimension)
         self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
