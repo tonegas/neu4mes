@@ -24,6 +24,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         list_of_dimensions = [[1, 1], [1, 1]]
         for ind, (key, value) in enumerate({k: v for k, v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            
     def test_network_building_simple(self):
         input1 = Input('in1')
         rel1 = Fir(input1.tw(0.05))

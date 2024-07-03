@@ -122,16 +122,18 @@ class Neu4mes:
                         X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32)
                     else:
                         X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
-                        
+
                     input_dim = self.model_def['Inputs'][key]['dim']
                     if X[key].ndim >= 2:
                         check(X[key].shape[1] == input_dim, ValueError, 'The second dimension must be equal to the input dimension')
 
-                    if input_dim == 1: ## add the input dimension
+                    if input_dim == 1 and X[key].shape[-1] != 1: ## add the input dimension
                         X[key] = X[key].unsqueeze(-1)
                     if X[key].ndim <= 2: ## add the batch dimension
                         X[key] = X[key].unsqueeze(0)
-
+            #for key, el in X.items():
+            #    print('key: ', key)
+            #    print('shape: ', el.shape)
             ## Model Predict            
             result, _  = self.model(X)
 

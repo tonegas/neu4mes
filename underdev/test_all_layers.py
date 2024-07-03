@@ -56,10 +56,10 @@ y4 = Output('fir_multi_out_multi_window',fir_multi_out_multi_window(x.tw([-5,0])
 
 test = Neu4mes()
 
-test.minimizeError('out', target_y.sw(1), y1, 'rmse')
-test.minimizeError('out1', target_y.sw(1), y2, 'rmse')
-test.minimizeError('out2', target_y_multi.sw(1), y3, 'rmse')
-test.minimizeError('out3', target_y_multi.sw(1), y4, 'rmse')
+test.minimizeError('out', target_y.last(), y1, 'rmse')
+test.minimizeError('out1', target_y.last(), y2, 'rmse')
+test.minimizeError('out2', target_y_multi.last(), y3, 'rmse')
+test.minimizeError('out3', target_y_multi.last(), y4, 'rmse')
 
 # Neuralize the models
 test.neuralizeModel()
@@ -68,7 +68,8 @@ test.loadData(dataset)
 
 print('BEFORE TRAINING')
 #sample = {'in1':[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]} ## 2 samples
-sample = test.get_random_samples(1) 
+sample = test.get_random_samples(1)
+#sample = {'x':[[100,101,102,103,104]], 'target_y':[[205]], 'target_y_multi':[[205,205,205]]}
 print('random sample: ', sample)
 results = test(sample, sampled=True)
 print('results')
@@ -82,7 +83,6 @@ print('random sample: ', sample)
 results = test(sample, sampled=True)
 print('results')
 pprint(results)
-
 
 ### EXAMPLE 2
 print('#### EXAMPLE 2 - TEST FUZZY ####')
@@ -126,9 +126,9 @@ test.addModel(y3_multi)
 test.addModel(y4_multi)
 test.neuralizeModel()
 
-sample = {'x':[1], 'x_multi':[1,2,3,4]}
+sample = {'x':[[[1]]], 'x_multi':[[[1], [2], [3], [4]]]}
 print('example: ', sample)
-pprint(test(sample))
+pprint(test(sample, sampled=True))
 
 
 ### EXAMPLE 3
@@ -205,7 +205,7 @@ test.addModel(y3_multi)
 test.addModel(y4_multi)
 test.neuralizeModel()
 
-sample = {'x':[1,2,3,4], 'x_multi':[[1,2,3],[4,5,6],[7,8,9],[10,11,12]]}
+sample = {'x':[[1],[2],[3],[4]], 'x_multi':[[1,2,3],[4,5,6],[7,8,9],[10,11,12]]}
 print('example: ', sample)
 pprint(test(sample))
 
