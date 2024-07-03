@@ -11,7 +11,7 @@ from neu4mes.parameter import Parameter
 fir_relation_name = 'Fir'
 
 class Fir(NeuObj, AutoToStream):
-    def __init__(self, output_dimension = None, parameter = None):
+    def __init__(self, output_dimension:int = None, parameter:Parameter = None):
         self.relation_name = fir_relation_name
         self.parameter = parameter
 
@@ -31,8 +31,10 @@ class Fir(NeuObj, AutoToStream):
             #self.json['Parameters'][self.name] = copy.deepcopy(parameter.dim)
             self.json['Parameters'][self.name] = copy.deepcopy(parameter.json['Parameters'][parameter.name])
 
-    def __call__(self, obj):
+    def __call__(self, obj:Stream) -> Stream:
         stream_name = fir_relation_name + str(Stream.count)
+        check(type(obj) is Stream, TypeError,
+              f"The type of {obj} is {type(obj)} and is not supported for Fir operation.")
         check('dim' in obj.dim and obj.dim['dim'] == 1, ValueError, 'Input dimension must be scalar')
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
         if window:
@@ -51,11 +53,8 @@ class Fir(NeuObj, AutoToStream):
                 check(cond, KeyError,'The parameter have a time window and the input no')
 
         stream_json = merge(self.json,obj.json)
-        if type(obj) is Stream:
-            stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
-            return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
-        else:
-            raise Exception(f'The type of the input \'{obj.name}\' for the Fir is not correct.')
+        stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
+        return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
 
 class Fir_Layer(nn.Module):
     def __init__(self, weights):

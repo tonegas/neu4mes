@@ -31,8 +31,10 @@ class Linear(NeuObj, AutoToStream):
             #self.json['Parameters'][self.name] = copy.deepcopy(W.dim)
             self.json['Parameters'][self.name] = copy.deepcopy(W.json['Parameters'][W.name])
 
-    def __call__(self, obj):
+    def __call__(self, obj:Stream) -> Stream:
         stream_name = linear_relation_name + str(Stream.count)
+        check(type(obj) is Stream, TypeError,
+              f"The type of {obj} is {type(obj)} and is not supported for Linear operation.")
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
 
         if self.parameter is None:
@@ -43,11 +45,8 @@ class Linear(NeuObj, AutoToStream):
                   'the input dimension must be equal to the first dim of the parameter')
 
         stream_json = merge(self.json,obj.json)
-        if type(obj) is Stream:
-            stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.name, self.bias]
-            return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
-        else:
-            raise Exception(f'The type of the input \'{obj.name}\' for the Linear is not correct.')
+        stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.name, self.bias]
+        return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
 
 class Linear_Layer(nn.Module):
     def __init__(self, weights, bias):
