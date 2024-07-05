@@ -22,7 +22,7 @@ class MPLVisulizer(TextVisualizer):
 
         signal.signal(signal.SIGINT, signal_handler)
 
-    def showTraining(self, epoch, train_losses, test_losses):
+    def showTraining(self, epoch, train_losses, val_losses, test_losses):
         if epoch == 0:
             for key in self.n4m.minimize_dict.keys():
                 # Start the data visualizer process
@@ -30,7 +30,7 @@ class MPLVisulizer(TextVisualizer):
 
         if epoch+1 <= self.n4m.num_of_epochs:
             for key in self.n4m.minimize_dict.keys():
-                data = {"key":key, "last": self.n4m.num_of_epochs-(epoch+1), "epoch":epoch, "train_losses": train_losses[key][epoch], "test_losses": test_losses[key][epoch]}
+                data = {"key":key, "last": self.n4m.num_of_epochs-(epoch+1), "epoch":epoch, "train_losses": train_losses[key][epoch], "val_losses": val_losses[key][epoch], "test_losses": test_losses[key][epoch]}
                 try:
                     # Send data to the visualizer process
                     self.process_training[key].stdin.write(f"{json.dumps(data)}\n")

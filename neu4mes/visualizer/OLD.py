@@ -287,11 +287,13 @@ class TextVisualizer(Visualizer):
             print(color(pformat(self.n4m.model),GREEN))
             self.__line()
 
-    def showDataset(self):
+    def showDataset(self, name):
         if self.verbose >= 1:
             self.__title(" Neu4mes Model Dataset ")
+            self.__param("Dataset Name:", name)
             self.__param("Number of files:", f'{self.n4m.file_count}')
-            self.__param("Total numeber of samples:", f'{self.n4m.num_of_samples}')
+            self.__param("Total number of samples:", f'{self.n4m.num_of_samples[name]}')
+            self.__param("Available Datasets:", f'{self.n4m.datasets_loaded}')
             self.__line()
 
     def showTraining(self, epoch, train_losses, test_losses):

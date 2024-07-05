@@ -64,11 +64,11 @@ test.minimizeError('out3', target_y_multi.last(), y4, 'rmse')
 # Neuralize the models
 test.neuralizeModel()
 # Load the dataset create with the target function
-test.loadData(dataset)
+test.loadData('dataset', dataset)
 
 print('BEFORE TRAINING')
 #sample = {'in1':[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]} ## 2 samples
-sample = test.get_random_samples(1)
+sample = test.get_random_samples(dataset='dataset', window=1)
 #sample = {'x':[[100,101,102,103,104]], 'target_y':[[205]], 'target_y_multi':[[205,205,205]]}
 print('random sample: ', sample)
 results = test(sample, sampled=True)
@@ -76,7 +76,7 @@ print('results')
 pprint(results)
 
 # Train the models
-test.trainModel(test_percentage = 20, training_params={'num_of_epochs':50, 'train_batch_size':4, 'test_batch_size':4})
+test.trainModel(splits=[70,20,10], training_params={'num_of_epochs':50, 'train_batch_size':4, 'test_batch_size':4})
 
 print('AFTER TRAINING')
 print('random sample: ', sample)
@@ -261,17 +261,17 @@ test.minimizeError('out3', target_y_multi.sw(1), y4, 'rmse')
 # Neuralize the models
 test.neuralizeModel()
 # Load the dataset create with the target function
-test.loadData(dataset)
+test.loadData('dataset',dataset)
 
 print('BEFORE TRAINING')
-sample = test.get_random_samples(1) 
+sample = test.get_random_samples('dataset',1) 
 print('random sample: ', sample)
 results = test(sample, sampled=True)
 print('results')
 pprint(results)
 
 # Train the models
-test.trainModel(test_percentage = 20, training_params={'num_of_epochs':50, 'train_batch_size':4, 'test_batch_size':4})
+test.trainModel(splits=[60,20,20], training_params={'num_of_epochs':50, 'train_batch_size':4, 'test_batch_size':4})
 
 print('AFTER TRAINING')
 print('random sample: ', sample)

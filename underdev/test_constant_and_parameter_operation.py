@@ -36,10 +36,10 @@ test = Neu4mes()
 test.addModel(out)
 test.minimizeError('error', out, inin)
 test.neuralizeModel()
-test.loadData(source={'in':np.random.random((200, 1, 1)), 'in4':np.random.random((200, 1, 4))})
+test.loadData(name='dataset', source={'in':np.random.random((200, 1, 1)), 'in4':np.random.random((200, 1, 4))})
 
 print('prediction before train', test({'in':[[1]], 'in4': [[1,2,3,4]]}))
-test.trainModel(test_percentage=10, training_params={'num_of_epochs':100, 'train_batch_size':4, 'test_batch_size':4})
+test.trainModel(training_params={'num_of_epochs':100, 'train_batch_size':4, 'test_batch_size':4})
 print('prediction after train', test({'in':[[1]], 'in4': [[1,2,3,4]]}))
 
 '''

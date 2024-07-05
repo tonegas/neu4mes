@@ -1,3 +1,8 @@
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
+
 from neu4mes import *
 
 # Input
@@ -21,11 +26,11 @@ out7 = Output('FirPW3',Fir(parameter = p)(x.tw([-2,1])))
 #out72 = Output('FirPW',Fir(parameter = p)(x.tw([-3,1])))  # Questo da errore
 
 p = Parameter('p2')
-out8 = Output('FirP', Fir(parameter = p)(x))
+out8 = Output('FirP', Fir(parameter = p)(x.last()))
 #out81 = Output('FirPW',Fir(parameter = p)(x.tw([-2,1])))# Questo da errore
 
 p = Parameter('p3', dimensions = 2)
-out9 = Output('FirP2', Fir(parameter = p)(x))
+out9 = Output('FirP2', Fir(parameter = p)(x.last()))
 #out91 = Output('FirP2W',Fir(parameter = p)(x.tw([-2,1]))) # Questo da errore
 
 p = Parameter('p4', dimensions = 2, tw = 2)
@@ -33,7 +38,7 @@ p = Parameter('p4', dimensions = 2, tw = 2)
 out10 = Output('FirP2W2',Fir(parameter = p)(x.tw([-2,0])))
 
 p = Parameter('p5', dimensions = 4)
-out11 = Output('FirP4', Fir(parameter = p)(x))
+out11 = Output('FirP4', Fir(parameter = p)(x.last()))
 #out111 = Output('FirP2W',Fir(parameter = p)(x.tw([-2,1]))) # Questo da errore
 
 p = Parameter('p6', sw = 2, dimensions = 2)
