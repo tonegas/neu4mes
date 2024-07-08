@@ -39,14 +39,14 @@ test.neuralizeModel(0.5)
 data_x = np.asarray(range(1000), dtype=np.float32)
 dataset = {'in1': data_x}
 
-test.loadData(source=dataset)
+test.loadData(name='dataset', source=dataset)
 
 print('BEFORE TRAINING')
 sample = {'in1':[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]} ## 2 samples 
 results = test(sample, sampled=False)
 print('results: ', results)
 
-test.trainModel(test_percentage=10, training_params={'train_batch_size': 8, 'test_batch_size':8})
+test.trainModel(training_params={'train_batch_size': 8, 'test_batch_size':8})
 
 print('AFTER TRAINING')
 results = test(sample, sampled=False)
