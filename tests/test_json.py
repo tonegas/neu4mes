@@ -191,9 +191,9 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
         out = Relu(input.tw(1))
         self.assertEqual({'dim': 5, 'tw': 1}, out.dim)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             Fir(7)(input)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             Fuzzify(7)(input)
         out = ParamFun(myFun)(input.tw(1))
         self.assertEqual({'dim': 5, 'tw' : 1}, out.dim)
