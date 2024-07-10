@@ -40,7 +40,7 @@ print("------------------------EXAMPLE 1------------------------")
 # Call your model with the minimum number of inputs
 # 'x' = [1,2,3,4,5,6,7,8,9,10,11] the first 10 sample are in the past and the last sample is the next
 # The output model_next_x contain 1 samples
-results = example1(inputs={'F':[9],'x':[1,2,3,4,5,6,7,8,9,10,11]})
+results = example1(inputs={'F':[[9]],'x':[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11]]})
 for output, result in results.items():
     print(f'Prediction for {output}: {result}')
 
@@ -51,19 +51,19 @@ print("------------------------EXAMPLE 2------------------------")
 # The second time the input will be F = 2 x = [2,3,4,5,6,7,8,9,10,11] x_next = 12
 # The output model_next_x contain 2 samples
 # The output x_win contains the two window used as inputs
-results = example1(inputs={'F':[5,2],'x':[1,2,3,4,5,6,7,8,9,10,11,12]})
+results = example1(inputs={'F':[[5],[2]],'x':[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12]]})
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
 
 print("------------------------EXAMPLE 3------------------------")
 # In this case the samples are 13 for x and 3 for F, this means that the network will run for tree sample time.
-results = example1(inputs={'F':[5,4,9],'x':[1,2,3,4,5,6,7,8,9,10,11,12,13]}) # 1 window (x = 10) -> 1 output
+results = example1(inputs={'F':[[5],[4],[9]],'x':[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13]]}) # 1 window (x = 10) -> 1 output
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
 
 print("------------------------EXAMPLE 4------------------------")
 # In this example there is 4 sample for the F and only 12 for the x so the minimum number of sample will be generated.
-results = example1(inputs={'F':[5,3,4,1],'x':[1,2,3,4,5,6,7,8,9,10,11,12]})
+results = example1(inputs={'F':[[5],[3],[4],[1]],'x':[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12]]})
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
 
@@ -71,7 +71,7 @@ print("------------------------EXAMPLE 5------------------------")
 # Using the option sampled the input must be created to reflect the need of the network.
 # In particular the network needs a sample for F and 11 samples for x
 # This way permits to define each sample window independently
-results = example1(inputs={'F':[[5],[2]],'x':[[1,2,3,4,5,6,7,8,9,10,11],[1,2,3,4,5,6,7,8,9,5,23]]}, sampled=True)
+results = example1(inputs={'F':[[5],[2]],'x':[[1,2,3,4,5,6,7,8,9,10,11],[12,13,14,15,16,17,18,19,20,21,22]]}, sampled=True)
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
     

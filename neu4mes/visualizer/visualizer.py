@@ -42,7 +42,7 @@ class Visualizer():
     def showDataset(self, name):
         pass
 
-    def showTraining(self, epoch, train_losses, val_losses, test_losses):
+    def showTraining(self, epoch, train_losses, val_losses):
         pass
 
     def showTrainingTime(self, time):

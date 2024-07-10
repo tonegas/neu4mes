@@ -1,4 +1,5 @@
-1. Add 'values' inside json parameter and make parameters values not random
+1. Adjust pendulum example
+2. Adjust mass-spring-damper example
 5. fix the loading the vectorial input
 6. investigate on why the program crashes if i force close the training plots
 7. adjust the metrics of the visualizer
@@ -7,7 +8,6 @@
 
 
 CHECKS:
-1. check that inside the minimize are given only Input or Ouput values
 
 
 

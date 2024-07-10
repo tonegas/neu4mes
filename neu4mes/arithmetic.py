@@ -26,11 +26,12 @@ class Add(Stream, ToStream):
               f"The type of {obj1} is {type(obj1)} and is not supported for add operation.")
         check(type(obj2) is Stream,TypeError,
               f"The type of {obj2} is {type(obj2)} and is not supported for add operation.")
-        check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
+        check(obj1.dim['dim'] == obj2.dim['dim'] or obj2.dim == {}, ValueError,
               f"For addition operators (+) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
         super().__init__(add_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         self.json['Relations'][self.name] = [add_relation_name,[obj1.name,obj2.name]]
 
+## TODO: check the scalar dimension, helpful for the offset
 class Sub(Stream, ToStream):
     def __init__(self, obj1:Stream, obj2:Stream) -> Stream:
         obj1, obj2 = toStream(obj1), toStream(obj2)
@@ -38,8 +39,8 @@ class Sub(Stream, ToStream):
               f"The type of {obj1} is {type(obj1)} and is not supported for sub operation.")
         check(type(obj2) is Stream,TypeError,
               f"The type of {obj2} is {type(obj2)} and is not supported for sub operation.")
-        check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
-              f"For subtraction operators (-) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
+        #check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
+        #      f"For subtraction operators (-) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
         super().__init__(sub_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         self.json['Relations'][self.name] = [sub_relation_name,[obj1.name,obj2.name]]
 

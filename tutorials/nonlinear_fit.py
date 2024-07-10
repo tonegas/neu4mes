@@ -54,8 +54,8 @@ opt_fun.minimizeError('x^4', target_y.last(), y4, 'mse')
 opt_fun.neuralizeModel()
 
 # Load the dataset create with the target function
-opt_fun.loadData(dataset)
+opt_fun.loadData('dataset', dataset)
 
 # Train the models
-opt_fun.trainModel(test_percentage = 50, training_params={'num_of_epochs':250})
+opt_fun.trainModel(splits=[60,10,30], training_params={'num_of_epochs':250})
 
