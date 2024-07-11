@@ -280,8 +280,7 @@ class Neu4mes:
 
                     ## Save as numpy array the data
                     data = df.iloc[:, start_cols:start_cols+key_cols].to_numpy()
-                    self.data[name][key] = [data[i-back:i+forw] for i in range(self.max_samples_backward, len(df)-self.max_samples_forward+1)]
-                    
+                    self.data[name][key] += [data[i-back:i+forw] for i in range(self.max_samples_backward, len(df)-self.max_samples_forward+1)]
                     start_cols += key_cols
 
             ## Stack the files
@@ -465,17 +464,17 @@ class Neu4mes:
             for key, samples in self.data[dataset].items():
                 if key in self.model_def['Inputs'].keys():
                     if val_size == 0.0 and test_size == 0.0: ## we have only training set
-                        XY_train[key] = samples
+                        XY_train[key] = torch.from_numpy(samples).to(torch.float32)
                     elif val_size == 0.0 and test_size != 0.0: ## we have only training and test set
-                        XY_train[key] = samples[:round(len(samples)*train_size)]
-                        XY_test[key] = samples[round(len(samples)*train_size):]
+                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                        XY_test[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
                     elif val_size != 0.0 and test_size == 0.0: ## we have only training and validation set
-                        XY_train[key] = samples[:round(len(samples)*train_size)]
-                        XY_val[key] = samples[round(len(samples)*train_size):]
+                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                        XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
                     else: ## we have training, validation and test set
-                        XY_train[key] = samples[:round(len(samples)*train_size)]
-                        XY_val[key] = samples[round(len(samples)*train_size):-round(len(samples)*test_size)]
-                        XY_test[key] = samples[-round(len(samples)*test_size):]
+                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                        XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):-round(len(samples)*test_size)]).to(torch.float32)
+                        XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
         else: ## Multi-Dataset
             datasets = list(self.data.keys())
 
@@ -489,13 +488,13 @@ class Neu4mes:
             self.n_samples_train, self.n_samples_val, self.n_samples_test = 0, 0, 0
             ## Split into train, validation and test
             self.n_samples_train = self.num_of_samples[train_dataset]
-            XY_train = self.data[train_dataset]
+            XY_train = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[train_dataset].items()}
             if validation_dataset in datasets:
                 self.n_samples_val = self.num_of_samples[validation_dataset]
-                XY_val = self.data[validation_dataset]
+                XY_val = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[validation_dataset].items()}
             if test_dataset in datasets:
                 self.n_samples_test = self.num_of_samples[test_dataset]
-                XY_test = self.data[test_dataset]
+                XY_test = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[test_dataset].items()}
 
         ## TRAIN MODEL
         ## Check parameters
@@ -527,10 +526,8 @@ class Neu4mes:
             aux_train_losses = torch.zeros([len(self.minimize_dict),self.n_samples_train])
             for i in range(self.n_samples_train):
                 idx = i*self.train_batch_size
-                ## Build the torch tensor
-                XY = {}
-                for key, val in XY_train.items():
-                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+                ## Build the input tensor
+                XY = {key: val[idx:idx+self.train_batch_size] for key, val in XY_train.items()}
                 ## Reset gradient
                 self.optimizer.zero_grad()
                 ## Model Forward
@@ -552,10 +549,8 @@ class Neu4mes:
                 aux_val_losses = torch.zeros(len(self.minimize_dict), self.n_samples_val)
                 for i in range(self.n_samples_val):
                     idx = i * self.val_batch_size
-                    ## Build the torch tensor
-                    XY = {}
-                    for key, val in XY_val.items():
-                        XY[key] = torch.from_numpy(val[idx:idx + self.val_batch_size]).to(torch.float32)
+                    ## Build the input tensor
+                    XY = {key: val[idx:idx + self.val_batch_size] for key, val in XY_val.items()}
                     ## Model Forward
                     _, minimize_out = self.model(XY)
                     ## Validation Loss
@@ -581,10 +576,8 @@ class Neu4mes:
             aux_test_losses = torch.zeros(len(self.minimize_dict), self.n_samples_test)
             for i in range(self.n_samples_test):
                 idx = i * self.test_batch_size
-                ## Build the torch tensor
-                XY = {}
-                for key, val in XY_test.items():
-                    XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
+                ## Build the input tensor
+                XY = {key: val[idx:idx + self.test_batch_size] for key, val in XY_test.items()}
                 ## Model Forward
                 _, minimize_out = self.model(XY)
                 ## Test Loss
