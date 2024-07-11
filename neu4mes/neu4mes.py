@@ -590,7 +590,7 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
 
-        self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+        #self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
 
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not self.data_loaded:
