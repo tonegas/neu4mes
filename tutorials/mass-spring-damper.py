@@ -27,7 +27,7 @@ xk1 = Output('x[k+1]', Fir(x.tw(0.2))+Fir(F.last()))
 dxk1 = Output('dx[k+1]', Fir(Fir(x.tw(0.2))+Fir(F.last())))
 
 # Add the neural models to the neu4mes structure
-mass_spring_damper = Neu4mes()
+mass_spring_damper = Neu4mes(visualizer=MPLVisulizer())
 mass_spring_damper.addModel(xk1)
 mass_spring_damper.addModel(dxk1)
 

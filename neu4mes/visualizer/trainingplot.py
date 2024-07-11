@@ -7,7 +7,7 @@ import signal
 
 # Buffer to hold the data points
 data_train = deque(maxlen=2000)
-data_test = deque(maxlen=2000)
+data_val = deque(maxlen=2000)
 last = 1
 title = 'Training'
 epoch = 0
@@ -22,7 +22,8 @@ def update_graph(frame):
                 # Convert to float and append to buffer
                 data = json.loads(line)
                 data_train.append(data['train_losses'])
-                data_test.append(data['test_losses'])
+                if data['val_losses']:
+                    data_val.append(data['val_losses'])
                 title = data['key']
                 last = data['last']
                 epoch = data['epoch']
@@ -34,7 +35,8 @@ def update_graph(frame):
         # Plot data
         plt.title(f'{title} - epochs last {last}')
         plt.plot([i+1 for i in range(epoch+1)],data_train, label='Train loss')
-        plt.plot([i+1 for i in range(epoch+1)],data_test, '-.', label='Test loss')
+        if data_val:
+            plt.plot([i+1 for i in range(epoch+1)],data_val, '-.', label='Validation loss')
 
         plt.yscale('log')
         plt.grid(True)
@@ -42,8 +44,12 @@ def update_graph(frame):
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         # Set plot limits
-        min_val = min([min(data_test), min(data_train)])
-        max_val = max([max(data_train), max(data_train)])
+        if data_val:
+            min_val = min([min(data_val), min(data_train)])
+            max_val = max([max(data_val), max(data_train)])
+        else:
+            min_val = min(data_train)
+            max_val = max(data_train)
         plt.ylim(min_val-min_val/10, max_val+max_val/10)
     else:
         pass

@@ -16,6 +16,9 @@ class TextVisualizer(Visualizer):
     def __line(self):
         print(color('='.center(80, '='),GREEN))
 
+    def __singleline(self):
+        print(color('-'.center(80, '-'),GREEN))
+
     def __paramjson(self,name, value, dim =30):
         lines = pformat(value, width=80 - dim).strip().splitlines()
         vai = ('\n' + (' ' * dim)).join(x for x in lines)
@@ -70,7 +73,7 @@ class TextVisualizer(Visualizer):
             self.__param("Total number of samples:", f'{self.n4m.num_of_samples[name]}')
             for key in self.n4m.model_def['Inputs'].keys():
                 self.__param(f"Shape of {key}:", f'{self.n4m.data[name][key].shape}')
-            self.__line()
+            self.__singleline()
             self.__param("Available Datasets:", f'{self.n4m.datasets_loaded}')
             self.__line()
 
@@ -92,10 +95,16 @@ class TextVisualizer(Visualizer):
 
                 print(color('|' + (f' ').center(10, ' ') + '|'), end='')
                 for key in self.n4m.minimize_dict.keys():
-                    print(color((f'train').center(9, ' ') + '|'),end='')
-                    print(color((f'val').center(9, ' ') + '|'),end='')
-                print(color((f'train').center(9, ' ') + '|'), end='')
-                print(color((f'val').center(9, ' ') + '|'))
+                    if val_losses:
+                        print(color((f'train').center(9, ' ') + '|'),end='')
+                        print(color((f'val').center(9, ' ') + '|'),end='')
+                    else:
+                        print(color((f'train').center(19, ' ') + '|'), end='')
+                if val_losses:
+                    print(color((f'train').center(9, ' ') + '|'), end='')
+                    print(color((f'val').center(9, ' ') + '|'))
+                else:
+                    print(color((f'train').center(19, ' ') + '|'))
 
                 print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
             if epoch < self.n4m.num_of_epochs:
@@ -105,32 +114,34 @@ class TextVisualizer(Visualizer):
                 val_loss = []
                 for key in self.n4m.minimize_dict.keys():
                     train_loss.append(train_losses[key][epoch])
-                    print((f'{train_losses[key][epoch]:.4f}').center(9, ' ') + '|', end='')
                     if val_losses:
                         val_loss.append(val_losses[key][epoch])
+                        print((f'{train_losses[key][epoch]:.4f}').center(9, ' ') + '|', end='')
                         print((f'{val_losses[key][epoch]:.4f}').center(9, ' ') + '|', end='')
                     else:
-                        print(('N/A').center(9, ' ') + '|', end='')
-                print((f'{np.mean(train_loss):.4f}').center(9, ' ') + '|', end='')
+                        print((f'{train_losses[key][epoch]:.4f}').center(19, ' ') + '|', end='')
+
                 if val_losses:
+                    print((f'{np.mean(train_loss):.4f}').center(9, ' ') + '|', end='')
                     print((f'{np.mean(val_loss):.4f}').center(9, ' ') + '|', end='')
                 else:
-                    print(('N/A').center(9, ' ') + '|', end='')
+                    print((f'{np.mean(train_loss):.4f}').center(19, ' ') + '|', end='')
 
                 if (epoch + 1) % show_epoch == 0:
                     print('', end='\r')
                     print(color('|' + (f'{epoch + 1}/{self.n4m.num_of_epochs}').center(10, ' ') + '|'), end='')
                     for key in self.n4m.minimize_dict.keys():
-                        print(color((f'{train_losses[key][epoch]:.4f}').center(9, ' ') + '|'), end='')
                         if val_losses:
+                            print(color((f'{train_losses[key][epoch]:.4f}').center(9, ' ') + '|'), end='')
                             print(color((f'{val_losses[key][epoch]:.4f}').center(9, ' ') + '|'), end='')
                         else:
-                            print(color(('N/A').center(9, ' ') + '|'), end='')
-                    print(color((f'{np.mean(train_loss):.4f}').center(9, ' ') + '|'), end='')
+                            print(color((f'{train_losses[key][epoch]:.4f}').center(19, ' ') + '|'), end='')
+
                     if val_losses:
+                        print(color((f'{np.mean(train_loss):.4f}').center(9, ' ') + '|'), end='')
                         print(color((f'{np.mean(val_loss):.4f}').center(9, ' ') + '|'))
                     else:
-                        print(color(('N/A').center(9, ' ') + '|'))
+                        print(color((f'{np.mean(train_loss):.4f}').center(19, ' ') + '|'))
 
             if epoch+1 == self.n4m.num_of_epochs:
                 print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))

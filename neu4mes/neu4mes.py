@@ -42,27 +42,26 @@ class Neu4mes:
         self.model_def = NeuObj().json
         self.addModel(model_def)
 
-        ## Variables
-        self.model = None
-
+        # Network Parametrs
         self.minimize_list = []
         self.minimize_dict = {}
-
         self.input_tw_backward, self.input_tw_forward = {}, {}
         self.input_ns_backward, self.input_ns_forward = {}, {}
         self.input_n_samples = {}
         self.max_samples_backward, self.max_samples_forward = 0, 0
         self.max_n_samples = 0
-
         self.neuralized = False
-        self.data_loaded = False
+        self.model = None
 
+        # Dataaset Parameters
+        self.data_loaded = False
         self.file_count = 0
         self.num_of_samples = {}
         self.data = {}
         self.n_datasets = 0
         self.datasets_loaded = set()
 
+        # Training Parameters
         self.learning_rate = 0.01
         self.num_of_epochs = 100
         self.train_batch_size = 1
@@ -71,6 +70,10 @@ class Neu4mes:
         self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
         self.optimizer = None
         self.losses = {}
+
+        # Validation Parameters
+        self.performance = {}
+        self.prediction = {}
 
 
     def __call__(self, inputs, sampled=False):
@@ -341,7 +344,7 @@ class Neu4mes:
             
     
     ## TODO: Adjust the Plotting function
-    def resultAnalysis(self, train_losses, test_losses, XY_train, XY_test):
+    def resultAnalysis(self, train_losses, val_losses, test_losses, XY_train, XY_val, XY_test):
         with torch.inference_mode():
 
             self.model.eval()
@@ -391,7 +394,6 @@ class Neu4mes:
             #         B[ind][i] = out[value['B'][0]]
             #         loss = self.loss_fn(A[ind][i], B[ind][i])
             #         aux_test_losses[ind][i] = loss.detach().numpy()
-
 
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A_np = A[ind].detach().numpy()
@@ -588,8 +590,7 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
 
-        ## Show the final results...
-        #self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+        self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
 
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not self.data_loaded:
