@@ -11,25 +11,40 @@ from neu4mes.utilis import check
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int = None, W:Parameter = None, b:bool = True):
+    def __init__(self, output_dimension:int|None = None, W:Parameter|None = None, b:bool|Parameter|None = None):
         self.relation_name = linear_relation_name
-        self.parameter = W
-        self.bias = b
+        self.W = W
+        self.b = b
+        self.bname = None
+        super().__init__('P' + linear_relation_name + str(NeuObj.count))
 
         if W is None:
             self.output_dimension = 1 if output_dimension is None else output_dimension
-            super().__init__('P' + linear_relation_name + str(NeuObj.count))
+            self.Wname = self.name + 'W'
         else:
-            check(type(W) is Parameter, TypeError, 'The parameter must be of type Parameter')
+            check(type(W) is Parameter, TypeError, 'The "W" must be of type Parameter.')
             window = 'tw' if 'tw' in W.dim else ('sw' if 'sw' in W.dim else None)
-            check(window == None, ValueError, 'The parameter must not have window dimension')
-            check(len(W.dim['dim']) == 2, ValueError,'The parameter dimensions must be a tuple of 2.')
-            self.output_dimension = W.dim['dim'][0]
+            check(window == None, ValueError, 'The "W" must not have window dimension.')
+            check(len(W.dim['dim']) == 2, ValueError,'The "W" dimensions must be a tuple of 2.')
+            self.output_dimension = W.dim['dim'][1]
             if output_dimension is not None:
-                check(W.dim['dim'][0] == output_dimension, ValueError, 'output_dimension must be equal to the second dim of the parameter')
-            super().__init__(W.name)
-            #self.json['Parameters'][self.name] = copy.deepcopy(W.dim)
-            self.json['Parameters'][self.name] = copy.deepcopy(W.json['Parameters'][W.name])
+                check(W.dim['dim'][1] == output_dimension, ValueError, 'output_dimension must be equal to the second dim of "W".')
+            self.Wname = W.name
+            self.json['Parameters'][W.name] = copy.deepcopy(W.json['Parameters'][W.name])
+
+        if b is not None:
+            check(type(b) is Parameter or type(b) is bool, TypeError, 'The "b" must be of type Parameter or bool.')
+            if type(b) is Parameter:
+                check(type(b.dim['dim']) is int, ValueError, 'The "b" dimensions must be an integer.')
+                if output_dimension is not None:
+                    check(b.dim['dim'] == output_dimension, ValueError,
+                          'output_dimension must be equal to the dim of the "b".')
+                self.bname = b.name
+                self.json['Parameters'][b.name] = copy.deepcopy(b.json['Parameters'][b.name])
+            else:
+                self.bname = self.name + 'b'
+                self.json['Parameters'][self.bname] = { 'dim': self.output_dimension }
+
 
     def __call__(self, obj:Stream) -> Stream:
         stream_name = linear_relation_name + str(Stream.count)
@@ -37,22 +52,24 @@ class Linear(NeuObj, AutoToStream):
               f"The type of {obj} is {type(obj)} and is not supported for Linear operation.")
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
 
-        if self.parameter is None:
-            self.json['Parameters'][self.name] = { 'dim': (self.output_dimension,obj.dim['dim'],) }
+        if self.W is None:
+            self.json['Parameters'][self.Wname] = { 'dim': (obj.dim['dim'],self.output_dimension,) }
         else:
-            #self.json['Parameters'][self.name] = {'dim': self.parameter.dim['dim']}
-            check(self.parameter.dim['dim'][1] == obj.dim['dim'], ValueError,
+            check(self.W.dim['dim'][0] == obj.dim['dim'], ValueError,
                   'the input dimension must be equal to the first dim of the parameter')
 
         stream_json = merge(self.json,obj.json)
-        stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.name, self.bias]
+        stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname]
         return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
 
 class Linear_Layer(nn.Module):
     def __init__(self, weights, bias):
         super(Linear_Layer, self).__init__()
-        self.lin = nn.Linear(in_features=weights.size(1), out_features=weights.size(0), bias=bias)
-        self.lin.weight = nn.Parameter(weights)
+        biasbool = False if bias is None else True
+        self.lin = nn.Linear(in_features=weights.size(1), out_features=weights.size(2), bias=biasbool)
+        self.lin.weight = nn.Parameter(weights[0].t())
+        if biasbool:
+            self.lin.bias = nn.Parameter(bias)
 
     def forward(self, x):
         x = self.lin(x)
