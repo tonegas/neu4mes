@@ -24,7 +24,7 @@ example.addModel(out)
 example.neuralizeModel()
 print(example({'x':[1],'F':[1]}))
 print(example({'x':[1,2],'F':[1,2]}))
-
+#
 
 print("------------------------EXAMPLE 2------------------------")
 # Example 2
@@ -40,8 +40,9 @@ out = Output('out',parfun(x.last(),F.last()))
 example = Neu4mes(visualizer=None)
 example.addModel(out)
 example.neuralizeModel()
-print(example({'x':[1],'F':[1]})) #TODO qui dovrebbero uscire con una dimensione in più
+print(example({'x':[1],'F':[1]}))
 print(example({'x':[1,2],'F':[1,2]}))
+#
 
 print("------------------------EXAMPLE 3------------------------")
 # Example 2
@@ -57,7 +58,7 @@ out = Output('out',parfun(x.tw(2),F.tw(2)))
 example = Neu4mes(visualizer=None)
 example.addModel(out)
 example.neuralizeModel(1)
-print(example({'x':[1,1],'F':[1,1]})) #TODO qui dovrebbero uscire con una dimensione in più
+print(example({'x':[1,1],'F':[1,1]}))
 print(example({'x':[1,2,3],'F':[1,2,3]}))
 #
 
