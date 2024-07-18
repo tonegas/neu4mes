@@ -203,6 +203,48 @@ class Neu4mesJson(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             out = ParamFun(myFun)(input.tw(2),input.tw(1))
 
+    def test_parameter_and_linear(self):
+        input = Input('in').last()
+        W15 = Parameter('W15', dimensions=(1, 5))
+        b15 = Parameter('b15', dimensions=5)
+        input4 = Input('in4',dimensions=4).last()
+        W45 = Parameter('W45', dimensions=(4, 5))
+        b45 = Parameter('b15', dimensions=5)
+
+        out = Linear(input) + Linear(input4)
+        out3 = Linear(3)(input) + Linear(3)(input4)
+        outW = Linear(W = W15)(input) + Linear(W = W45)(input4)
+        outWb = Linear(W = W15,b = b15)(input) + Linear(W = W45, b = b45)(input4)
+        self.assertEqual({'dim': 1, 'sw': 1}, out.dim)
+        self.assertEqual({'dim': 3, 'sw': 1}, out3.dim)
+        self.assertEqual({'dim': 5, 'sw': 1}, outW.dim)
+        self.assertEqual({'dim': 5, 'sw': 1}, outWb.dim)
+
+        input2 = Input('in').sw([-1,1])
+        W15 = Parameter('W15', dimensions=(1, 5))
+        b15 = Parameter('b15', dimensions=5)
+        input42 = Input('in4', dimensions=4).sw([-1,1])
+        W45 = Parameter('W45', dimensions=(4, 5))
+        b45 = Parameter('b45', dimensions=5)
+
+        out = Linear(input2) + Linear(input42)
+        out3 = Linear(3)(input2) + Linear(3)(input42)
+        outW = Linear(W = W15)(input2) + Linear(W = W45)(input42)
+        outWb = Linear(W = W15,b = b15)(input2) + Linear(W = W45, b = b45)(input42)
+        self.assertEqual({'dim': 1, 'sw': 2}, out.dim)
+        self.assertEqual({'dim': 3, 'sw': 2}, out3.dim)
+        self.assertEqual({'dim': 5, 'sw': 2}, outW.dim)
+        self.assertEqual({'dim': 5, 'sw': 2}, outWb.dim)
+
+        with self.assertRaises(ValueError):
+            Linear(input) + Linear(input42)
+        with self.assertRaises(ValueError):
+            Linear(3)(input2) + Linear(3)(input4)
+        with self.assertRaises(ValueError):
+            Linear(W = W15)(input) + Linear(W = W45)(input42)
+        with self.assertRaises(ValueError):
+            Linear(W = W15,b = b15)(input2) + Linear(W = W45, b = b45)(input4)
+
     def test_output(self):
         pass
 
