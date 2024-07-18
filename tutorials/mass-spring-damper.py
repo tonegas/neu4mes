@@ -42,16 +42,16 @@ mass_spring_damper.minimizeError('next-vel', dx.next(), dxk1, 'mse')
 mass_spring_damper.neuralizeModel(sample_time = 0.05) # The sampling time depends on the dataset
 
 # Data load
-data_struct = ['time','x','dx','F']
+data_struct = ['time',('x', 'x_state'),'dx','F']
 data_folder = './tutorials/datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(name='mass_spring_dataset', source=data_folder, format=data_struct, delimiter=';')
 
 #Neural network train
 params = {'num_of_epochs': 100, 
-          'train_batch_size': 128, 
-          'val_batch_size':128, 
+          'train_batch_size': 4, 
+          'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.001}
-mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
+mass_spring_damper.trainModel(splits=[70,20,10], prediction_horizon=0.2, training_params = params)
 
 
