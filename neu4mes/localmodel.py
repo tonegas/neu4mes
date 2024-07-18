@@ -5,6 +5,7 @@ import torch.nn as nn
 from neu4mes.relation import NeuObj
 from neu4mes.model import Model
 from neu4mes.part import Select
+from neu4mes.utilis import check
 
 localmodel_relation_name = 'LocalModel'
 
@@ -15,12 +16,10 @@ class LocalModel(NeuObj):
         super().__init__(localmodel_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {}
         if input_function is not None:
-            assert callable(input_function), 'The input_function must be callable'
-            #assert len(inspect.getfullargspec(input_function).args) == 0, 'The input_function must be a callable without arguments'
+            check(callable(input_function), TypeError, 'The input_function must be callable')
         self.input_function = input_function
         if output_function is not None:
-            assert callable(output_function), 'The output_function must be callable'
-            #assert len(inspect.getfullargspec(output_function).args) == 0, 'The output_function must be a callable without arguments'
+            check(callable(output_function), TypeError, 'The output_function must be callable')
         self.output_function = output_function
 
 
@@ -59,7 +58,7 @@ class LocalModel(NeuObj):
                         else:
                             out_in = self.input_function(inputs)
             else:
-                assert type(inputs) is not tuple, 'The input cannot be a tuble without input_function'
+                check(type(inputs) is not tuple, TypeError, 'The input cannot be a tuple without input_function')
                 out_in = inputs
 
             act = Select(activations[0], idx_list[0])
@@ -78,10 +77,3 @@ class LocalModel(NeuObj):
                         self.out_sum.append(self.output_function(prod))
             else:
                 self.out_sum.append(prod)
-
-
-
-def createLocalModel(self):
-    pass
-
-setattr(Model, localmodel_relation_name, createLocalModel)

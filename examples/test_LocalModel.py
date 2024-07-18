@@ -105,28 +105,6 @@ example.neuralizeModel(0.5)
 print(example({'x':[2,3]}))
 #
 
-print("------------------------EXAMPLE 6------------------------")
-# Example 6
-# New activation function with a time window of 1 sec
-# Two activation functions with ParamFun for input and Fir for output
-# The output function is a Fir with shared weights
-# The ParamFun have 2 parameters
-# There are 2 activiation function with 2 member function, the total numer of parameter is 2*4+1
-
-activationA = Fuzzify(2,[0,1],functions='Triangular')(x.tw(1))
-activationB = Fuzzify(2,[0,1],functions='Triangular')(F.tw(1))
-def myFun(in1,p1,p2):
-    return p1*in1+p2
-
-loc = LocalModel(input_function = lambda:ParamFun(myFun), output_function = Fir(3))(x.tw(1),(activationA,activationB))
-out = Output('out', loc)
-example = Neu4mes()
-example.addModel([out])
-example.neuralizeModel(0.5)
-# Single sample but with dimension 3 due to the dimension of the output of the Fir
-print(example({'x':[2,3]}))
-#
-
 print("------------------------EXAMPLE 7------------------------")
 # Example 7
 # Two activation functions with input_function_gen for input and output_fun_gen for output
@@ -145,7 +123,7 @@ def output_function_gen(idx_list):
     pfir = Parameter('pfir_'+str(idx_list),tw=1,dimensions=2,values=[[1+idx_list[0],2+idx_list[1]],[3+idx_list[0],4+idx_list[1]]])
     return Fir(2,parameter=pfir)
 
-loc = LocalModel(input_function = input_function_gen,output_function = output_function_gen, pass_indexes = True)(x.tw(1),(activationA,activationB))
+loc = LocalModel(input_function = input_function_gen, output_function = output_function_gen, pass_indexes = True)(x.tw(1),(activationA,activationB))
 #Example of the structure of the local model
 p1_0 = Parameter('N_p1_0',values=1)
 p1_1 = Parameter('N_p1_1',values=2)
@@ -201,5 +179,5 @@ example.addModel([out_in_00,out_in_01,out_in_10,out_in_11,
 example.addModel(out)
 example.neuralizeModel(0.5)
 # Three semples with a dimensions 2
-print(example({'x':[0,1,-2,3],'F':[-2,2,1,5]}))
+pprint(example({'x':[0,1,-2,3],'F':[-2,2,1,5]}))
 #
