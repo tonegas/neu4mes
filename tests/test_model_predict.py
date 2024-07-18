@@ -188,7 +188,6 @@ class MyTestCase(unittest.TestCase):
         # Time                  -2,         -1,      0,      1,      2,       3 # zero represent the last passed instant
         results = test({'in1': [[-2,3,4],[-1,2,2],[0,0,0],[1,2,3],[2,7,3],[3,3,3]]})
         # Time window
-        # TODO Sistemare
         self.assertEqual((1,1,3), np.array(results['x.tw(1)']).shape)
         self.TestAlmostEqual([[[0,0,0]]], results['x.tw(1)'])
         self.assertEqual((1,1,3), np.array(results['x.tw([-1,0])']).shape)
@@ -223,7 +222,6 @@ class MyTestCase(unittest.TestCase):
         # Elementwise arithmetic, Activation, Trigonometric
         # the dimensions and time window remain unchanged, for the
         # binary operators must be equal
-        # TODO add the activation fucntion and the trigonometric test
 
         in1 = Input('in1')
         in2 = Input('in2', dimensions=2)
@@ -301,10 +299,6 @@ class MyTestCase(unittest.TestCase):
         # Single input
         # Time                 -2    -1    0    1    2    3
         results = test({'in1': [[1], [2], [7], [4], [5], [6]]})
-        #TODO
-        # La prima dimensione è quella temporale
-        # la seconda dimensione è il numero di elementi temporali per ogni istante
-        # la terza è la dimensione del segnale
         self.assertEqual((1,1,3), np.array(results['Fir3']).shape)
         self.assertEqual((1,1,5), np.array(results['Fir5']).shape)
         self.assertEqual((1,1,2), np.array(results['Fir2']).shape)
@@ -351,7 +345,7 @@ class MyTestCase(unittest.TestCase):
         test.addModel(out)
         test.neuralizeModel(0.1)
 
-        with self.assertRaises(StopIteration):#TODO voglio una finestra di almeno 2 sample altrimenti errore
+        with self.assertRaises(StopIteration):
             results = test({'in1': [1]})
         with self.assertRaises(StopIteration):
             results = test({'in1': [2]})
@@ -520,6 +514,53 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1, 2, 2, 4],[2, 2, 4, 3]],'in2': [[6, 2, 2, 4],[2, 2, 4, 4]]}, sampled=True)
         self.assertEqual((2,1,3), np.array(results['out']).shape)
         self.TestAlmostEqual(results['out'], [[[0.548146665096283, 0.6267049908638, 0.5457861423492432]], [[0.2763473391532898, 0.45648545026779175, 0.4165944457054138]]])
+
+    def test_trigonometri_parameter_and_numeric_constant(self):
+        torch.manual_seed(1)
+        in1 = Input('in1').last()
+        par = Parameter('par', sw=1, values=5)
+        in4 = Input('in4', dimensions=4).last()
+        par4 = Parameter('par4', dimensions=4, sw=1, values=[1,2,3,4])
+        add = in1 + par + 5.2
+        sub = in1 - par - 5.2
+        mul = in1 * par * 5.2
+        div = in1 / par / 5.2
+        pow = in1 ** par ** 2
+        sin1 = Sin(par) + Sin(5.2)
+        cos1 = Cos(par) + Cos(5.2)
+        tan1 = Tan(par) + Tan(5.2)
+        relu1 = Relu(par) + Relu(5.2)
+        tanh1 = Tanh(par) + Tanh(5.2)
+        tot1 = add + sub + mul + div + pow + sin1 + cos1 + tan1 + relu1 + tanh1
+
+        add4 = in4 + par4 + 5.2
+        sub4 = in4 - par4 - 5.2
+        mul4 = in4 * par4 * 5.2
+        div4 = in4 / par4 / 5.2
+        pow4 = in4 ** par4 ** 2
+        sin4 = Sin(par4) + Sin(5.2)
+        cos4 = Cos(par4) + Cos(5.2)
+        tan4 = Tan(par4) + Tan(5.2)
+        relu4 = Relu(par4) + Relu(5.2)
+        tanh4 = Tanh(par4) + Tanh(5.2)
+        tot4 = add4 + sub4 + mul4 + div4 + pow4 + sin4 + cos4 + tan4 + relu4 + tanh4
+        out1 = Output('out1', tot1)
+        out4 = Output('out4', tot4)
+        linW = Parameter('linW',dimensions=(4,1),values=[[[1],[1],[1],[1]]])
+        outtot = Output('outtot', tot1 + Linear(W=linW)(tot4))
+        test = Neu4mes(visualizer=None)
+        test.addModel([out1,out4,outtot])
+        test.neuralizeModel()
+
+        results = test({'in1': [1, 2, -2],'in4': [[6, 2, 2, 4], [7, 2, 2, 4], [-6, -5, 5, 4]]})
+        self.assertEqual((3,), np.array(results['out1']).shape)
+        self.assertEqual((3,1,4), np.array(results['out4']).shape)
+        self.assertEqual((3,), np.array(results['outtot']).shape)
+
+        self.TestAlmostEqual([34.8819529, 33554496.0,  -33554480.0], results['out1'] )
+        self.TestAlmostEqual([[[58.9539756, 46.1638031, 554.231201171875, 4294967296.0]], [[67.3462829589843, 46.16380310058594, 554.231201171875, 4294967296.0]], [[ -41.75371170043945, 567.6907348632812, 1953220.375, 4294967296.0]]], results['out4'])
+        self.TestAlmostEqual([4294967808.0, 4328522240.0,  4263366656.0], results['outtot'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -171,6 +171,26 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
+    def test_network_linear(self):
+        input = Input('in')
+        rel1 = Linear(input.sw([-4,2]))
+        rel2 = Linear(5)(input.sw([-1, 2]))
+        fun1 = Output('out1',rel1)
+        fun2 = Output('out2', rel2)
+
+        input5 = Input('in5', dimensions=3)
+        rel15 = Linear(input5.sw([-4,2]))
+        rel25 = Linear(5)(input5.last())
+        fun15 = Output('out51',rel15)
+        fun25 = Output('out52', rel25)
+
+        test = Neu4mes(visualizer=None)
+        test.addModel([fun1,fun2,fun15,fun25])
+        test.neuralizeModel(0.01)
+
+        list_of_dimensions = [[3,1],[3,5],[1,1],[1,5]]
+        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Linear' in k}.items()):
+            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
     '''
     def test_network_building_discrete_input_and_local_model(self):

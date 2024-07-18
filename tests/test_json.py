@@ -11,7 +11,8 @@ from neu4mes import *
 # and the structure of the json itself
 
 def myFun(K1,K2,p1,p2):
-    return p1*K1+p2*np.sin(K2)
+    import torch
+    return p1*K1+p2*torch.sin(K2)
 
 def myFun_out5(K1,p1):
     import torch
@@ -171,11 +172,11 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1, 'sw': 1}, out.dim)
         out = input.sw([-1,0])+input.sw([-4,-3])+input.sw(1)
         self.assertEqual({'dim': 1,'sw': 1}, out.dim)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = input.sw([-2,0])-input.sw([-1,0])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = input.sw([-2,0])+input.sw([-1,0])
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             out = input.sw(1) + input.tw([-1, 0])
         with self.assertRaises(TypeError):
             out = input.sw(1.2)
