@@ -25,7 +25,7 @@ class Fuzzify(NeuObj):
         if range is not None:
             assert centers is None, 'if output is an integer or use centers or use range'
             interval = ((range[1]-range[0])/(output_dimension-1))
-            self.json['Functions'][self.name]['centers'] = [a for a in np.arange(range[0], range[1]+interval, interval)]
+            self.json['Functions'][self.name]['centers'] = np.arange(range[0], range[1]+interval, interval).tolist()
         elif centers is not None:
             assert range is None, 'if output is an integer or use centers or use range'
             assert len(centers) == output_dimension, 'number of centers must be equal to output_dimension'
