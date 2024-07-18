@@ -2,15 +2,16 @@ import inspect, copy
 
 import torch.nn as nn
 
-from neu4mes.relation import NeuObj, Stream, merge
+from neu4mes.relation import NeuObj
 from neu4mes.model import Model
 from neu4mes.part import Select
 
 localmodel_relation_name = 'LocalModel'
 
 class LocalModel(NeuObj):
-    def __init__(self, input_function = None, output_function = None):
+    def __init__(self, input_function = None, output_function = None, pass_indexes = False):
         self.relation_name = localmodel_relation_name
+        self.pass_indexes = pass_indexes
         super().__init__(localmodel_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {}
         if input_function is not None:
@@ -47,10 +48,16 @@ class LocalModel(NeuObj):
                     else:
                         out_in = self.input_function()(inputs)
                 else:
-                    if type(inputs) is tuple:
-                        out_in = self.input_function(*inputs)
+                    if self.pass_indexes:
+                        if type(inputs) is tuple:
+                            out_in = self.input_function(idx_list)(*inputs)
+                        else:
+                            out_in = self.input_function(idx_list)(inputs)
                     else:
-                        out_in = self.input_function(inputs)
+                        if type(inputs) is tuple:
+                            out_in = self.input_function(*inputs)
+                        else:
+                            out_in = self.input_function(inputs)
             else:
                 assert type(inputs) is not tuple, 'The input cannot be a tuble without input_function'
                 out_in = inputs
@@ -65,7 +72,10 @@ class LocalModel(NeuObj):
                 if len(inspect.getfullargspec(self.output_function).args) == 0:
                     self.out_sum.append(self.output_function()(prod))
                 else:
-                    self.out_sum.append(self.output_function(prod))
+                    if self.pass_indexes:
+                        self.out_sum.append(self.output_function(idx_list)(prod))
+                    else:
+                        self.out_sum.append(self.output_function(prod))
             else:
                 self.out_sum.append(prod)
 
