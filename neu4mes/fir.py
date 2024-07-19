@@ -1,12 +1,12 @@
 import copy
 
 import torch.nn as nn
-import torch
 
 from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
 from neu4mes.utilis import check
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
+from neu4mes.input import Input
 
 fir_relation_name = 'Fir'
 
@@ -21,6 +21,7 @@ class Fir(NeuObj, AutoToStream):
             self.json['Parameters'][self.name] = { 'dim': self.output_dimension }
         else:
             check(type(parameter) is Parameter, TypeError, 'Input parameter must be of type Parameter')
+            check(len(parameter.dim) == 2,ValueError,f"The values of the parameters must be have two dimensions (tw/sample_rate or sw,output_dimension).")
             if output_dimension is None:
                 check(type(parameter.dim['dim']) is int, TypeError, 'Dimension of the parameter must be an integer for the Fir')
                 self.output_dimension = parameter.dim['dim']
@@ -33,6 +34,8 @@ class Fir(NeuObj, AutoToStream):
 
     def __call__(self, obj:Stream) -> Stream:
         stream_name = fir_relation_name + str(Stream.count)
+        check(type(obj) is not Input, TypeError,
+              f"The type of {obj.name} is Input not a Stream create a Stream using the functions: tw, sw, z, last, next.")
         check(type(obj) is Stream, TypeError,
               f"The type of {obj} is {type(obj)} and is not supported for Fir operation.")
         check('dim' in obj.dim and obj.dim['dim'] == 1, ValueError, 'Input dimension must be scalar')

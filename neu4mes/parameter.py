@@ -1,6 +1,8 @@
 import copy
+import numpy as np
 
 from neu4mes.relation import NeuObj, Stream
+from neu4mes.utilis import check
 
 #values = zeros, ones, 1order, linear, quadratic
 
