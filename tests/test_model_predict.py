@@ -317,6 +317,58 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((3,1,7), np.array(results['Fir7']).shape)
         self.assertEqual((3,1,4), np.array(results['Fir4']).shape)
         self.assertEqual((3,1,6), np.array(results['Fir6']).shape)
+
+    def test_fir_and_parameter(self):
+        x = Input('x')
+        p1 = Parameter('p1', tw=3, values=[[1],[2],[3],[6],[2],[3]])
+        with self.assertRaises(TypeError):
+            Fir(parameter=p1)(x)
+        with self.assertRaises(ValueError):
+            Fir(parameter=p1)(x.tw([-3, 1]))
+        out1 = Output('out1', Fir(parameter=p1)(x.tw([-2, 1])))
+
+        p2 = Parameter('p2', sw=1, values=[[-2]])
+        with self.assertRaises(KeyError):
+            Fir(parameter=p2)(x.tw([-2, 1]))
+        out2 = Output('out2', Fir(parameter=p2)(x.last()))
+
+        p3 = Parameter('p3', dimensions=2, sw=1, values=[[-2,1]])
+        with self.assertRaises(KeyError):
+            Fir(parameter=p3)(x.tw([-2, 1]))
+        out3 = Output('out3', Fir(parameter=p3)(x.last()))
+
+        p4 = Parameter('p4', dimensions=2, tw=2, values=[[-2,1],[2,0],[0,1],[4,0]])
+        with self.assertRaises(KeyError):
+            Fir(parameter=p4)(x.sw([-2, 0]))
+        out4 = Output('out4', Fir(parameter=p4)(x.tw([-2, 0])))
+
+        p5 = Parameter('p6', sw=2, dimensions=2, values=[[-2,1],[2,0]])
+        with self.assertRaises(TypeError):
+            Fir(parameter = p5)(x)
+        with self.assertRaises(KeyError):
+            Fir(parameter = p5)(x.tw([-2,1]))
+        with self.assertRaises(ValueError):
+            Fir(parameter = p5)(x.sw([-2,1]))
+        out5 = Output('out5', Fir(parameter=p5)(x.sw([-2, 0])))
+
+        test = Neu4mes(visualizer=None)
+        test.addModel([out1, out2, out3, out4, out5])
+        test.neuralizeModel(0.5)
+        # Time   -2, -1, 0, 1, 2, 3, 4
+        input = [-2, -1, 0, 1, 2, 3, 12]
+        results = test({'x': input})
+        pprint(results)
+        self.assertEqual((2,), np.array(results['out1']).shape)
+        self.TestAlmostEqual([15,56], results['out1'])
+        self.assertEqual((2,), np.array(results['out2']).shape)
+        self.TestAlmostEqual([-2, -4], results['out2'])
+        self.assertEqual((2, 1, 2), np.array(results['out3']).shape)
+        self.TestAlmostEqual([[[-2,1], [-4,2]]], results['out3'])
+        self.assertEqual((2, 1, 2), np.array(results['out4']).shape)
+        self.TestAlmostEqual([[[6.0, -2.0]], [[10.0, 0.0]]], results['out4'])
+        self.assertEqual((2, 1, 2), np.array(results['out5']).shape)
+        self.TestAlmostEqual([[[2.0, 0.0]], [[2.0, 1.0]]], results['out5'])
+
     
     def test_single_in_window_offset_parametric_function(self):
         # An input dimension is temporal and does not remain unchanged unless redefined on output
@@ -406,10 +458,10 @@ class MyTestCase(unittest.TestCase):
         test.neuralizeModel(0.1)
 
         with self.assertRaises(StopIteration):
-            results = test({'in1': [2]})
+            test({'in1': [2]})
 
         with self.assertRaises(StopIteration):
-            results = test({'in1': [2, 4]})
+            test({'in1': [2, 4]})
 
         results = test({'in1': [3,2,1]})
         self.assertEqual((1,3), np.array(results['out']).shape)
@@ -899,7 +951,7 @@ class MyTestCase(unittest.TestCase):
         in_S3 = Output('in_S3', Select(tw3, 2))
         in_S4 = Output('in_S4', Select(tw3, 3))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel([out_tw3, out_tw32,
                        in_P1first, in_P1mid, in_P1last, in_P1all,
                        in_S1, in_S2, in_S3, in_S4])
