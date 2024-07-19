@@ -183,7 +183,6 @@ class Neu4mesJson(unittest.TestCase):
         with self.assertRaises(TypeError):
             out = input.sw([-1.2,0.05])
 
-
     def test_vector_input_dimensions(self):
         input = Input('in', dimensions = 5)
         self.assertEqual({'dim': 5}, input.dim)

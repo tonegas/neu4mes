@@ -122,17 +122,17 @@ class MyTestCase(unittest.TestCase):
         in1 = Input('in1')
 
         # Finestre nel tempo
-        out1 = Output('x.tw(1)', in1.tw(1,offset=0))
-        out2 = Output('x.tw([-1,0])', in1.tw([-1, 0],offset=0))
-        out3 = Output('x.tw([1,3])', in1.tw([1, 3],offset=2))
-        out4 = Output('x.tw([-3,-2])', in1.tw([-3, -2],offset=-2))
+        out1 = Output('x.tw(1)', in1.tw(1,offset=-1))
+        out2 = Output('x.tw([-1,0])', in1.tw([-1, 0],offset=-1))
+        out3 = Output('x.tw([1,3])', in1.tw([1, 3],offset=1))
+        out4 = Output('x.tw([-3,-2])', in1.tw([-3, -2],offset=-3))
 
         # Finesatre nei samples
-        out5 = Output('x.sw([-1,0])',  in1.sw([-1, 0],offset=0))
-        out6 = Output('x.sw([-3,1])',  in1.sw([-3, 1],offset=-2))
-        out7 = Output('x.sw([0,1])',  in1.sw([0, 1],offset=1))
-        out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=3))
-        out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=0))
+        out5 = Output('x.sw([-1,0])',  in1.sw([-1, 0],offset=-1))
+        out6 = Output('x.sw([-3,1])',  in1.sw([-3, 1],offset=-3))
+        out7 = Output('x.sw([0,1])',  in1.sw([0, 1],offset=0))
+        out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=2))
+        out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
         test = Neu4mes(visualizer=None)
         test.addModel([out1,out2,out3,out4,out5,out6,out7,out8,out9])
@@ -167,17 +167,17 @@ class MyTestCase(unittest.TestCase):
         in1 = Input('in1',dimensions=3)
 
         # Finestre nel tempo
-        out1 = Output('x.tw(1)', in1.tw(1, offset=0))
-        out2 = Output('x.tw([-1,0])', in1.tw([-1, 0], offset=0))
-        out3 = Output('x.tw([1,3])', in1.tw([1, 3], offset=2))
-        out4 = Output('x.tw([-3,-2])', in1.tw([-3, -2], offset=-2))
+        out1 = Output('x.tw(1)', in1.tw(1, offset=-1))
+        out2 = Output('x.tw([-1,0])', in1.tw([-1, 0], offset=-1))
+        out3 = Output('x.tw([1,3])', in1.tw([1, 3], offset=1))
+        out4 = Output('x.tw([-3,-2])', in1.tw([-3, -2], offset=-3))
 
         # Finesatre nei samples
-        out5 = Output('x.sw([-1,0])', in1.sw([-1, 0], offset=0))
-        out6 = Output('x.sw([-3,1])', in1.sw([-3, 1], offset=-2))
-        out7 = Output('x.sw([0,1])', in1.sw([0, 1], offset=1))
-        out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=3))
-        out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=0))
+        out5 = Output('x.sw([-1,0])', in1.sw([-1, 0], offset=-1))
+        out6 = Output('x.sw([-3,1])', in1.sw([-3, 1], offset=-3))
+        out7 = Output('x.sw([0,1])', in1.sw([0, 1], offset=0))
+        out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=2))
+        out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
         test = Neu4mes(visualizer=None)
         test.addModel([out1, out2, out3, out4, out5, out6, out7, out8, out9])
@@ -225,13 +225,13 @@ class MyTestCase(unittest.TestCase):
 
         in1 = Input('in1')
         in2 = Input('in2', dimensions=2)
-        out1 = Output('sum', in1.tw(1, offset=0) + in1.tw([-1,0]))
-        out2 = Output('sub', in1.tw([1, 3], offset=2) - in1.tw([-3, -1], offset=-1))
-        out3 = Output('mul', in1.tw([-2, 2]) * in1.tw([-3, 1], offset=-1))
+        out1 = Output('sum', in1.tw(1, offset=-1) + in1.tw([-1,0]))
+        out2 = Output('sub', in1.tw([1, 3], offset=1) - in1.tw([-3, -1], offset=-2))
+        out3 = Output('mul', in1.tw([-2, 2]) * in1.tw([-3, 1], offset=-2))
 
-        out4 = Output('sum2', in2.tw(1, offset=0) + in2.tw([-1,0]))
-        out5 = Output('sub2', in2.tw([1, 3], offset=2) - in2.tw([-3, -1], offset=-1))
-        out6 = Output('mul2', in2.tw([-2, 2]) * in2.tw([-3, 1], offset=-1))
+        out4 = Output('sum2', in2.tw(1, offset=-1) + in2.tw([-1,0]))
+        out5 = Output('sub2', in2.tw([1, 3], offset=1) - in2.tw([-3, -1], offset=-2))
+        out6 = Output('mul2', in2.tw([-2, 2]) * in2.tw([-3, 1], offset=-2))
 
         test = Neu4mes(visualizer=None)
         test.addModel([out1, out2, out3, out4, out5, out6])
@@ -289,9 +289,9 @@ class MyTestCase(unittest.TestCase):
         out2 = Output('Fir5', Fir(5)(in1.tw(1)))#
         out3 = Output('Fir2', Fir(2)(in1.tw([-1,0])))#
         out4 = Output('Fir1', Fir(1)(in1.tw([-3,3])))#
-        out5 = Output('Fir7', Fir(7)(in1.tw(3,offset=0)))#
-        out6 = Output('Fir4', Fir(4)(in1.tw([2,3],offset=3)))#
-        out7 = Output('Fir6', Fir(6)(in1.sw([-2,-1], offset=-1)))#
+        out5 = Output('Fir7', Fir(7)(in1.tw(3,offset=-1)))#
+        out6 = Output('Fir4', Fir(4)(in1.tw([2,3],offset=2)))#
+        out7 = Output('Fir6', Fir(6)(in1.sw([-2,-1], offset=-2)))#
 
         test = Neu4mes(visualizer=None)
         test.addModel([out1,out2,out3,out4,out5,out6,out7])
@@ -491,7 +491,6 @@ class MyTestCase(unittest.TestCase):
 
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [1, 2, 2, 4]]}, sampled=True)
         self.assertEqual((2,1,3), np.array(results['out']).shape)
-        print(results['out'])
         self.TestAlmostEqual(results['out'], [[[-0.03303150087594986, 0.023659050464630127, 0.0185492392629385]], [[-0.03303150087594986, 0.023659050464630127, 0.0185492392629385]]])
 
         parfun = ParamFun(myfun2)
@@ -620,6 +619,344 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([[[-13.0, 32.0, 45.0, 60.0, 79.0], [-11.0, 36.0, 51., 68., 89.]]], results['outW'])
         self.assertEqual((1, 2, 5), np.array(results['outWb']).shape)
         self.TestAlmostEqual([[[-7, 36, 51, 68, 89], [-5, 40, 57, 76, 99]]], results['outWb'])
+
+    def test_sample_part_and_select(self):
+        in1 = Input('in1')
+        # Offset before the sample window
+        with self.assertRaises(IndexError):
+            in1.sw([-5, -2], offset=-6)
+        # Offset after the sample window
+        with self.assertRaises(IndexError):
+            in1.sw([-5, -2], offset=-2)
+        # Offset before the sample window
+        with self.assertRaises(IndexError):
+            in1.sw([0, 3], offset=-1)
+        # Offset after the sample window
+        with self.assertRaises(IndexError):
+            in1.sw([0, 3], offset=3)
+
+        sw3,sw32 = in1.sw([-5, -2], offset=-4), in1.sw([0, 3], offset=0)
+        out_sw3 = Output('in_sw3', sw3)
+        out_sw32 = Output('in_sw32', sw32)
+        #Get after the window
+        with self.assertRaises(ValueError):
+            SamplePart(sw3, 0, 4)
+        #Empty sample window
+        with self.assertRaises(ValueError):
+            SamplePart(sw3, 0, 0)
+        #Get before the sample window
+        with self.assertRaises(ValueError):
+            SamplePart(sw3, -1, 0)
+        # Get after the window
+        with self.assertRaises(ValueError):
+            SamplePart(sw32, 0, 4)
+        #Empty sample window
+        with self.assertRaises(ValueError):
+            SamplePart(sw32, 0, 0)
+        #Get before the sample window
+        with self.assertRaises(ValueError):
+            SamplePart(sw32, -1, 0)
+
+        # Offset before the sample window
+        with self.assertRaises(IndexError):
+            SamplePart(sw3, 0, 3, offset=-1)
+        # Offset after the sample window
+        with self.assertRaises(IndexError):
+            SamplePart(sw3, 0, 3, offset=3)
+        # Offset before the sample window
+        with self.assertRaises(IndexError):
+            SamplePart(sw32, 0, 3, offset=-1)
+        # Offset after the sample window
+        with self.assertRaises(IndexError):
+            SamplePart(sw32, 0, 3, offset=3)
+        in_SP1first = Output('in_SP1first', SamplePart(sw3, 0, 1))
+        in_SP1mid = Output('in_SP1mid', SamplePart(sw3, 1, 2))
+        in_SP1last = Output('in_SP1last', SamplePart(sw3, 2, 3))
+        in_SP1all = Output('in_SP1all', SamplePart(sw3, 0, 3))
+        in_SP1off1 = Output('in_SP1off1', SamplePart(sw3, 0, 3, offset=0))
+        in_SP1off2 = Output('in_SP1off2', SamplePart(sw3, 0, 3, offset=1))
+        in_SP1off3 = Output('in_SP1off3', SamplePart(sw3, 0, 3, offset=2))
+        with self.assertRaises(ValueError):
+            SampleSelect(sw3, -1)
+        with self.assertRaises(ValueError):
+            SampleSelect(sw3, 3)
+        with self.assertRaises(ValueError):
+            SampleSelect(sw32, -1)
+        with self.assertRaises(ValueError):
+            SampleSelect(sw32, 3)
+        in_SS1 = Output('in_SS1', SampleSelect(sw3, 0))
+        in_SS2 = Output('in_SS2', SampleSelect(sw3, 1))
+        in_SS3 = Output('in_SS3', SampleSelect(sw3, 2))
+        test = Neu4mes(visualizer=None)
+        test.addModel([out_sw3, out_sw32,
+                       in_SP1first, in_SP1mid, in_SP1last, in_SP1all, in_SP1off1, in_SP1off2, in_SP1off3,
+                       in_SS1, in_SS2, in_SS3])
+        test.neuralizeModel()
+        results = test({'in1': [0, 1, 2, 3, 4, 5, 6, 7]})
+
+        self.assertEqual((1, 3), np.array(results['in_sw3']).shape)
+        self.TestAlmostEqual([[-1,0,1]], results['in_sw3'])
+        self.assertEqual((1, 3), np.array(results['in_sw32']).shape)
+        self.TestAlmostEqual([[0,1,2]], results['in_sw32'])
+
+        self.assertEqual((1,), np.array(results['in_SP1first']).shape)
+        self.TestAlmostEqual([-1], results['in_SP1first'])
+        self.assertEqual((1,), np.array(results['in_SP1mid']).shape)
+        self.TestAlmostEqual([0], results['in_SP1mid'])
+        self.assertEqual((1,), np.array(results['in_SP1last']).shape)
+        self.TestAlmostEqual([1], results['in_SP1last'])
+        self.assertEqual((1,3), np.array(results['in_SP1all']).shape)
+        self.TestAlmostEqual([[-1,0,1]], results['in_SP1all'])
+        self.assertEqual((1,3), np.array(results['in_SP1off1']).shape)
+        self.TestAlmostEqual([[0,1,2]], results['in_SP1off1'])
+        self.assertEqual((1,3), np.array(results['in_SP1off2']).shape)
+        self.TestAlmostEqual([[-1,0,1]], results['in_SP1off2'])
+        self.assertEqual((1,3), np.array(results['in_SP1off3']).shape)
+        self.TestAlmostEqual([[-2,-1,0]], results['in_SP1off3'])
+
+        self.assertEqual((1,), np.array(results['in_SS1']).shape)
+        self.TestAlmostEqual([-1], results['in_SS1'])
+        self.assertEqual((1,), np.array(results['in_SS2']).shape)
+        self.TestAlmostEqual([0], results['in_SS2'])
+        self.assertEqual((1,), np.array(results['in_SS3']).shape)
+        self.TestAlmostEqual([1], results['in_SS3'])
+
+        results = test({'in1': [0, 1, 2, 3, 4, 5, 6, 7, 10]})
+
+        self.assertEqual((2, 3), np.array(results['in_sw3']).shape)
+        self.TestAlmostEqual([[-1, 0, 1],[-1, 0, 1]], results['in_sw3'])
+        self.assertEqual((2, 3), np.array(results['in_sw32']).shape)
+        self.TestAlmostEqual([[0, 1, 2],[0, 1, 4]], results['in_sw32'])
+
+        self.assertEqual((2,), np.array(results['in_SP1first']).shape)
+        self.TestAlmostEqual([-1,-1], results['in_SP1first'])
+        self.assertEqual((2,), np.array(results['in_SP1mid']).shape)
+        self.TestAlmostEqual([0,0], results['in_SP1mid'])
+        self.assertEqual((2,), np.array(results['in_SP1last']).shape)
+        self.TestAlmostEqual([1,1], results['in_SP1last'])
+        self.assertEqual((2, 3), np.array(results['in_SP1all']).shape)
+        self.TestAlmostEqual([[-1, 0, 1],[-1, 0, 1]], results['in_SP1all'])
+        self.assertEqual((2, 3), np.array(results['in_SP1off1']).shape)
+        self.TestAlmostEqual([[0, 1, 2],[0, 1, 2]], results['in_SP1off1'])
+        self.assertEqual((2, 3), np.array(results['in_SP1off2']).shape)
+        self.TestAlmostEqual([[-1, 0, 1],[-1, 0, 1]], results['in_SP1off2'])
+        self.assertEqual((2, 3), np.array(results['in_SP1off3']).shape)
+        self.TestAlmostEqual([[-2, -1, 0],[-2, -1, 0]], results['in_SP1off3'])
+
+        self.assertEqual((2,), np.array(results['in_SS1']).shape)
+        self.TestAlmostEqual([-1,-1], results['in_SS1'])
+        self.assertEqual((2,), np.array(results['in_SS2']).shape)
+        self.TestAlmostEqual([0,0], results['in_SS2'])
+        self.assertEqual((2,), np.array(results['in_SS3']).shape)
+        self.TestAlmostEqual([1,1], results['in_SS3'])
+
+    def test_time_part(self):
+        in1 = Input('in1')
+        # Offset before the time window
+        with self.assertRaises(IndexError):
+            in1.tw([-5, -2], offset=-6)
+        # Offset after the time window
+        with self.assertRaises(IndexError):
+            in1.tw([-5, -2], offset=-2)
+        # Offset before the time window
+        with self.assertRaises(IndexError):
+            in1.tw([0, 3], offset=-1)
+        # Offset after the time window
+        with self.assertRaises(IndexError):
+            in1.tw([0, 3], offset=3)
+
+        tw3, tw32 = in1.tw([-5, -2], offset=-4), in1.tw([0, 3], offset=0)
+        out_tw3 = Output('in_tw3', tw3)
+        out_tw32 = Output('in_tw32', tw32)
+        # Get after the window
+        with self.assertRaises(ValueError):
+            TimePart(tw3, 0, 4)
+        # Empty time window
+        with self.assertRaises(ValueError):
+            TimePart(tw3, 0, 0)
+        # Get before the time window
+        with self.assertRaises(ValueError):
+            TimePart(tw3, -1, 0)
+        # Get after the window
+        with self.assertRaises(ValueError):
+            TimePart(tw32, 0, 4)
+        # Empty sample window
+        with self.assertRaises(ValueError):
+            TimePart(tw32, 0, 0)
+        # Get before the time window
+        with self.assertRaises(ValueError):
+            TimePart(tw32, -1, 0)
+
+        # Offset before the time window
+        with self.assertRaises(IndexError):
+            TimePart(tw3, 0, 3, offset=-1)
+        # Offset after the time window
+        with self.assertRaises(IndexError):
+            TimePart(tw3, 0, 3, offset=3)
+        # Offset before the time window
+        with self.assertRaises(IndexError):
+            TimePart(tw32, 0, 3, offset=-1)
+        # Offset after the time window
+        with self.assertRaises(IndexError):
+            TimePart(tw32, 0, 3, offset=3)
+
+        in_TP1first = Output('in_TP1first', TimePart(tw32, 0, 1))
+        in_TP1mid = Output('in_TP1mid', TimePart(tw32, 1, 2))
+        in_TP1last = Output('in_TP1last', TimePart(tw32, 2, 3))
+        in_TP1all = Output('in_TP1all', TimePart(tw32, 0, 3))
+        in_TP1off1 = Output('in_TP1off1', TimePart(tw32, 0, 3, offset=0))
+        in_TP1off2 = Output('in_TP1off2', TimePart(tw32, 0, 3, offset=1))
+        in_TP1off3 = Output('in_TP1off3', TimePart(tw32, 0, 3, offset=2))
+
+        test = Neu4mes(visualizer=None)
+        test.addModel([out_tw3, out_tw32,
+                       in_TP1first, in_TP1mid, in_TP1last, in_TP1all, in_TP1off1, in_TP1off2, in_TP1off3])
+        test.neuralizeModel()
+        results = test({'in1': [0, 1, 2, 3, 4, 5, 6, 7]})
+
+        self.assertEqual((1, 3), np.array(results['in_tw3']).shape)
+        self.TestAlmostEqual([[-1, 0, 1]], results['in_tw3'])
+        self.assertEqual((1, 3), np.array(results['in_tw32']).shape)
+        self.TestAlmostEqual([[0, 1, 2]], results['in_tw32'])
+
+        self.assertEqual((1,), np.array(results['in_TP1first']).shape)
+        self.TestAlmostEqual([0], results['in_TP1first'])
+        self.assertEqual((1,), np.array(results['in_TP1mid']).shape)
+        self.TestAlmostEqual([1], results['in_TP1mid'])
+        self.assertEqual((1,), np.array(results['in_TP1last']).shape)
+        self.TestAlmostEqual([2], results['in_TP1last'])
+        self.assertEqual((1, 3), np.array(results['in_TP1all']).shape)
+        self.TestAlmostEqual([[0, 1, 2]], results['in_TP1all'])
+        self.assertEqual((1, 3), np.array(results['in_TP1off1']).shape)
+        self.TestAlmostEqual([[0, 1, 2]], results['in_TP1off1'])
+        self.assertEqual((1, 3), np.array(results['in_TP1off2']).shape)
+        self.TestAlmostEqual([[-1, 0, 1]], results['in_TP1off2'])
+        self.assertEqual((1, 3), np.array(results['in_TP1off3']).shape)
+        self.TestAlmostEqual([[-2, -1, 0]], results['in_TP1off3'])
+
+        results = test({'in1': [0, 1, 2, 3, 4, 5, 6, 7, 10]})
+
+        self.assertEqual((2, 3), np.array(results['in_tw3']).shape)
+        self.TestAlmostEqual([[-1, 0, 1], [-1, 0, 1]], results['in_tw3'])
+        self.assertEqual((2, 3), np.array(results['in_tw32']).shape)
+        self.TestAlmostEqual([[0, 1, 2], [0, 1, 4]], results['in_tw32'])
+
+        self.assertEqual((2,), np.array(results['in_TP1first']).shape)
+        self.TestAlmostEqual([0, 0], results['in_TP1first'])
+        self.assertEqual((2,), np.array(results['in_TP1mid']).shape)
+        self.TestAlmostEqual([1, 1], results['in_TP1mid'])
+        self.assertEqual((2,), np.array(results['in_TP1last']).shape)
+        self.TestAlmostEqual([2, 4], results['in_TP1last'])
+        self.assertEqual((2, 3), np.array(results['in_TP1all']).shape)
+        self.TestAlmostEqual([[0, 1, 2], [0, 1, 4]], results['in_TP1all'])
+        self.assertEqual((2, 3), np.array(results['in_TP1off1']).shape)
+        self.TestAlmostEqual([[0, 1, 2], [0, 1, 4]], results['in_TP1off1'])
+        self.assertEqual((2, 3), np.array(results['in_TP1off2']).shape)
+        self.TestAlmostEqual([[-1, 0, 1], [-1, 0, 3]], results['in_TP1off2'])
+        self.assertEqual((2, 3), np.array(results['in_TP1off3']).shape)
+        self.TestAlmostEqual([[-2, -1, 0], [-4, -3, 0]], results['in_TP1off3'])
+
+    def test_part_and_select(self):
+        in1 = Input('in1',dimensions=4)
+
+        tw3, tw32 = in1.tw([-5, -2], offset=-4), in1.tw([0, 3], offset=0)
+        out_tw3 = Output('in_tw3', tw3)
+        out_tw32 = Output('in_tw32', tw32)
+        # Get after the window
+        with self.assertRaises(IndexError):
+            Part(tw3, 0, 5)
+        # Empty time window
+        with self.assertRaises(IndexError):
+            Part(tw3, 0, 0)
+        # Get before the time window
+        with self.assertRaises(IndexError):
+            Part(tw3, -1, 0)
+        # Get after the window
+        with self.assertRaises(IndexError):
+            Part(tw32, 0, 5)
+        # Empty sample window
+        with self.assertRaises(IndexError):
+            Part(tw32, 0, 0)
+        # Get before the time window
+        with self.assertRaises(IndexError):
+            Part(tw32, -1, 0)
+
+        in_P1first = Output('in_P1first', Part(tw32, 0, 1))
+        in_P1mid = Output('in_P1mid', Part(tw32, 1, 2))
+        in_P1last = Output('in_P1last', Part(tw32, 2, 4))
+        in_P1all = Output('in_P1all', Part(tw32, 0, 4))
+
+        with self.assertRaises(IndexError):
+            Select(tw3, -1)
+        with self.assertRaises(IndexError):
+            Select(tw3, 4)
+        with self.assertRaises(IndexError):
+            Select(tw32, -1)
+        with self.assertRaises(IndexError):
+            Select(tw32, 4)
+        in_S1 = Output('in_S1', Select(tw3, 0))
+        in_S2 = Output('in_S2', Select(tw3, 1))
+        in_S3 = Output('in_S3', Select(tw3, 2))
+        in_S4 = Output('in_S4', Select(tw3, 3))
+
+        test = Neu4mes()
+        test.addModel([out_tw3, out_tw32,
+                       in_P1first, in_P1mid, in_P1last, in_P1all,
+                       in_S1, in_S2, in_S3, in_S4])
+        test.neuralizeModel()
+        results = test({'in1': [[0,1,2,4], [1,3,4,5], [2,5,6,7], [3,3,4,1], [4,4,6,7], [5,6,7,8], [6,7,5,4],[7,2,3,1]]})
+
+        self.assertEqual((1, 3, 4), np.array(results['in_tw3']).shape)
+        self.TestAlmostEqual([[[-1,-2,-2,-1], [0,0,0,0], [1,2,2,2]]], results['in_tw3'])
+        self.assertEqual((1, 3, 4), np.array(results['in_tw32']).shape)
+        self.TestAlmostEqual([[[0,0,0,0], [1,1,-2,-4],[2,-4,-4,-7]]], results['in_tw32'])
+
+        self.assertEqual((1,3), np.array(results['in_P1first']).shape)
+        self.TestAlmostEqual([[0,1,2]], results['in_P1first'])
+        self.assertEqual((1,3), np.array(results['in_P1mid']).shape)
+        self.TestAlmostEqual([[0,1,-4]], results['in_P1mid'])
+        self.assertEqual((1,3,2), np.array(results['in_P1last']).shape)
+        self.TestAlmostEqual([[[0,0],[-2,-4],[-4,-7]]], results['in_P1last'])
+        self.assertEqual((1,3,4), np.array(results['in_P1all']).shape)
+        self.TestAlmostEqual([[[0,0,0,0], [1,1,-2,-4],[2,-4,-4,-7]]], results['in_P1all'])
+
+        self.assertEqual((1,3), np.array(results['in_S1']).shape)
+        self.TestAlmostEqual([[-1,0,1]], results['in_S1'])
+        self.assertEqual((1,3), np.array(results['in_S2']).shape)
+        self.TestAlmostEqual([[-2,0,2]], results['in_S2'])
+        self.assertEqual((1,3), np.array(results['in_S3']).shape)
+        self.TestAlmostEqual([[-2,0,2]], results['in_S3'])
+        self.assertEqual((1,3), np.array(results['in_S4']).shape)
+        self.TestAlmostEqual([[-1,0,2]], results['in_S4'])
+
+        results = test({'in1': [[0,1,2,4], [1,3,4,5], [2,5,6,7], [3,3,4,1], [4,4,6,7], [5,6,7,8], [6,7,5,4],[7,2,3,1],[0,7,0,0]]})
+
+        self.assertEqual((2, 3, 4), np.array(results['in_tw3']).shape)
+        self.TestAlmostEqual([[[-1, -2, -2, -1], [0, 0, 0, 0], [1, 2, 2, 2]],
+                                    [[-1, -2, -2, -2], [0, 0, 0, 0], [1, -2, -2, -6]]], results['in_tw3'])
+        self.assertEqual((2, 3, 4), np.array(results['in_tw32']).shape)
+        self.TestAlmostEqual([[[0, 0, 0, 0], [1, 1, -2, -4], [2, -4, -4, -7]],
+                                    [[0, 0, 0, 0], [1, -5, -2, -3], [-6, 0, -5, -4]]], results['in_tw32'])
+
+        self.assertEqual((2, 3), np.array(results['in_P1first']).shape)
+        self.TestAlmostEqual([[0, 1, 2],[0, 1, -6]], results['in_P1first'])
+        self.assertEqual((2, 3), np.array(results['in_P1mid']).shape)
+        self.TestAlmostEqual([[0, 1, -4],[0, -5, 0]], results['in_P1mid'])
+        self.assertEqual((2, 3, 2), np.array(results['in_P1last']).shape)
+        self.TestAlmostEqual([[[0, 0], [-2, -4], [-4, -7]],
+                                    [[0, 0], [-2, -3], [-5, -4]]], results['in_P1last'])
+        self.assertEqual((2, 3, 4), np.array(results['in_P1all']).shape)
+        self.TestAlmostEqual([[[0, 0, 0, 0], [1, 1, -2, -4], [2, -4, -4, -7]],
+                                    [[0, 0, 0, 0], [1, -5, -2, -3], [-6, 0, -5, -4]]], results['in_P1all'])
+
+        self.assertEqual((2, 3), np.array(results['in_S1']).shape)
+        self.TestAlmostEqual([[-1, 0, 1],[-1, 0, 1]], results['in_S1'])
+        self.assertEqual((2, 3), np.array(results['in_S2']).shape)
+        self.TestAlmostEqual([[-2, 0, 2],[-2, 0, -2]], results['in_S2'])
+        self.assertEqual((2, 3), np.array(results['in_S3']).shape)
+        self.TestAlmostEqual([[-2, 0, 2],[-2, 0, -2]], results['in_S3'])
+        self.assertEqual((2, 3), np.array(results['in_S4']).shape)
+        self.TestAlmostEqual([[-1, 0, 2],[-2, 0, -6]], results['in_S4'])
 
 
 if __name__ == '__main__':

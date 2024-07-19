@@ -1,5 +1,6 @@
 import unittest
 
+import torch
 import sys
 import os
 # append a new directory to sys.path
@@ -172,6 +173,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
     def test_network_linear(self):
+        torch.manual_seed(1)
         input = Input('in')
         rel1 = Linear(input.sw([-4,2]))
         rel2 = Linear(5)(input.sw([-1, 2]))
@@ -188,7 +190,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel([fun1,fun2,fun15,fun25])
         test.neuralizeModel(0.01)
 
-        list_of_dimensions = [[3,1],[3,5],[1,1],[1,5]]
+        list_of_dimensions = [[1,1],[1,5],[3,1],[3,5]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Linear' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
