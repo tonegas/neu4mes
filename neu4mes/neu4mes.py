@@ -247,7 +247,7 @@ class Neu4mes:
         self.neuralized = True
 
 
-    def loadData(self, name, source, format=None, skiplines=0, delimiter=',', header='infer'):
+    def loadData(self, name, source, format=None, skiplines=0, delimiter=',', header=None):
         assert self.neuralized == True, "The network is not neuralized yet."
         check(delimiter in ['\t', '\n', ';', ',', ' '], ValueError, 'delimiter not valid!')
 

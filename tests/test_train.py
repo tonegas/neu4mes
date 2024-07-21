@@ -268,6 +268,56 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(9,test.n_samples_test)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
-    
+
+    def test_train_vactor_input(self):
+        x = Input('x', dimensions=4)
+        y = Input('y', dimensions=3)
+        k = Input('k', dimensions=2)
+        w = Input('w')
+
+        out = Output('out', Fir(Linear(Linear(3)(x.tw(0.02)) + y.tw(0.02))))
+        out2 = Output('out2', Fir(Linear(k.last() + Fir(2)(w.tw(0.05,offset=-0.02)))))
+
+        test = Neu4mes()
+        test.minimizeError('out', out, out2)
+        test.neuralizeModel(0.01)
+
+        data_folder = os.path.join(os.path.dirname(__file__), 'vector_data/')
+        data_struct = ['x', 'y', '','', '', '', 'k', '', '', '', 'w']
+        test.loadData(name='dataset', source=data_folder, format=data_struct, skiplines=1, delimiter='\t', header=None)
+
+        training_params = {}
+        training_params['train_batch_size'] = 1
+        training_params['val_batch_size'] = 1
+        training_params['test_batch_size'] = 1
+        training_params['learning_rate'] = 0.01
+        training_params['num_of_epochs'] = 7
+        test.trainModel(train_dataset='dataset', splits=[80,10,10],  training_params=training_params)
+
+        self.assertEqual(22, test.num_of_samples['dataset'])
+        self.assertEqual(1, test.train_batch_size)
+        self.assertEqual(1, test.val_batch_size)
+        self.assertEqual(1, test.test_batch_size)
+        self.assertEqual(18, test.n_samples_train)
+        self.assertEqual(2, test.n_samples_val)
+        self.assertEqual(2, test.n_samples_test)
+        self.assertEqual(7, test.num_of_epochs)
+        self.assertEqual(0.01, test.learning_rate)
+
+        training_params = {}
+        training_params['train_batch_size'] = 6
+        training_params['val_batch_size'] = 2
+        training_params['test_batch_size'] = 2
+        test.trainModel(train_dataset='dataset', splits=[80,10,10],  training_params=training_params)
+
+        self.assertEqual(22, test.num_of_samples['dataset'])
+        self.assertEqual(6, test.train_batch_size)
+        self.assertEqual(2, test.val_batch_size)
+        self.assertEqual(2, test.test_batch_size)
+        self.assertEqual(3, test.n_samples_train)
+        self.assertEqual(1, test.n_samples_val)
+        self.assertEqual(1, test.n_samples_test)
+
+
 if __name__ == '__main__':
     unittest.main()
