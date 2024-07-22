@@ -181,14 +181,3 @@ example.neuralizeModel(0.5)
 # Three semples with a dimensions 2
 pprint(example({'x':[0,1,-2,3],'F':[-2,2,1,5]}))
 #
-
-print("------------------------EXAMPLE 7------------------------")
-x = Input('x')
-F = Input('F')
-activationA = Fuzzify(centers=[0,5,10],functions='Triangular')(F.last())
-loc = LocalModel(input_function=lambda :Fir(2))(x.last(),activationA)
-example = Neu4mes()
-example.addModel(loc)
-example.neuralizeModel(0.5)
-# Three semples with a dimensions 2
-pprint(example({'x':[[0,2]],'F':[-2]}))
