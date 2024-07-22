@@ -1,71 +1,87 @@
-import neu4mes
-import tensorflow.keras.layers
-import tensorflow as tf
+import copy
+
 import numpy as np
 
-class Input(neu4mes.NeuObj):
-    def __init__(self,name,values = None):
-        super().__init__()
-        self.name = name
-        self.json['Inputs'][self.name] = {}
+from neu4mes.relation import NeuObj, Stream
+from neu4mes.utilis import check
+from neu4mes.visualizer import Visualizer
+from neu4mes.part import SamplePart, TimePart
+
+class Input(NeuObj, Stream):
+    def __init__(self, name, dimensions:int = 1, values = None):
+        NeuObj.__init__(self, name)
+        check(type(dimensions) == int, TypeError,"The dimensions must be a integer")
+        self.json['Inputs'][self.name] = {'dim': dimensions, 'tw': [0, 0], 'sw': [0,0] }
+        self.dim = {'dim': dimensions}
         if values:
             self.values = values
-            self.json['Inputs'][self.name] = {
-                'Discrete' : values
-            }
+            self.json['Inputs'][self.name]['discrete'] = values
+        Stream.__init__(self, name, self.json, self.dim)
 
     def tw(self, tw, offset = None):
+        dim = copy.deepcopy(self.dim)
+        json = copy.deepcopy(self.json)
+        if type(tw) is list:
+            json['Inputs'][self.name]['tw'] = tw
+            tw = tw[1] - tw[0]
+        else:
+            json['Inputs'][self.name]['tw'][0] = -tw
+        check(tw > 0, ValueError, "The time window must be positive")
+        dim['tw'] = tw
         if offset is not None:
-            return self, tw, offset
-        return self, tw
-    
-    def z(self, advance):
-        if advance > 0:
-            return self, '__+z'+str(advance)
+            check(json['Inputs'][self.name]['tw'][0] <= offset < json['Inputs'][self.name]['tw'][1],
+                  IndexError,
+                  "The offset must be inside the time window")
+        return TimePart(Stream(self.name, json, dim), json['Inputs'][self.name]['tw'][0], json['Inputs'][self.name]['tw'][1], offset)
+
+    # Select a sample window
+    # Example T = [-3,-2,-1,0,1,2]       # time vector 0 represent the last passed instant
+    # If sw is an integer #1 represent the number of step in the past
+    # T.s(2)                = [-1, 0]    # represents two time step in the past
+    # If sw is a list [#1,#2] the numbers represent the time index in the vector second element excluded
+    # T.s([-2,0])           = [-1, 0]    # represents two time step in the past zero in the future
+    # T.s([0,1])            = [1]        # the first time in the future
+    # T.s([-4,-2])          = [-3,-2]
+    # The total number of samples can be computed #2-#1
+    # The offset represent the index of the vector that need to be used to offset the window
+    # T.s(2,offset=-2)      = [0, 1]      # the value of the window is [-1,0]
+    # T.s([-2,2],offset=-1)  = [-1,0,1,2]  # the value of the window is [-1,0,1,2]
+    def sw(self, sw, offset = None):
+        dim = copy.deepcopy(self.dim)
+        json = copy.deepcopy(self.json)
+        if type(sw) is list:
+            check(type(sw[0]) == int and type(sw[1]) == int, TypeError, "The sample window must be integer")
+            json['Inputs'][self.name]['sw'] = sw
+            sw = sw[1] - sw[0]
         else:
-            return self, '__-z'+str(-advance)
-
-    def s(self, derivate):
-        if derivate > 0:
-            return self, '__+s'+str(derivate)
-        else:
-            return self, '__-s'+str(-derivate)
-
-class ControlInput(Input):
-    def __init__(self,name,values = None):
-        super().__init__(name,values)
-
-def createDiscreteInput(Neu4mes, name, size, types):
-    input = tensorflow.keras.layers.Input(shape = (size, ), batch_size = None, name = name, dtype='int32')
-    return (input,tensorflow.keras.layers.Lambda(lambda x: tf.one_hot(x[:,0]-types[0], len(set(np.asarray(types)))))(input))
-
-def createDiscreteInputRNN(Neu4mes, name, window, size, types):
-    input = tensorflow.keras.layers.Input(shape = (window, size, ), batch_size = None, name = name, dtype='int32')
-    return (input,tensorflow.keras.layers.Lambda(lambda x: tf.one_hot(x[:,:,0]-types[0], len(set(np.asarray(types)))))(input))
-
-def createInput(Neu4mes, name, size):
-    input = tensorflow.keras.layers.Input(shape = (size, ), batch_size = None, name = name)
-    return (input,input)
-
-def createInputRNN(Neu4mes, name, window, size):
-    input = tensorflow.keras.layers.Input(shape = (window, size, ), batch_size = None, name = name)
-    return (input,input)
-
-def createPart(Neu4mes, name, input, backward, forward = 0, offset = None):
-    if Neu4mes.input_n_samples[name] != backward+forward:
-        crop_back = Neu4mes.input_ns_backward[name]-backward
-        crop_front = Neu4mes.input_ns_forward[name]-forward
+            check(type(sw) == int, TypeError, "The sample window must be integer")
+            json['Inputs'][self.name]['sw'][0] = -sw
+        check(sw > 0, ValueError, "The sample window must be positive")
+        dim['sw'] = sw
         if offset is not None:
-            step1 = tensorflow.keras.layers.Reshape((Neu4mes.input_n_samples[name],-1))(input-input[:,Neu4mes.input_ns_backward[name]-offset-1])
-        else:
-            step1 = tensorflow.keras.layers.Reshape((Neu4mes.input_n_samples[name],-1))(input) 
-        return tensorflow.keras.layers.Reshape((backward+forward,))(
-                tensorflow.keras.layers.Cropping1D(cropping=(crop_back, crop_front))(step1))
-    else:
-        return input
+            check(json['Inputs'][self.name]['sw'][0] <= offset < json['Inputs'][self.name]['sw'][1],
+                  IndexError,
+                  "The offset must be inside the sample window")
+        return SamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], offset)
 
-setattr(neu4mes.Neu4mes, 'discreteInput', createDiscreteInput)
-setattr(neu4mes.Neu4mes, 'discreteInputRNN', createDiscreteInputRNN)
-setattr(neu4mes.Neu4mes, 'input', createInput)
-setattr(neu4mes.Neu4mes, 'inputRNN', createInputRNN)
-setattr(neu4mes.Neu4mes, 'part', createPart)
+    # Select the unitary delay
+    # Example T = [-3,-2,-1,0,1,2] # time vector 0 represent the last passed instant
+    # T.z(-1) = 1
+    # T.z(0)  = 0 #the last passed instant
+    # T.z(2)  = -2
+    def z(self, delay):
+        dim = copy.deepcopy(self.dim)
+        json = copy.deepcopy(self.json)
+        sw = [(-delay) - 1, (-delay)]
+        json['Inputs'][self.name]['sw'] = sw
+        dim['sw'] = sw[1] - sw[0]
+        return SamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], None)
+
+    def last(self):
+        return self.z(0)
+
+    def next(self):
+        return self.z(-1)
+
+    # def s(self, derivate):
+    #     return Stream((self.name, {'s':derivate}), self.json, self.dim)

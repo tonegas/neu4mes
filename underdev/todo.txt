@@ -1,0 +1,21 @@
+1. Adjust pendulum example
+2. Adjust mass-spring-damper example
+5. fix the loading the vectorial input
+6. investigate on why the program crashes if i force close the training plots
+7. adjust the metrics of the visualizer
+8. add the activation functions to the visualizer
+9. Adjust the 'ResultAnalysis' function
+
+
+CHECKS:
+
+
+
+FIR
+(batch, window, 1) -> (batch, 1, dim_out_fir)
+
+Linear
+(batch, window, DIM_IN) -> (batch, window, DIM_OUT)
+
+Fuzzy
+(batch, window, 1) -> (batch, window, fuzzy_dim_out)

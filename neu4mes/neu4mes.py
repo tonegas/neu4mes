@@ -1,851 +1,875 @@
-from pprint import pprint 
-import tensorflow.keras.layers
-import tensorflow.keras.models
-import tensorflow as tf
-#from tensorflow.python.ops.gen_math_ops import rint
+import copy
 
+import torch
 
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.FATAL)
-from tensorflow.keras import optimizers
-from tensorflow.keras import backend as K
-import re
-import os
 import numpy as np
-
+import pandas as pd
+from scipy.stats import norm
 import random
-import string
+import os
+from pprint import pprint
+from pprint import pformat
+import re
+import matplotlib.pyplot as plt
 
-import neu4mes 
-from neu4mes.visualizer import TextVisualizer
+from neu4mes.relation import NeuObj, merge
+from neu4mes.visualizer import TextVisualizer, Visualizer
+from neu4mes.loss import CustomLoss
+from neu4mes.output import Output
+from neu4mes.model import Model
+from neu4mes.utilis import check, argmax_max, argmin_min
 
-import random
 
-def rand(length):
-    # choose from all lowercase letter
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
-
-def rmse(y_true, y_pred):
-    # Root mean squared error (rmse) for regression
-    return K.sqrt(K.mean(K.square(y_pred - y_true)))
-
-class RNNCell(tensorflow.keras.layers.Layer):
-    def __init__(self, model, input_is_state, states_size, inputs_size, **kwargs):
-        super(RNNCell, self).__init__(**kwargs)
-        self.model = model
-        self.input_is_state = input_is_state
-        self.inputs_size = inputs_size
-        self.state_size = states_size
-
-    def call(self, inputs, states):
-
-        # print('-------------------------------------')
-        # print(states)
-        # print(len(states))
-        # print(self.state_size)
-        # print(inputs)
-        # print(self.input_is_state)
-        # print('-------------------------------------')
-        
-        network_inputs, inputs_idx, states_idx = [], 0 ,0
-        for is_state in self.input_is_state:
-            if is_state:
-                network_inputs.append(states[states_idx])
-                states_idx += 1
-            else:
-                network_inputs.append(inputs[inputs_idx])
-                inputs_idx += 1
-        
-        output = self.model(network_inputs)
-        if type(output) is not list:
-            output = [output] 
-        # print('-------------------------------------')
-        # print(output)
-        # print('-------------------------------------')
-        
-        new_states = []
-        for idx in range(len(states)):
-            new_states.append(tf.concat([states[idx][:,1:self.state_size[idx]], output[idx]], axis=1))
-
-        out = K.concatenate(output)
-        return out, (new_states)
-
-    def get_config(self):
-        pass
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
 class Neu4mes:
-    def __init__(self, model_def = 0, verbose = False, visualizer = TextVisualizer()):
-        # Set verbose print inside the class
-        self.verbose = verbose
-
-        # Inizialize the model_used and the model_def
-        # the model_used is a reduced model that consider only the used input and relation
-        # the model_def has all the relation defined for that model 
-        self.model_used =  neu4mes.NeuObj().json
-        if type(model_def) is neu4mes.Output:
-            self.model_def = model_def.json
-        elif type(model_def) is dict:
-            self.model_def = self.model_def
-        else:
-            self.model_def = neu4mes.NeuObj().json
-
-        # Input, output, and model characteristics 
-        self.input_tw_backward = {}         # dimensions of the time window in the past for each input
-        self.input_tw_forward = {}          # dimensions of the time window in the future for each input
-        self.max_samples_backward = 0       # maxmimum number of samples backward for all the inputs
-        self.max_samples_forward = 0        # maxmimum number of samples forward for all the inputs
-        self.max_n_samples = 0              # maxmimum number of samples for all the inputs
-        self.input_ns_backward = {}         # maxmimum number of samples backward for each the input
-        self.input_ns_forward = {}          # maxmimum number of samples forward for each the input
-        self.input_n_samples = {}           # maxmimum number of samples for each the input 
-
-        self.inputs = {}                    # NN element - processed network inputs
-        self.rnn_inputs = {}                # RNN element - processed network inputs
-        self.inputs_for_model = {}          # NN element - clean network inputs
-        self.rnn_inputs_for_model = {}      # RNN element - clean network inputs
-        self.rnn_init_state = {}            # RNN element - for the states of RNN
-        self.relations = {}                 # NN element - operations 
-        self.outputs = {}                   # NN element - clean network outputs
-
-        self.output_relation = {}           # dict with the outputs  
-        self.output_keys = []               # clear output signal keys (without delay info string __-z1)
-        
-        # Models of the framework
-        self.model = None                   # NN model - Keras model
-        self.rnn_model = None               # RNN model - Keras model
-        self.net_weights = None             # NN weights
-
-        # Optimizer parameters 
-        self.opt = None                     # NN model - Keras Optimizer
-        self.rnn_opt = None                 # RNN model - Keras Optimizer
-
-        # Dataset characteristics
-        self.input_data = {}                # dict with data divided by file and symbol key: input_data[(file,key)]
-        self.inout_data_time_window = {}    # dict with data divided by signal ready for network input
-        self.rnn_inout_data_time_window = {}# dict with data divided by signal ready for RNN network input
-        self.inout_asarray = {}             # dict for network input in asarray format
-        self.rnn_inout_asarray = {}         # dict for RNN network input in asarray format
-        self.num_of_samples = None          # number of rows of the file
-        self.num_of_training_sample = 0     # number of rows for training
-
-        self.idx_of_rows = [0]              # Index identifying each file start 
-        self.first_idx_test = 0             # Index identifying the first test 
-
-        # Training params
-        self.batch_size = 128                               # batch size
-        self.learning_rate = 0.0005                         # learning rate for NN
-        self.num_of_epochs = 300                            # number of epochs
-        self.rnn_batch_size = self.batch_size               # batch size for RNN
-        self.rnn_window = None                              # window of the RNN
-        self.rnn_learning_rate = self.learning_rate/50000   # learning rate for RNN
-        self.rnn_num_of_epochs = 300                        # number of epochs for RNN
-        
-        # Training dataset
-        self.inout_4train = {}                              # Dataset for training NN
-        self.inout_4test = {}                               # Dataset for test NN
-        self.rnn_inout_4train = {}                          # Dataset for training RNN
-        self.rnn_inout_4test = {}                           # Dataset for test RNN
-
-        # Training performance
-        self.performance = {}                               # Dict with performance parameters for NN
+    name = None
+    def __init__(self, model_def = 0, visualizer = 'Standard'):
 
         # Visualizer
-        self.visualizer = visualizer                        # Class for visualizing data
-
-    def MP(self,fun,arg):
-        if self.verbose:
-            fun(arg)
-
-    """
-    Add a new model to be trained: 
-    :param model_def: can be a json model definition or a Output object 
-    """
-    def addModel(self, model_def):
-        if type(model_def) is neu4mes.Output:
-            self.model_def = neu4mes.merge(self.model_def, model_def.json)
-        elif type(model_def) is dict:
-            self.model_def = neu4mes.merge(self.model_def, model_def) 
-        self.MP(pprint,self.model_def)
-
-    """
-    Definition of the network structure through the dependency graph and sampling time. 
-    If a prediction window is also specified, it means that a recurrent network is also to be defined.
-    :param sample_time: the variable defines the rate of the network based on the training set
-    :param prediction_window: the variable defines the prediction horizon in the future
-    """
-    def neuralizeModel(self, sample_time = 0, prediction_window = None):
-        # Prediction window is used for the recurrent network
-        if prediction_window is not None:
-            self.rnn_window = round(prediction_window/sample_time)
-            assert prediction_window >= sample_time
-
-        # Sample time is used to define the number of sample for each time window
-        if sample_time:
-            self.model_def["SampleTime"] = sample_time
-        
-        # Look for all the inputs referred to each outputs 
-        # Set the maximum time window for each input
-        relations = self.model_def['Relations']
-        for outel in self.model_def['Outputs']:
-            relel = relations.get(outel)
-            for reltype, relvalue in relel.items():
-                self.__setInput(relvalue, outel)
-        
-        self.MP(pprint,{"window_backward": self.input_tw_backward, "window_forward":self.input_tw_forward})
-
-        # Building the inputs considering the dimension of the maximum time window forward + backward
-        for key,val in self.model_def['Inputs'].items():
-            input_ns_backward_aux = int(self.input_tw_backward[key]/self.model_def['SampleTime'])
-            input_ns_forward_aux = int(-self.input_tw_forward[key]/self.model_def['SampleTime'])
-
-            # Find the biggest window backwards for building the dataset
-            if input_ns_backward_aux > self.max_samples_backward:
-                self.max_samples_backward = input_ns_backward_aux
-            
-            # Find the biggest horizon forwars for building the dataset
-            if input_ns_forward_aux > self.max_samples_forward:
-                self.max_samples_forward = input_ns_forward_aux
-            
-            # Find the biggest n sample for building the dataset
-            if input_ns_forward_aux+input_ns_backward_aux > self.max_n_samples:
-                self.max_n_samples = input_ns_forward_aux+input_ns_backward_aux            
-            
-            # Defining the number of sample for each signal
-            if self.input_n_samples.get(key):
-                if input_ns_backward_aux+input_ns_forward_aux > self.input_n_samples[key]:
-                    self.input_n_samples[key] = input_ns_backward_aux+input_ns_forward_aux
-                if input_ns_backward_aux > self.input_ns_backward[key]:
-                    self.input_ns_backward[key] = input_ns_backward_aux
-                if input_ns_forward_aux > self.input_ns_forward[key]:
-                    self.input_ns_forward[key] = input_ns_forward_aux
-            else:
-                self.input_n_samples[key] = input_ns_backward_aux+input_ns_forward_aux
-                self.input_ns_backward[key] = input_ns_backward_aux
-                self.input_ns_forward[key] = input_ns_forward_aux
-                            
-            # Building the signal object and fill the model_used structure
-            if key not in self.model_used['Inputs']:
-                if 'Discrete' in val:
-                    (self.inputs_for_model[key],self.inputs[key]) = self.discreteInput(key, self.input_n_samples[key], val['Discrete'])
-                    (self.rnn_inputs_for_model[key],self.rnn_inputs[key]) = self.discreteInputRNN(key, self.rnn_window, self.input_n_samples[key], val['Discrete'])
-                else: 
-                    (self.inputs_for_model[key],self.inputs[key]) = self.input(key, self.input_n_samples[key])
-                    (self.rnn_inputs_for_model[key],self.rnn_inputs[key]) = self.inputRNN(key, self.rnn_window, self.input_n_samples[key])
-
-                self.model_used['Inputs'][key]=val
-
-        self.MP(print,"max_n_samples:"+str(self.max_n_samples))
-        self.MP(pprint,{"input_n_samples":self.input_n_samples})
-        self.MP(pprint,{"input_ns_backward":self.input_ns_backward})
-        self.MP(pprint,{"input_ns_forward":self.input_ns_forward})
-        self.MP(pprint,{"inputs_for_model":self.inputs_for_model})
-        self.MP(pprint,{"inputs":self.inputs})
-        self.MP(pprint,{"rnn_inputs_for_model":self.rnn_inputs_for_model})
-        self.MP(pprint,{"rnn_inputs":self.rnn_inputs})
-
-        # Building the elements of the network
-        for outel in self.model_def['Outputs']:
-            relel = relations.get(outel)
-            self.output_relation[outel] = []
-            # Loop all the output relation and for each relation go up the tree 
-            for reltype, relvalue in relel.items():
-                relation = getattr(self,reltype)
-                if relation:
-                    # Create the element of the relation and add to the list of the output
-                    self.outputs[outel] = self.__createElem(relation,relvalue,outel)
-                else:
-                    print("Relation not defined") 
-
-            # Add the relation and the output elements to the model_used
-            if outel not in self.model_used['Outputs']:
-                self.model_used['Outputs'][outel]=self.model_def['Outputs'][outel]   
-                self.model_used['Relations'][outel]=relel    
-
-        self.MP(pprint,{"inputs":self.inputs})
-        self.MP(pprint,{"relations":self.relations}) 
-        self.MP(pprint,{"outputs":self.outputs})   
-        self.MP(pprint,{"output_relation":self.output_relation})    
-        self.MP(pprint,self.model_used)  
-
-        # Building the model
-        self.model = tensorflow.keras.models.Model(inputs = [val for key,val in self.inputs_for_model.items()], outputs=[val for key,val in self.outputs.items()])
-        print(self.model.summary())
-    
-    #
-    # Recursive method that terminates all inputs that result in a specific relationship for an output
-    # During the procedure the dimension of the time window for each input is define
-    #
-    def __setInput(self, relvalue, outel):
-        for el in relvalue:
-            if type(el) is tuple:
-                if el[0] in self.model_def['Inputs']:
-                    time_window = self.input_tw_backward.get(el[0])
-                    if time_window is not None:
-                        if type(el[1]) is tuple:
-                            if self.input_tw_backward[el[0]] < el[1][0]:
-                                self.input_tw_backward[el[0]] = el[1][0]
-                            if self.input_tw_forward[el[0]] > el[1][1]:
-                                self.input_tw_forward[el[0]] = el[1][1]                            
-                        else:
-                            if self.input_tw_backward[el[0]] < el[1]:
-                                self.input_tw_backward[el[0]] = el[1]
-                    else:
-                        if type(el[1]) is tuple:
-                            self.input_tw_backward[el[0]] = el[1][0]
-                            self.input_tw_forward[el[0]] = el[1][1]                       
-                        else:
-                            self.input_tw_backward[el[0]] = el[1]
-                            self.input_tw_forward[el[0]] = 0  
-                else:
-                    raise Exception("A window on internal signal is not supported!")
-            else: 
-                if el in self.model_def['Inputs']:
-                    time_window = self.input_tw_backward.get(el)
-                    if time_window is None:
-                        self.input_tw_backward[el] = self.model_def['SampleTime']
-                        self.input_tw_forward[el] = 0  
-                else:
-                    relel = self.model_def['Relations'].get((outel,el))
-                    if relel is None:
-                        relel = self.model_def['Relations'].get(el)
-                        if relel is None:
-                            raise Exception("Graph is not completed!")
-                    for reltype, relvalue in relel.items():
-                        self.__setInput(relvalue, outel)
-
-    #
-    # Recursive method to create all the relations for an output
-    # relation is a callback to the relation action, it is the type of relation (linear, relu, ect..)
-    # relvalue is the input of the relation 
-    # outel is the output signal name
-    #
-    def __createElem(self, relation, relvalue, outel):
-        el_idx = neu4mes.NeuObj().count
-        if len(relvalue) == 1:
-            # The relvalue is a single element
-            el = relvalue[0]
-            if type(el) is tuple:
-                # The relvalue is a part of an input
-                if el[0] in self.model_def['Inputs']:
-                    if len(el) == 3:
-                        # If three element I get the offset
-                        offset = int(el[2]/self.model_def['SampleTime'])
-                        if type(el[1]) is tuple:
-                            # The time window is backward and forward
-                            n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                            n_forward = -int(el[1][1]/self.model_def['SampleTime'])
-                            if (el[0],(n_backward,n_forward),offset) not in self.inputs:
-                                self.inputs[(el[0],(n_backward,n_forward),offset)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward,offset)
-                            input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
-                        else:
-                            n_backward = int(el[1]/self.model_def['SampleTime'])
-                            if (el[0],n_backward,offset) not in self.inputs:
-                                self.inputs[(el[0],n_backward,offset)] = self.part(el[0],self.inputs[el[0]],n_backward,0,offset)
-                            input_for_relation = self.inputs[(el[0],n_backward,offset)]
-                    elif len(el) == 2:
-                        if type(el[1]) is tuple:
-                            # The time window is backward and forward
-                            n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                            n_forward = -int(el[1][1]/self.model_def['SampleTime'])
-                            if (el[0],(n_backward,n_forward)) not in self.inputs:
-                                self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                            input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
-                        else:
-                            n_backward = int(el[1]/self.model_def['SampleTime'])
-                            if (el[0],n_backward) not in self.inputs:
-                                self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
-                            input_for_relation = self.inputs[(el[0],n_backward)]
-
-                    else:
-                        raise Exception("This tuple has only one element: "+str(el))
-
-                    return relation(outel[:2]+'_'+el[0][:2]+str(el_idx), input_for_relation)                
-                else:
-                    raise Exception("Tuple is defined only for Input")   
-            else:
-                if el in self.model_def['Inputs']:
-                    # The relvalue is a part of an input
-                    if (el,1) not in self.inputs:
-                        self.inputs[(el,1)] = self.part(el,self.inputs[el],1)
-                    return relation(outel[:2]+'_'+el[:2]+str(el_idx), self.inputs[(el,1)])
-                else:
-                    # The relvalue is a relation
-                    input = self.__createRelation(relation, el, outel)
-                    return relation(outel[:2]+'_'+el[:2]+str(el_idx), input)
+        if visualizer == 'Standard':
+            self.visualizer = TextVisualizer(1)
+        elif visualizer != None:
+            self.visualizer = visualizer
         else:
-            # The relvalue is a vector (e.g. Sum relation use vectors)
-            # Create a list of all the inputs and then it calls the relation
-            inputs = []
-            name = outel[:2]
-            for idx, el in enumerate(relvalue):
-                if type(el) is tuple:
-                    # The relvalue[i] is a part of an input
-                    if el[0] in self.model_def['Inputs']:
-                        if len(el) == 3:
-                            # If three element I get the offset
-                            offset = int(el[2]/self.model_def['SampleTime'])
-                            if type(el[1]) is tuple:
-                                # The time window is backward and forward
-                                n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                                n_forward = -int(el[1][1]/self.model_def['SampleTime'])
-                                if (el[0],(n_backward,n_forward),offset) not in self.inputs:
-                                    self.inputs[(el[0],(n_backward,n_forward),offset)] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward,offset)
-                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward),offset)]
-                            else:
-                                n_backward = int(el[1]/self.model_def['SampleTime'])
-                                if (el[0],n_backward,offset) not in self.inputs:
-                                    self.inputs[(el[0],n_backward,offset)] = self.part(el[0],self.inputs[el[0]],n_backward,0,offset)
-                                input_for_relation = self.inputs[(el[0],n_backward,offset)]
-                        elif len(el) == 2:
-                            if type(el[1]) is tuple:
-                                # The time window is backward and forward
-                                n_backward = int(el[1][0]/self.model_def['SampleTime'])
-                                n_forward = -int(el[1][1]/self.model_def['SampleTime'])
-                                if (el[0],(n_backward,n_forward)) not in self.inputs:
-                                    self.inputs[(el[0],(n_backward,n_forward))] = self.part(el[0],self.inputs[el[0]],n_backward,n_forward)
-                                input_for_relation = self.inputs[(el[0],(n_backward,n_forward))]
-                            else:
-                                n_backward = int(el[1]/self.model_def['SampleTime'])
-                                if (el[0],n_backward) not in self.inputs:
-                                    self.inputs[(el[0],n_backward)] = self.part(el[0],self.inputs[el[0]],n_backward)
-                                input_for_relation = self.inputs[(el[0],n_backward)]
-                        else:
-                            raise Exception("This tuple has only one element: "+str(el))
+            self.visualizer = Visualizer()
+        self.visualizer.set_n4m(self)
 
-                        inputs.append(input_for_relation)
-                        name = name +'_'+el[0][:2]
+        # Inizialize the model definition
+        self.model_def = NeuObj().json
+        self.addModel(model_def)
+
+        # Network Parametrs
+        self.minimize_list = []
+        self.minimize_dict = {}
+        self.input_tw_backward, self.input_tw_forward = {}, {}
+        self.input_ns_backward, self.input_ns_forward = {}, {}
+        self.input_n_samples = {}
+        self.max_samples_backward, self.max_samples_forward = 0, 0
+        self.max_n_samples = 0
+        self.neuralized = False
+        self.model = None
+
+        # Dataaset Parameters
+        self.data_loaded = False
+        self.file_count = 0
+        self.num_of_samples = {}
+        self.data = {}
+        self.n_datasets = 0
+        self.datasets_loaded = set()
+
+        # Training Parameters
+        self.learning_rate = 0.01
+        self.num_of_epochs = 100
+        self.train_batch_size = 1
+        self.test_batch_size = 1
+        self.val_batch_size = 1 
+        self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
+        self.optimizer = None
+        self.losses = {}
+
+        # Validation Parameters
+        self.performance = {}
+        self.prediction = {}
+
+
+    def __call__(self, inputs, sampled=False):
+        check(self.neuralized, ValueError, "The network is not neuralized.")
+        model_inputs = list(self.model_def['Inputs'].keys())
+        provided_inputs = list(inputs.keys())
+        missing_inputs = list(set(model_inputs) - set(provided_inputs))
+        extra_inputs = list(set(provided_inputs) - set(model_inputs))
+
+        ## Ignoring extra inputs if not necessary
+        if not set(provided_inputs).issubset(set(model_inputs)):
+            self.visualizer.warning(f'The complete model inputs are {model_inputs}, the provided input are {provided_inputs}. Ignoring {extra_inputs}...')
+            for key in extra_inputs:
+                del inputs[key]
+            provided_inputs = list(inputs.keys())
+
+        ## Determine the Maximal number of samples that can be created
+        if sampled:
+            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in provided_inputs])
+            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in provided_inputs])
+        else:
+            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in provided_inputs])
+            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in provided_inputs])
+        window_dim = min_dim
+        check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
+
+        ## warning the users about different time windows between samples
+        if min_dim != max_dim:
+            self.visualizer.warning(f'Different number of samples between inputs [MAX {list(provided_inputs)[max_dim_ind]} = {max_dim}; MIN {list(provided_inputs)[min_dim_ind]} = {min_dim}]')
+
+        ## Autofill the missing inputs
+        if missing_inputs:
+            self.visualizer.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
+            for key in missing_inputs:
+                inputs[key] = np.zeros(shape=(window_dim, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
+
+        result_dict = {} ## initialize the resulting dictionary
+        for key in self.model_def['Outputs'].keys():
+            result_dict[key] = []
+
+        ## Cycle through all the samples provided
+        for i in range(window_dim):
+            X = {}
+            for key, val in inputs.items():
+                if key in model_inputs:
+                    if sampled:
+                        X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32)
                     else:
-                        raise Exception("Tuple is defined only for Input")  
+                        X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
+
+                    input_dim = self.model_def['Inputs'][key]['dim']
+                    if input_dim > 1:
+                        check(len(X[key].shape) == 2, ValueError,
+                              f'The input {key} must have two dimensions')
+                        check(X[key].shape[1] == input_dim, ValueError,
+                              f'The second dimension of the input "{key}" must be equal to {input_dim}')
+
+                    if input_dim == 1 and X[key].shape[-1] != 1: ## add the input dimension
+                        X[key] = X[key].unsqueeze(-1)
+                    if X[key].ndim <= 1: ## add the batch dimension
+                        X[key] = X[key].unsqueeze(0)
+                    if X[key].ndim <= 2: ## add the time dimension
+                        X[key] = X[key].unsqueeze(0)
+
+            ## Model Predict         
+            result, _  = self.model(X)
+
+            ## Append the prediction of the current sample to the result dictionary
+            for key in self.model_def['Outputs'].keys():
+                if result[key].shape[-1] == 1:
+                    result[key] = result[key].squeeze(-1)
+                    if result[key].shape[-1] == 1: 
+                        result[key] = result[key].squeeze(-1)
+                result_dict[key].append(result[key].detach().squeeze(dim=0).tolist())
+
+        return result_dict
+
+    def get_random_samples(self, dataset, window=1):
+        if self.data_loaded:
+            result_dict = {}
+            for key in self.model_def['Inputs'].keys():
+                result_dict[key] = []
+            random_idx = random.randint(0, self.num_of_samples[dataset] - window)
+            for idx in range(window):
+                for key ,samples in self.data[dataset].items():
+                    if key in self.model_def['Inputs'].keys():
+                        result_dict[key].append(samples[random_idx+idx])
+            return result_dict
+        else:
+            print('The Dataset must first be loaded using <loadData> function!')
+            return {}
+
+
+    def addModel(self, model_def):
+        if type(model_def) is Output:
+            self.model_def = merge(self.model_def, model_def.json)
+        elif type(model_def) is dict:
+            self.model_def = merge(self.model_def, model_def)
+        elif type(model_def) is list:
+            for item in model_def:
+                self.addModel(item)
+
+
+    def minimizeError(self, variable_name, streamA, streamB, loss_function='mse'):
+        self.model_def = merge(self.model_def, streamA.json)
+        self.model_def = merge(self.model_def, streamB.json)
+        A = (streamA.name[0] if type(streamA.name) is tuple else streamA.name)
+        B = (streamB.name[0] if type(streamB.name) is tuple else streamB.name)
+        self.minimize_list.append((A, B, loss_function))
+        self.minimize_dict[variable_name]={'A':(A, copy.deepcopy(streamA)), 'B':(B, copy.deepcopy(streamB)), 'loss':loss_function}
+        self.visualizer.showMinimizeError(variable_name)
+
+
+    def neuralizeModel(self, sample_time = 1):
+
+        check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
+        self.model_def["SampleTime"] = sample_time
+        model_def_final = copy.deepcopy(self.model_def)
+        #model_def_final = self.model_def
+        self.visualizer.showModel()
+
+        check(model_def_final['Inputs'] != {}, RuntimeError, "No model is defined!")
+
+        for key, value in model_def_final['Inputs'].items():
+            self.input_tw_backward[key] = -value['tw'][0]
+            self.input_tw_forward[key] = value['tw'][1]
+            if value['sw'] == [0,0] and value['tw'] == [0,0]:
+                self.input_tw_backward[key] = sample_time
+            if value['sw'] == [0,0] :
+                self.input_ns_backward[key] = round(self.input_tw_backward[key] / sample_time)
+                self.input_ns_forward[key] = round(self.input_tw_forward[key] / sample_time)
+            else:
+                self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),-value['sw'][0])
+                self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),value['sw'][1])
+            self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
+
+        self.max_samples_backward = max(self.input_ns_backward.values())
+        self.max_samples_forward = max(self.input_ns_forward.values())
+        if self.max_samples_backward < 0:
+            self.visualizer.warning(f"The input is only in the far past the max_samples_backward is: {self.max_samples_backward}")
+        if self.max_samples_forward < 0:
+            self.visualizer.warning(f"The input is only in the far future the max_sample_forward is: {self.max_samples_forward}")
+        self.max_n_samples = self.max_samples_forward + self.max_samples_backward
+
+        self.visualizer.showModelInputWindow()
+
+        ## Adjust with the correct slicing
+        for _, items in model_def_final['Relations'].items():
+            if items[0] == 'SamplePart':
+                if items[1][0] in model_def_final['Inputs'].keys():
+                    items[2][0] = self.input_ns_backward[items[1][0]] + items[2][0]
+                    items[2][1] = self.input_ns_backward[items[1][0]] + items[2][1]
+                    if len(items) > 3: ## Offset
+                        items[3] = self.input_ns_backward[items[1][0]] + items[3]
+            if items[0] == 'TimePart':
+                if items[1][0] in model_def_final['Inputs'].keys():
+                    items[2][0] = self.input_ns_backward[items[1][0]] + round(items[2][0]/sample_time)
+                    items[2][1] = self.input_ns_backward[items[1][0]] + round(items[2][1]/sample_time)
+                    if len(items) > 3: ## Offset
+                        items[3] = self.input_ns_backward[items[1][0]] + round(items[3]/sample_time)
                 else:
-                    if el in self.model_def['Inputs']:
-                        # The relvalue[i] is a part of an input
-                        if (el,1) not in self.inputs:
-                            self.inputs[(el,1)] = self.part(el,self.inputs[el],1)
-                        inputs.append(self.inputs[(el,1)])
-                        name = name +'_'+ el[:2]
-                    else:
-                        # The relvalue[i] is a relation
-                        inputs.append(self.__createRelation(relation, el, outel))
-                        name = name +'_'+ el[:2]
+                    items[2][0] = round(items[2][0]/sample_time)
+                    items[2][1] = round(items[2][1]/sample_time)
+                    if len(items) > 3: ## Offset
+                        items[3] = round(items[3]/sample_time)
 
-            # Call the realtion with all the defined inputs
-            return relation(name+str(el_idx), inputs)
+        #self.visualizer.showModel()
+        ## Build the network
+        self.model = Model(model_def_final, self.minimize_list)
+        self.visualizer.showBuiltModel()
+        self.neuralized = True
 
-    #
-    # Recursive method to create all the elements of a relation
-    # relation is a callback to the relation action, it is the type of relation (linear, relu, ect..)
-    # el is the relation name 
-    # outel is the output signal name
-    #
-    def __createRelation(self,relation,el,outel):
-        relel = self.model_def['Relations'].get((outel,el))
-        if relel is None:
-            relel = self.model_def['Relations'].get(el)
-            if relel is None:
-                raise Exception("Graph is not completed!")
-        for new_reltype, new_relvalue in relel.items():
-            new_relation = getattr(self,new_reltype)
-            if new_relation:
-                if el not in self.model_used['Relations']:
-                    self.relations[el] = self.__createElem(new_relation, new_relvalue, outel)
-                    self.model_used['Relations'][el]=relel
-                return self.relations[el]
-            else:
-                print("Relation not defined")   
 
-    """
-    Loading of the data set files and generate the structure for the training considering the structure of the input and the output 
-    :param format: it is a list of the variable in the csv. All the input keys must be inside this list.
-    :param folder: folder of the dataset. Each file is a simulation.
-    :param sample_time: number of lines to be skipped (header lines)
-    :param delimiters: it is a list of the symbols used between the element of the file
-    """
-    def loadData(self, format, folder = './data', skiplines = 0, delimiters=['\t',';',',']):
-        path, dirs, files = next(os.walk(folder))
-        file_count = len(files)
+    def loadData(self, name, source, format=None, skiplines=0, delimiter=',', header=None):
+        assert self.neuralized == True, "The network is not neuralized yet."
+        check(delimiter in ['\t', '\n', ';', ',', ' '], ValueError, 'delimiter not valid!')
 
-        self.MP(print, "Total number of files: {}".format(file_count))
-        
-        # Get the list of the output keys
-        for idx,key in enumerate(self.output_relation.keys()):
-            self.output_keys.append(key)
-            elem_key = key.split('__')
-            if len(elem_key) > 1 and elem_key[1]== '-z1':
-                self.output_keys[idx] = elem_key[0]
-            else:
-                raise("Operation not implemeted yet!")
+        model_inputs = list(self.model_def['Inputs'].keys())
+        ## Initialize the dictionary containing the data
+        if name in list(self.data.keys()):
+            self.visualizer.warning(f'Dataset named {name} already loaded! overriding the existing one..')
+        self.data[name] = {}
 
-        # Create a vector of all the signals in the file + output_relation keys 
-        for key in format+list(self.output_relation.keys()):
-            self.inout_data_time_window[key] = []
+        if type(source) is str: ## we have a directory path containing the files
+            ## Initialize each input key
+            for key in format:
+                if key in model_inputs:
+                    self.data[name][key] = []
 
-        # RNN network
-        if self.rnn_window:
-            # Create a vector of all the signals in the file + output_relation keys for rnn 
-            for key in format+list(self.output_relation.keys()):
-                self.rnn_inout_data_time_window[key] = []
+            ## obtain the file names
+            try:
+                _,_,files = next(os.walk(source))
+            except StopIteration as e:
+                print(f'ERROR: The path "{source}" does not exist!')
+                return
+            self.file_count = len(files)
 
-        # Read each file
-        for file in files:
-            for data in format: 
-                self.input_data[(file,data)] = []
+            ## Cycle through all the files
+            for file in files:
+                try:
+                    ## read the csv
+                    df = pd.read_csv(os.path.join(source,file), skiprows=skiplines, delimiter=delimiter, header=header)
+                except:
+                    self.visualizer.warning(f'Cannot read file {os.path.join(source,file)}')
+                    continue
+                ## Cycle through all the windows
+                start_cols = 0
+                for key in format:
+                    if key not in model_inputs:
+                        start_cols += 1
+                        continue
+                    key_cols = self.model_def['Inputs'][key]['dim']
+                    back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
 
-            # Open the file and read lines
-            all_lines = open(folder+file, 'r')
-            lines = all_lines.readlines()[skiplines:] # skip first lines to avoid NaNs
+                    ## Save as numpy array the data
+                    data = df.iloc[:, start_cols:start_cols+key_cols].to_numpy()
+                    self.data[name][key] += [data[i-back:i+forw] for i in range(self.max_samples_backward, len(df)-self.max_samples_forward+1)]
+                    start_cols += key_cols
 
-            # Append the data to the input_data dict
-            for line in range(0, len(lines)):
-                delimiter_string = '|'.join(delimiters)
-                splitline = re.split(delimiter_string,lines[line].rstrip("\n"))
-                for idx, key in enumerate(format):
-                    try:
-                        self.input_data[(file,key)].append(float(splitline[idx]))
-                    except ValueError:
-                        self.input_data[(file,key)].append(splitline[idx])  
+            ## Stack the files
+            self.num_of_samples[name] = None
+            for key in format:
+                if key in model_inputs:
+                    self.data[name][key] = np.stack(self.data[name][key])
+                    if self.num_of_samples[name] is None:
+                        self.num_of_samples[name] = self.data[name][key].shape[0]
 
-            # Add one sample if input look at least one forward
-            add_sample_forward = 0
-            if self.max_samples_forward > 0:
-                add_sample_forward = 1
+        elif type(source) is dict:  ## we have a crafted dataset
+            self.file_count = 1
 
-            # Create inout_data_time_window dict 
-            # it is a dict of signals. Each signal is a list of vector the dimensions of the vector are (tokens, input_n_samples[key]) 
-            if 'time' in format:
-                for i in range(0, len(self.input_data[(file,'time')])-self.max_n_samples+add_sample_forward):
-                    self.inout_data_time_window['time'].append(self.input_data[(file,'time')][i+self.max_n_samples-1-self.max_samples_forward])
+            ## Check if the inputs are correct
+            assert set(model_inputs).issubset(source.keys()), f'The dataset is missing some inputs. Inputs needed for the model: {model_inputs}'
 
-            for key in self.input_n_samples.keys():
-                for i in range(0, len(self.input_data[(file,key)])-self.max_n_samples+add_sample_forward):
-                    aux_ind = i+self.max_n_samples+self.input_ns_forward[key]-self.max_samples_forward
-                    if self.input_n_samples[key] == 1:
-                        self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-1])
-                    else:
-                        self.inout_data_time_window[key].append(self.input_data[(file,key)][aux_ind-self.input_n_samples[key]:aux_ind])
-        
-            for key in self.output_relation.keys():
-                used_key = key
-                elem_key = key.split('__')
-                if len(elem_key) > 1 and elem_key[1]== '-z1':
-                    used_key = elem_key[0]
-                for i in range(0, len(self.input_data[(file,used_key)])-self.max_n_samples+add_sample_forward):
-                    self.inout_data_time_window[key].append(self.input_data[(file,used_key)][i+self.max_n_samples-self.max_samples_forward])
-            
-            # Index identifying each file start 
-            self.idx_of_rows.append(len(self.inout_data_time_window[list(self.input_n_samples.keys())[0]]))
+            for key in model_inputs:
+                self.data[name][key] = []  ## Initialize the dataset
 
-            # RNN network
-            # Create inout_rnn_data_time_window dict 
-            # it is a dict of signals. Each signal is a list of vector the dimensions of the vector are (tokens, input_n_samples[key])
-            # ADD TEST ON THIS PART
-            if self.rnn_window:
-                if 'time' in format:
-                    for i in range(0, len(self.input_data[(file,'time')])-self.max_n_samples-self.rnn_window):
-                        inout_rnn = []
-                        for j in range(i, i+self.rnn_window):
-                            inout_rnn.append(self.input_data[(file,'time')][j:j+self.max_n_samples])
+                back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
+                for idx in range(len(source[key]) - self.max_n_samples+1):
+                    self.data[name][key].append(source[key][idx + (self.max_samples_backward - back):idx + (self.max_samples_backward + forw)])
 
-                        self.rnn_inout_data_time_window['time'].append(inout_rnn)
-                
-                for key in self.input_n_samples.keys():
-                    for i in range(0, len(self.input_data[(file,key)])-self.max_n_samples-self.rnn_window):
-                        inout_rnn = []
-                        for j in range(i, i+self.rnn_window):
-                            if self.input_n_samples[key] == 1:
-                                inout_rnn.append(self.input_data[(file,key)][j+self.max_n_samples-1])
-                            else:
-                                inout_rnn.append(self.input_data[(file,key)][j+self.max_n_samples-self.input_n_samples[key]:j+self.max_n_samples])
-                        self.rnn_inout_data_time_window[key].append(inout_rnn)
+            ## Stack the files
+            self.num_of_samples[name] = None
+            for key in model_inputs:
+                self.data[name][key] = np.stack(self.data[name][key])
+                if self.data[name][key].ndim == 2: ## Add the sample dimension
+                    self.data[name][key] = np.expand_dims(self.data[name][key], axis=-1)
+                if self.data[name][key].ndim > 3:
+                    self.data[name][key] = np.squeeze(self.data[name][key], axis=1)
+                if self.num_of_samples[name] is None:
+                    self.num_of_samples[name] = self.data[name][key].shape[0]
 
-                for idx,key in enumerate(self.output_relation.keys()):
-                    for i in range(0, len(self.input_data[(file,self.output_keys[idx])])-self.max_n_samples-self.rnn_window):
-                        inout_rnn = []
-                        for j in range(i, i+self.rnn_window):
-                            inout_rnn.append(self.input_data[(file,self.output_keys[idx])][j+self.max_n_samples])
-                        self.rnn_inout_data_time_window[key].append(inout_rnn)
+        ## Set the Loaded flag to True
+        self.data_loaded = True
+        ## Update the number of datasets loaded
+        self.n_datasets = len(self.data.keys())
+        self.datasets_loaded.add(name)
 
-        # Build the asarray for numpy
-        for key,data in self.inout_data_time_window.items():
-            self.inout_asarray[key]  = np.asarray(data)
-        
-        # Definition of number of samples
-        if self.num_of_samples == None: 
-            keys = list(self.output_relation.keys())
-            self.num_of_samples = len(self.inout_asarray[keys[0]])
+        self.visualizer.showDataset(name=name)
 
-        # RNN network
-        # Build the asarray for numpy and definition of the number of samples
-        if self.rnn_window:
-            for key,data in self.rnn_inout_data_time_window.items():
-                self.rnn_inout_asarray[key]  = np.asarray(data)
-            keys = list(self.output_relation.keys())
-            self.rnn_num_of_samples = len(self.rnn_inout_asarray[keys[0]])
-
-    #
-    # Function for cheking the state is an Output
-    #
-    def __checkStates(self, states):
-        state_keys = None
-        if states:
-            state_keys = [key.signal_name if type(key) is neu4mes.Output else Exception("A state is not an Output object") for key in states ]
-        return state_keys
-
-    #
-    # Function that get specific parameters for training 
-    #
     def __getTrainParams(self, training_params):
         if bool(training_params):
-            self.batch_size = (training_params['batch_size'] if 'batch_size' in training_params else self.batch_size) 
-            self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate) 
-            self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs) 
-            self.rnn_batch_size = (training_params['rnn_batch_size'] if 'rnn_batch_size' in training_params else self.rnn_batch_size) 
-            self.rnn_learning_rate = (training_params['rnn_learning_rate'] if 'rnn_learning_rate' in training_params else self.rnn_learning_rate) 
-            self.rnn_num_of_epochs = (training_params['rnn_num_of_epochs'] if 'rnn_num_of_epochs' in training_params else self.rnn_num_of_epochs) 
+            self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate)
+            self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs)
+            self.train_batch_size = (training_params['train_batch_size'] if 'train_batch_size' in training_params else self.train_batch_size)
+            self.test_batch_size = (training_params['test_batch_size'] if 'test_batch_size' in training_params else self.test_batch_size)
+            self.val_batch_size = (training_params['val_batch_size'] if 'val_batch_size' in training_params else self.val_batch_size)
+
+            ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to 1
+            if self.train_batch_size > self.n_samples_train:
+                self.train_batch_size = 1
+            if self.val_batch_size > self.n_samples_val:
+                self.val_batch_size = 1
+            if self.test_batch_size > self.n_samples_test:
+                self.test_batch_size = 1
+            
     
-    """
-    Analysis of the results 
-    """
-    def resultAnalysis(self):
-        # Rmse training
-        rmse_generator = (rmse_i for i, rmse_i in enumerate(self.fit.history) if i in range(len(self.fit.history)-len(self.model.outputs), len(self.fit.history)))
-        self.performance['rmse_train'] = []
-        for rmse_i in rmse_generator:
-            self.performance['rmse_train'].append(self.fit.history[rmse_i][-1])
-        self.performance['rmse_train'] = np.array(self.performance['rmse_train'])
+    ## TODO: Adjust the Plotting function
+    def resultAnalysis(self, train_losses, val_losses, test_losses, XY_train, XY_val, XY_test):
+        with torch.inference_mode():
 
-        # Prediction on test samples
-        prediction = self.model([self.inout_4test[key] for key in self.model_def['Inputs'].keys()], training=False) #, callbacks=[NoiseCallback()])
-        self.prediction = np.array(prediction)
-        if len(self.prediction.shape) == 2:
-            self.prediction = np.expand_dims(self.prediction, axis=0)
+            self.model.eval()
+            A = torch.zeros(len(self.minimize_dict), self.n_samples_test)
+            B = torch.zeros(len(self.minimize_dict), self.n_samples_test)
+            aux_test_losses = np.zeros([len(self.minimize_dict), self.n_samples_test])
+            for i in range(self.n_samples_test):
 
-        # List of keys
-        output_keys = list(self.model_def['Outputs'].keys())
+                idx = i * self.test_batch_size
+                XY = {}
+                for key, val in XY_test.items():
+                    XY[key] = val[idx:idx + self.test_batch_size]
+                    #if XY[key].ndim == 2:
+                    #    XY[key] = XY[key].unsqueeze(-1)
 
-        # Performance parameters
-        self.performance['se'] = np.empty([len(output_keys),self.num_of_test_sample])
-        self.performance['mse'] = np.empty([len(output_keys),])
-        self.performance['rmse_test'] = np.empty([len(output_keys),])
-        self.performance['fvu'] = np.empty([len(output_keys),])
-        for i in range(len(output_keys)):
-            # Square error test
-            self.performance['se'][i] = np.square(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten())
-            # Mean square error test
-            self.performance['mse'][i] = np.mean(np.square(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten()))
-            # Rmse test
-            self.performance['rmse_test'][i] = np.sqrt(np.mean(np.square(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten())))
-            # Fraction of variance unexplained (FVU) test
-            self.performance['fvu'][i] = np.var(self.prediction[i].flatten() - self.inout_4test[output_keys[i]].flatten()) / np.var(self.inout_4test[output_keys[i]].flatten())
-        
-        # Index of worst results
-        self.performance['max_se_idxs'] = np.argmax(self.performance['se'], axis=1)        
+                _, minimize_out = self.model(XY)
+                for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                    A[ind][i] = minimize_out[items['A'][0]]
+                    B[ind][i] =  minimize_out[items['B'][0]]
+                    loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                    aux_test_losses[ind][i] = loss.detach().numpy()
 
-        # Akaike’s Information Criterion (AIC) test
-        self.performance['aic'] = self.num_of_test_sample * np.log(self.performance['mse']) + 2 * self.model.count_params()
 
-        self.visualizer.showResults(self, output_keys, performance = self.performance)
+            # self.model.eval()
+            # key = list(XY_test.keys())[0]
+            # samples = len(XY_test[key])
+            # #samples = self.n_samples_test
+            # #samples = 1
+            #
+            # #batch_size = int(len(XY_test['x']) / samples)
+            # aux_test_losses = np.zeros([len(self.minimize_dict), samples])
+            # A = torch.zeros(len(self.minimize_dict), samples)
+            # B = torch.zeros(len(self.minimize_dict), samples)
+            # for i in range(samples):
+            #
+            #     XY = {}
+            #     for key, val in XY_test.items():
+            #         XY[key] = torch.from_numpy(val[i]).to(torch.float32).unsqueeze(dim=0)
+            #
+            #     # idx = i * batch_size
+            #     # XY = {}
+            #     # for key, val in XY_test.items():
+            #     #     XY[key] = torch.from_numpy(val[idx:idx + batch_size]).to(torch.float32)
+            #     out = self.model(XY)
+            #     for ind, (key, value) in enumerate(self.minimize_dict.items()):
+            #         A[ind][i] = out[value['A'][0]]
+            #         B[ind][i] = out[value['B'][0]]
+            #         loss = self.loss_fn(A[ind][i], B[ind][i])
+            #         aux_test_losses[ind][i] = loss.detach().numpy()
 
-    """
-    Training of the model. 
-    :param states: it is a list of a states, the state must be an Output object
-    :param training_params: dict that contains the parameters of training (batch_size, learning rate, etc..)
-    :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
-    :param show_results: it is a boolean for enable the plot of the results
-    """
-    def trainModel(self, states = None, training_params = {}, test_percentage = 0,  show_results = False):
-        # Check input
-        state_keys = self.__checkStates(states)
+            for ind, (key, value) in enumerate(self.minimize_dict.items()):
+                A_np = A[ind].detach().numpy()
+                B_np = B[ind].detach().numpy()
+                self.performance[key] = {}
+                self.performance[key][value['loss']] = {'epoch_test': test_losses[key], 'epoch_train': train_losses[key], 'test': np.mean(aux_test_losses[ind])}
+                self.performance[key]['fvu'] = {}
+                # Compute FVU
+                residual = A_np - B_np
+                error_var = np.var(residual)
+                error_mean = np.mean(residual)
+                #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
+                #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
+                self.performance[key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+                self.performance[key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                self.performance[key]['fvu']['total'] = np.mean([self.performance[key]['fvu']['A'],self.performance[key]['fvu']['B']]).item()
+                # Compute AIC
+                #normal_dist = norm(0, error_var ** 0.5)
+                #probability_of_residual = normal_dist.pdf(residual)
+                #log_likelihood_first = sum(np.log(probability_of_residual))
+                p1 = -len(residual)/2.0*np.log(2*np.pi)
+                p2 = -len(residual)/2.0*np.log(error_var)
+                p3 = -1/(2.0*error_var)*np.sum(residual**2)
+                log_likelihood = p1+p2+p3
+                #print(f"{key} log likelihood second mode:{log_likelihood} = {p1}+{p2}+{p3} first mode: {log_likelihood_first}")
+                total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad) #TODO to be check the number is doubled
+                #print(f"{key} total_params:{total_params}")
+                aic = - 2 * log_likelihood + 2 * total_params
+                #print(f"{key} aic:{aic}")
+                self.performance[key]['aic'] = {'value':aic,'total_params':total_params,'log_likelihood':log_likelihood}
+                # Prediction and target
+                self.prediction[key] = {}
+                self.prediction[key]['A'] = A_np.tolist()
+                self.prediction[key]['B'] = B_np.tolist()
+
+            self.performance['total'] = {}
+            self.performance['total']['mean_error'] = {'test': np.mean(aux_test_losses)}
+            self.performance['total']['fvu'] = np.mean([self.performance[key]['fvu']['total'] for key in self.minimize_dict.keys()])
+            self.performance['total']['aic'] = np.mean([self.performance[key]['aic']['value']for key in self.minimize_dict.keys()])
+
+        self.visualizer.showResults()
+
+    def trainModel(self, train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10], training_params = {}):
+        if not self.data_loaded:
+            print('There is no data loaded! The Training will stop.')
+            return
+        if not list(self.model.parameters()):
+            print('There are no modules with learnable parameters! The Training will stop.')
+            return
+
+        if self.n_datasets == 1: ## If we use 1 dataset with the splits
+            check(len(splits)==3, ValueError, '3 elements must be inserted for the dataset split in training, validation and test')
+            check(sum(splits)==100, ValueError, 'Training, Validation and Test splits must sum up to 100.')
+            check(splits[0] > 0, ValueError, 'The training split cannot be zero.')
+
+            ## Get the dataset name
+            dataset = list(self.data.keys())[0] ## take the dataset name
+            self.visualizer.warning(f'Only {self.n_datasets} Dataset loaded ({dataset}). The training will continue using \n{splits[0]}% of data as training set \n{splits[1]}% of data as validation set \n{splits[2]}% of data as test set')
+
+            # Collect the split sizes
+            train_size = splits[0] / 100.0
+            val_size = splits[1] / 100.0
+            test_size = 1 - (train_size + val_size)
+            self.n_samples_train = round(self.num_of_samples[dataset]*train_size)
+            self.n_samples_val = round(self.num_of_samples[dataset]*val_size)
+            self.n_samples_test = round(self.num_of_samples[dataset]*test_size)
+
+            ## Split into train, validation and test
+            XY_train, XY_val, XY_test = {}, {}, {}
+            for key, samples in self.data[dataset].items():
+                if key in self.model_def['Inputs'].keys():
+                    if val_size == 0.0 and test_size == 0.0: ## we have only training set
+                        XY_train[key] = torch.from_numpy(samples).to(torch.float32)
+                    elif val_size == 0.0 and test_size != 0.0: ## we have only training and test set
+                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                        XY_test[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
+                    elif val_size != 0.0 and test_size == 0.0: ## we have only training and validation set
+                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                        XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
+                    else: ## we have training, validation and test set
+                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                        XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):-round(len(samples)*test_size)]).to(torch.float32)
+                        XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
+        else: ## Multi-Dataset
+            datasets = list(self.data.keys())
+
+            check(train_dataset in datasets, KeyError, f'{train_dataset} Not Loaded!')
+            if validation_dataset not in datasets:
+                self.visualizer.warning(f'Validation Dataset [{validation_dataset}] Not Loaded. The training will continue without validation')
+            if test_dataset not in datasets:
+                self.visualizer.warning(f'Test Dataset [{test_dataset}] Not Loaded. The training will continue without test')
+
+            ## Collect the number of samples for each dataset
+            self.n_samples_train, self.n_samples_val, self.n_samples_test = 0, 0, 0
+            ## Split into train, validation and test
+            self.n_samples_train = self.num_of_samples[train_dataset]
+            XY_train = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[train_dataset].items()}
+            if validation_dataset in datasets:
+                self.n_samples_val = self.num_of_samples[validation_dataset]
+                XY_val = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[validation_dataset].items()}
+            if test_dataset in datasets:
+                self.n_samples_test = self.num_of_samples[test_dataset]
+                XY_test = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[test_dataset].items()}
+
+        ## TRAIN MODEL
+        ## Check parameters
         self.__getTrainParams(training_params)
+        self.n_samples_train = self.n_samples_train//self.train_batch_size
+        self.n_samples_val = self.n_samples_val//self.val_batch_size
+        self.n_samples_test = self.n_samples_test//self.test_batch_size
+        assert self.n_samples_train > 0, f'There are {self.n_samples_train} samples for training.'
 
-        # Divide train and test samples
-        self.num_of_test_sample = round(test_percentage*self.num_of_samples/100)
-        self.num_of_training_sample  = self.num_of_samples-self.num_of_test_sample
+        ## define optimizer and loss functions
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
 
-        # Definition of the batch size with respect of the test dimensions
-        if self.num_of_training_sample < self.batch_size or self.num_of_test_sample < self.batch_size:
-            self.batch_size = 1
-        else:
-            # Samples must be multiplier of batch
-            self.num_of_training_sample = int(self.num_of_training_sample/self.batch_size) * self.batch_size
-            self.num_of_test_sample = self.num_of_samples-self.num_of_training_sample
+        ## Create the train, validation and test loss dictionaries
+        train_losses, val_losses, test_losses = {}, {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = []
+            if self.n_samples_val > 0:
+                val_losses[key] = []
+
+        import time
+        ## start the train timer
+        start = time.time()
+
+        for epoch in range(self.num_of_epochs):
+            ## TRAIN
+            self.model.train()
+            aux_train_losses = torch.zeros([len(self.minimize_dict),self.n_samples_train])
+            for i in range(self.n_samples_train):
+                idx = i*self.train_batch_size
+                ## Build the input tensor
+                XY = {key: val[idx:idx+self.train_batch_size] for key, val in XY_train.items()}
+                ## Reset gradient
+                self.optimizer.zero_grad()
+                ## Model Forward
+                _, minimize_out = self.model(XY)
+                ## Loss Calculation
+                for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                    loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                    loss.backward(retain_graph=True)
+                    aux_train_losses[ind][i]= loss.item()
+                ## Gradient step
+                self.optimizer.step()
+            ## save the losses
+            for ind, key in enumerate(self.minimize_dict.keys()):
+                train_losses[key].append(torch.mean(aux_train_losses[ind]).tolist())
+
+            if self.n_samples_val > 0: 
+                ## VALIDATION
+                self.model.eval()
+                aux_val_losses = torch.zeros(len(self.minimize_dict), self.n_samples_val)
+                for i in range(self.n_samples_val):
+                    idx = i * self.val_batch_size
+                    ## Build the input tensor
+                    XY = {key: val[idx:idx + self.val_batch_size] for key, val in XY_val.items()}
+                    ## Model Forward
+                    _, minimize_out = self.model(XY)
+                    ## Validation Loss
+                    for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                        loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                        aux_val_losses[ind][i]= loss.item()
+                ## save the losses
+                for ind, key in enumerate(self.minimize_dict.keys()):
+                    val_losses[key].append(torch.mean(aux_val_losses[ind]).tolist())
+
+            ## visualize the training...
+            self.visualizer.showTraining(epoch, train_losses, val_losses)
+
+        ## save the training time
+        end = time.time()
+        ## visualize the training time
+        self.visualizer.showTrainingTime(end-start)
+
+        ## Test the model ##TODO adjust the test visualizer
+        if self.n_samples_test > 0: 
+            ## TEST
+            self.model.eval()
+            aux_test_losses = torch.zeros(len(self.minimize_dict), self.n_samples_test)
+            for i in range(self.n_samples_test):
+                idx = i * self.test_batch_size
+                ## Build the input tensor
+                XY = {key: val[idx:idx + self.test_batch_size] for key, val in XY_test.items()}
+                ## Model Forward
+                _, minimize_out = self.model(XY)
+                ## Test Loss
+                for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                    loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                    aux_test_losses[ind][i]= loss.item()
+            ## save the losses
+            for ind, key in enumerate(self.minimize_dict.keys()):
+                test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
+
+        self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+
+    def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
+        if not self.data_loaded:
+            print('There is no data loaded! The Training will stop.')
+            return
+        if not list(self.model.parameters()):
+            print('There are no modules with learnable parameters! The Training will stop.')
+            return
         
-        # Building the dataset structures training and test set
-        for key,data in self.inout_asarray.items():
-            if len(data.shape) == 1:
-                self.inout_4train[key] = data[0:self.num_of_training_sample]
-                self.inout_4test[key]  = data[self.num_of_training_sample:self.num_of_training_sample+self.num_of_test_sample]
-            else:
-                self.inout_4train[key] = data[0:self.num_of_training_sample,:]
-                self.inout_4test[key]  = data[self.num_of_training_sample:self.num_of_training_sample+self.num_of_test_sample,:]                
+        import time
 
-        # Print information 
-        self.MP(print, 'Samples: {}/{} (train size: {}, test size: {})'.format(self.num_of_training_sample+self.num_of_test_sample,self.num_of_samples,self.num_of_training_sample,self.num_of_test_sample)) 
-        self.MP(print, 'Batch: {}'.format(self.batch_size))
-        
-        # Configure model for training
-        self.opt = optimizers.legacy.Adam(learning_rate = self.learning_rate) #optimizers.Adam(learning_rate=l_rate) #optimizers.RMSprop(learning_rate=lrate, rho=0.4)
-        self.model.compile(optimizer = self.opt, loss = 'mean_squared_error', metrics=[rmse])
+        ## Calculate the Prediction Horizon
+        sample_time = self.model_def['SampleTime']
+        if prediction_horizon is None:
+            prediction_horizon = sample_time
 
-        # Fitting of the network
-        self.fit = self.model.fit([self.inout_4train[key] for key in self.model_def['Inputs'].keys()],
-                                  [self.inout_4train[key] for key in self.model_def['Outputs'].keys()],
-                                  epochs = self.num_of_epochs, batch_size = self.batch_size, verbose=1)
-        self.net_weights = self.model.get_weights()
+        # Initialize input
+        prediction_samples = round(prediction_horizon / sample_time)
+        train_size = 1 - (test_percentage / 100.0)
+        test_size = 1 - train_size
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
 
-        # Show the analysis of the Result
-        if show_results:
-            self.resultAnalysis()
-        
-        # Recurrent training enabling
-        if states is not None:
-            self.trainRecurrentModel(states, test_percentage = test_percentage, show_results = show_results)
+        ## Split train and test
+        XY_train = {}
+        XY_test = {}
+        self.n_samples_test, self.n_samples_train = None, None
+        for key,samples in self.data.items():
+            if key in self.model_def['Inputs'].keys():
+                if test_percentage == 0:
+                    XY_train[key] = samples
+                else:
+                    XY_train[key] = samples[:round(len(samples)*train_size)]
+                    XY_test[key] = samples[round(len(samples)*train_size):]
+                    if self.n_samples_test is None:
+                        self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
+                if self.n_samples_train is None:
+                    self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
 
-    """
-    Analysis of the results for recurrent network
-    :param states: it is a list of a states, the state must be an Output object
-    """
-    def resultRecurrentAnalysis(self, states):
-        # Check input
-        state_keys = self.__checkStates(states)
+        ## Check input
+        assert self.n_samples_train > prediction_samples and self.n_samples_test > prediction_samples, f'Error: The Prediction window is set to large (Max {(min(self.n_samples_test,self.n_samples_train)-1)*sample_time})'
 
-        # Get the first simulation for of the test data
-        self.first_idx_test = next(x[0] for x in enumerate(self.idx_of_rows) if x[1] > self.num_of_training_sample)
+        ## define optimizer and loss functions
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
 
-        # Define output for each window
-        rnn_prediction = []
-        for i in range(self.first_idx_test, len(self.idx_of_rows)-1):
-            first_idx = self.idx_of_rows[i]-self.num_of_training_sample
-            last_idx = self.idx_of_rows[i+1]-self.num_of_training_sample
-            input = [np.expand_dims(self.inout_4test[key][first_idx],axis = 0) for key in self.model_def['Inputs'].keys()]
+        ## initialize the train and test loss dictionaries
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = np.zeros(self.num_of_epochs)
+            test_losses[key] = np.zeros(self.num_of_epochs)
 
-            for t in range(first_idx+1,last_idx+1): 
-                rnn_output = np.array(self.model(input)) #, callbacks=[NoiseCallback()])
-                if len(rnn_output.shape) == 2:
-                    rnn_output = np.expand_dims(rnn_output, axis=0)
+        ## start the training timer
+        start = time.time()
 
-                if t != last_idx:
-                    for idx, key in enumerate(self.model_def['Inputs'].keys()):
-                        if key in state_keys:
-                            idx_out = self.output_keys.index(key)
-                            input[idx] = np.append(input[idx][:,1:],rnn_output[idx_out], axis = 1)
+        for epoch in range(self.num_of_epochs):
+            ## TRAIN
+            self.model.train()
+            train_loss = []
+            for i in range(0, (self.n_samples_train - prediction_samples), step):
+                idx = i*self.train_batch_size
+                XY = {}
+                XY_horizon = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+                    ## collect the horizon labels
+                    XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.train_batch_size+prediction_samples+1]).to(torch.float32)
+
+                self.optimizer.zero_grad()  
+                losses = []
+                ## Recurrent Training
+                for horizon_idx in range(prediction_samples):
+                    ## Model Forward
+                    out, minimize_out = self.model(XY)
+                    
+                    for name, items in self.minimize_dict.items():
+                        loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                        losses.append(loss)
+                    
+                    ## Update the input with the recurrent prediction
+                    for key in XY.keys():
+                        XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                        if key in close_loop.keys():
+                            XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
                         else:
-                            input[idx] = np.expand_dims(self.inout_4test[key][t], axis = 0)
+                            XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1, :]
 
-                rnn_prediction.append(rnn_output)
+                loss = sum(losses)
+                loss.backward()
+                self.optimizer.step()
+                train_loss.append(loss.item())
+            train_loss = np.mean(train_loss)
+            train_losses[epoch] = train_loss
+
+            if test_percentage != 0:
+                ## TEST
+                self.model.eval()
+                test_loss = []
+                for i in range(0, (self.n_samples_test - prediction_samples), step):
+                    idx = i*self.test_batch_size
+                    XY = {}
+                    XY_horizon = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx+self.test_batch_size]).to(torch.float32)
+                        XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.test_batch_size+prediction_samples+1]).to(torch.float32)
+
+                    losses = []
+                    ## Recurrent Training
+                    for horizon_idx in range(prediction_samples):
+                        ## Model Forward
+                        out, minimize_out = self.model(XY)
+                        
+                        for name, items in self.minimize_dict.items():
+                            loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                            losses.append(loss)
+                        
+                        ## Update the input with the recurrent prediction
+                        for key in XY.keys():
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                            if key in close_loop.keys():
+                                XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
+                            else:
+                                XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.test_batch_size, -1, :]
+
+                    loss = sum(losses) / prediction_samples
+                    test_loss.append(loss.item())
+                test_loss = np.mean(test_loss)
+                test_losses[epoch] = test_loss
+
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
+
+        end = time.time()
+        self.visualizer.showTrainingTime(end - start)
+        #self.resultAnalysis(train_losses=train_loss, test_losses=test_loss, XY_train=XY_train, XY_test=XY_test)
+    '''
+    def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
+        if not list(self.model.parameters()):
+            print('There are no modules with learnable parameters! The Training will stop.')
+            return
         
-        key = list(self.model_def['Outputs'].keys())
-        rnn_prediction = np.asarray(rnn_prediction)
+        import time
 
-        # Final prediction for whole test set
-        self.rnn_prediction = np.transpose(rnn_prediction.reshape((-1,len(self.output_keys))))
+        ## Calculate the Prediction Horizon
+        sample_time = self.model_def['SampleTime']
+        if prediction_horizon is None:
+            prediction_horizon = sample_time
 
-        # Analysis of the Result
-        self.visualizer.showRecurrentResults(self, key, performance = self.performance)
+        # Initialize input
+        prediction_samples = round(prediction_horizon / sample_time)
+        train_size = 1 - (test_percentage / 100.0)
+        test_size = 1 - train_size
+        self.__getTrainParams(training_params, train_size=train_size, test_size=test_size)
 
-    """
-    Reccurrent training of the model. 
-    :param states: it is a list of a states, the state must be an Output object
-    :param training_params: dict that contains the parameters of training (batch_size, learning rate, etc..)
-    :param test_percentage: numeric value from 0 to 100, it is the part of the dataset used for validate the performance of the network
-    :param show_results: it is a boolean for enable the plot of the results
-    """
-    def trainRecurrentModel(self, states, training_params = {}, test_percentage = 0, show_results = False):
-        # Check input
-        state_keys = self.__checkStates(states)
-        self.__getTrainParams(training_params)
+        ## Split train and test
+        XY_train = {}
+        XY_test = {}
+        for key,data in self.inout_data_time_window.items():
+            if data:
+                samples = np.asarray(data)
+                if samples.ndim == 1:
+                    samples = np.reshape(samples, (-1, 1))
+                if key in self.model_def['Inputs'].keys():
+                    if test_percentage == 0:
+                        XY_train[key] = samples
+                    else:
+                        XY_train[key] = samples[:round(len(samples)*train_size)]
+                        XY_test[key] = samples[round(len(samples)*train_size):]
+                        if self.n_samples_test is None:
+                            self.n_samples_test = round(len(XY_test[key]) / self.test_batch_size)
+                    if self.n_samples_train is None:
+                        self.n_samples_train = round(len(XY_train[key]) / self.train_batch_size)
 
-        # Definition of sizes
-        states_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key in state_keys]
-        inputs_size = [self.input_n_samples[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
-        # This boolean vector representing if the input is also a state
-        state_vector = [1 if key in state_keys else 0 for key in self.model_def['Inputs'].keys()]
-        # Creation of the RNN cell
-        rnn_cell = RNNCell(self.model, state_vector, states_size, inputs_size)
-        
-        self.MP(print, 'state_keys: {}'.format(state_keys))
-        self.MP(print, 'inputs_size: {}'.format(inputs_size))
-        self.MP(print, 'states_size: {}'.format(states_size))
-        self.MP(print, 'state_vector: {}'.format(state_vector))
+        ## Check input
+        assert self.n_samples_train > prediction_samples and self.n_samples_test > prediction_samples, f'Error: The Prediction window is set to large (Max {(min(self.n_samples_test,self.n_samples_train)-1)*sample_time})'
 
-        # Inizialization of the initial state for the states
-        for key in state_keys:
-            self.rnn_init_state[key] = tensorflow.keras.layers.Lambda(lambda x: x[:,0,:], name=key+'_init_state')(self.rnn_inputs[key])
-        rnn_initial_state = [self.rnn_init_state[key] for key in state_keys]
+        ## define optimizer and loss functions
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
 
-        # Definition of the input of a recurrent cell network
-        inputs = [self.rnn_inputs[key] for key in self.model_def['Inputs'].keys() if key not in state_keys]
+        ## initialize the train and test loss dictionaries
+        train_losses, test_losses = {}, {}
+        for key in self.minimize_dict.keys():
+            train_losses[key] = np.zeros(self.num_of_epochs)
+            test_losses[key] = np.zeros(self.num_of_epochs)
 
-        # Creation of the RNN node
-        rnn_out = tensorflow.keras.layers.RNN(rnn_cell, return_sequences=True, stateful=False, unroll=True, name='rnn')(tuple(inputs), initial_state=rnn_initial_state)
+        ## start the training timer
+        start = time.time()
 
-        self.MP(pprint,{"rnn_init_state":self.rnn_init_state})
-        self.MP(pprint,{"rnn_initial_state":rnn_initial_state})        
-        self.MP(pprint,{"inputs":inputs})
+        for epoch in range(self.num_of_epochs):
+            ## TRAIN
+            self.model.train()
+            train_loss = []
+            for i in range(0, (self.n_samples_train - prediction_samples), step):
+                idx = i*self.train_batch_size
+                XY = {}
+                XY_horizon = {}
+                for key, val in XY_train.items():
+                    XY[key] = torch.from_numpy(val[idx:idx+self.train_batch_size]).to(torch.float32)
+                    ## collect the horizon labels
+                    XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.train_batch_size+prediction_samples+1]).to(torch.float32)
+                    if XY[key].ndim == 2:
+                        XY[key] = XY[key].unsqueeze(-1)
+                        XY_horizon[key] = XY_horizon[key].unsqueeze(-1)
 
-        # splited_out = tensorflow.keras.layers.Lambda(lambda tensor: tf.split(tensor, num_or_size_splits=len(states_size), axis = 2))(out_x_rnn)
-        splited_out = []
-        for idx in range(len(self.model_def['Outputs'])):
-            splited_out.append(rnn_out[:,:,idx])
+                self.optimizer.zero_grad()  
+                losses = []
+                ## Recurrent Training
+                for horizon_idx in range(prediction_samples):
+                    ## Model Forward
+                    out, minimize_out = self.model(XY)
+                    
+                    for name, items in self.minimize_dict.items():
+                        loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                        losses.append(loss)
+                    
+                    ## Update the input with the recurrent prediction
+                    for key in XY.keys():
+                        XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                        if key in close_loop.keys():
+                            XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
+                        else:
+                            XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.train_batch_size, -1, :]
 
-        self.MP(pprint,{"splited_out":splited_out})
-        
-        # Creation of the RNN model
-        self.rnn_model = tensorflow.keras.models.Model(inputs=[val for key,val in self.rnn_inputs_for_model.items()], outputs=splited_out)
-        print(self.rnn_model.summary())
+                loss = sum(losses)
+                loss.backward()
+                self.optimizer.step()
+                train_loss.append(loss.item())
+            train_loss = np.mean(train_loss)
+            train_losses[epoch] = train_loss
 
-        # Divide train and test samples
-        self.rnn_num_of_test_sample = round(test_percentage*self.rnn_num_of_samples/100)
-        self.rnn_num_of_training_sample = self.rnn_num_of_samples-self.rnn_num_of_test_sample
+            if test_percentage != 0:
+                ## TEST
+                self.model.eval()
+                test_loss = []
+                for i in range(0, (self.n_samples_test - prediction_samples), step):
+                    idx = i*self.test_batch_size
+                    XY = {}
+                    XY_horizon = {}
+                    for key, val in XY_test.items():
+                        XY[key] = torch.from_numpy(val[idx:idx+self.test_batch_size]).to(torch.float32)
+                        XY_horizon[key] = torch.from_numpy(val[idx+1:idx+self.test_batch_size+prediction_samples+1]).to(torch.float32)
+                        if XY[key].ndim == 2:
+                            XY[key] = XY[key].unsqueeze(-1)
+                            XY_horizon[key] = XY_horizon[key].unsqueeze(-1)
 
-        # Definition of the batch size with respect of the test dimensions
-        if self.rnn_num_of_training_sample < self.rnn_batch_size or self.rnn_num_of_test_sample < self.rnn_batch_size:
-            self.rnn_batch_size = 1
-        else:
-            # Samples must be multiplier of batch
-            self.rnn_num_of_training_sample = int(self.rnn_num_of_training_sample/self.rnn_batch_size) * self.rnn_batch_size
-            self.rnn_num_of_test_sample = int((self.rnn_num_of_samples - self.rnn_num_of_training_sample)/self.rnn_batch_size) * self.rnn_batch_size
+                    losses = []
+                    ## Recurrent Training
+                    for horizon_idx in range(prediction_samples):
+                        ## Model Forward
+                        out, minimize_out = self.model(XY)
+                        
+                        for name, items in self.minimize_dict.items():
+                            loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                            losses.append(loss)
+                        
+                        ## Update the input with the recurrent prediction
+                        for key in XY.keys():
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1)
+                            if key in close_loop.keys():
+                                XY[key][:, -1, :] = out[close_loop[key]][:, -1, :]
+                            else:
+                                XY[key][:, -1, :] = XY_horizon[key][horizon_idx:horizon_idx+self.test_batch_size, -1, :]
 
-        # Building the dataset structures training and test set
-        for key,data in self.rnn_inout_asarray.items():
-            if len(data.shape) == 1:
-                self.rnn_inout_4train[key] = data[0:self.rnn_num_of_training_sample]
-                self.rnn_inout_4test[key]  = data[self.rnn_num_of_training_sample:self.rnn_num_of_training_sample+self.rnn_num_of_test_sample]
-            else:
-                self.rnn_inout_4train[key] = data[0:self.rnn_num_of_training_sample,:]
-                self.rnn_inout_4test[key]  = data[self.rnn_num_of_training_sample:self.rnn_num_of_training_sample+self.rnn_num_of_test_sample,:]       
+                    loss = sum(losses) / prediction_samples
+                    test_loss.append(loss.item())
+                test_loss = np.mean(test_loss)
+                test_losses[epoch] = test_loss
 
-        # Print information 
-        self.MP(print, 'RNN Samples: {}/{} (train size: {}, test size: {})'.format(self.rnn_num_of_training_sample+self.rnn_num_of_test_sample,self.rnn_num_of_samples,self.rnn_num_of_training_sample,self.rnn_num_of_test_sample)) 
-        self.MP(print, 'RNN Batch: {}'.format(self.rnn_batch_size))
-        
-        # Configure rnn model for training
-        self.rnn_opt = optimizers.legacy.Adam(learning_rate = self.rnn_learning_rate)
-        self.rnn_model.compile(optimizer = self.rnn_opt, loss = 'mean_squared_error', metrics=[rmse])
-        if self.net_weights:
-            self.rnn_model.set_weights(self.net_weights)
+            self.visualizer.showTraining(epoch, train_losses, test_losses)
 
-        # Fitting of the network
-        self.fit = self.rnn_model.fit([self.rnn_inout_4train[key] for key in self.model_def['Inputs'].keys()],
-                                    [self.rnn_inout_4train[key] for key in self.model_def['Outputs'].keys()],
-                                    epochs = self.rnn_num_of_epochs, batch_size = self.rnn_batch_size, verbose=1)
-
-        # Show the analysis of the Result
-        if show_results:
-            self.resultRecurrentAnalysis(states)
-
-    # def controlDefinition(control):
-    #     pass
-
-    # def neuralizeControl():
-    #     pass
-
-    # def trainControl(data):
-    #     pass
-
-    # def exportModel(params):
-    #     pass
-
-    # def exportControl(params):
-    #     pass
-
-
+        end = time.time()
+        self.visualizer.showTrainingTime(end - start)
+        #self.resultAnalysis(train_losses=train_loss, test_losses=test_loss, XY_train=XY_train, XY_test=XY_test)
+    '''
