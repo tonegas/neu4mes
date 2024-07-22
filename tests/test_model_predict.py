@@ -16,6 +16,12 @@ def myfun2(a, b ,c):
     import torch
     return torch.sin(a + b) * c
 
+def myfun3(a, b, p1, p2):
+    import torch
+    at = torch.transpose(a[:, :, 0:2],1,2)
+    bt = torch.transpose(b, 1, 2)
+    return torch.matmul(p1,at+bt)+p2.t()
+
 # Dimensions
 # The first dimension must indicate the time dimension i.e. how many time samples I asked for
 # The second dimension indicates the output time dimension for each sample.
@@ -48,8 +54,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]], 'in2': [[5], [7], [9]]})
         self.assertEqual(3, len(results['out']))
         self.TestAlmostEqual([33.74938201904297, 40.309326171875, 46.86927032470703], results['out'])
-    
-    
+
     def test_single_in_window(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
         torch.manual_seed(1)
@@ -114,8 +119,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([-2], results['x.sw([-3,-2])'])
         self.assertEqual((1,), np.array(results['x.sw([0,1])']).shape)
         self.TestAlmostEqual([1],results['x.sw([0,1])'])
-    
-    
+
     def test_single_in_window_offset(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
         torch.manual_seed(1)
@@ -216,8 +220,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((2,6,3), np.array(results['x.sw([-3, 3])-2']).shape)
         self.TestAlmostEqual([[[-2,3,4],[-1,2,2],[0,0,0],[1,2,3],[2,7,3],[3,3,3]],
                                     [[-2,0,-1],[-1,-2,-3],[0,0,0],[1,5,0],[2,1,0],[1,0,-1]]], results['x.sw([-3, 3])-2'])
-    
-    
+
     def test_single_in_window_offset_aritmetic(self):
         # Elementwise arithmetic, Activation, Trigonometric
         # the dimensions and time window remain unchanged, for the
@@ -369,7 +372,6 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((2, 1, 2), np.array(results['out5']).shape)
         self.TestAlmostEqual([[[2.0, 0.0]], [[2.0, 1.0]]], results['out5'])
 
-    
     def test_single_in_window_offset_parametric_function(self):
         # An input dimension is temporal and does not remain unchanged unless redefined on output
         # If there are multiple inputs the function returns an error if the dimensions are not defined
@@ -482,7 +484,28 @@ class MyTestCase(unittest.TestCase):
         test.neuralizeModel(0.1)
         with self.assertRaises(StopIteration):
             test({'in1': [[1, 2, 2], [3, 4, 5]]})
-    
+
+    def test_vectorial_input_parametric_function(self):
+        # Vector input for parametric function
+        torch.manual_seed(1)
+        in1 = Input('in1', dimensions=3)
+        in2 = Input('in2', dimensions=2)
+        p1 = Parameter('p1', dimensions=(3,2),values=[[[1,2],[3,4],[5,6]]])
+        p2 = Parameter('p2', dimensions=3,values=[[1,2,3]])
+        parfun = ParamFun(myfun3, parameters=[p1,p2])
+        out = Output('out', parfun(in1.last(),in2.last()))
+        test = Neu4mes(visualizer=None)
+        test.addModel(out)
+        test.neuralizeModel(0.1)
+
+        results = test({'in1': [[1,2,3]],'in2':[[5,6]]})
+        self.assertEqual((1,3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[23,52,81]])
+
+        results = test({'in1': [[1,2,3],[5,6,7]],'in2':[[5,6],[7,8]]})
+        self.assertEqual((2,3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[23,52,81],[41,94,147]])
+
     def test_parametric_function_and_fir(self):
         torch.manual_seed(1)
         in1 = Input('in1')
