@@ -19,7 +19,7 @@ def myFun(K1,K2,p1,p2):
 
 parfun = ParamFun(myFun)
 out = Output('fun',parfun(x.last(),F.last()))
-example = Neu4mes(visualizer=None)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel()
 print(example({'x':[1],'F':[1]}))
@@ -37,7 +37,7 @@ def myFun(K1,K2,p1,p2):
     return torch.tensor([p1,p1,p1,p1])*K1+p2*torch.sin(K2)
 parfun = ParamFun(myFun) # definisco una funzione scalare basata su myFun
 out = Output('out',parfun(x.last(),F.last()))
-example = Neu4mes(visualizer=None)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel()
 print(example({'x':[1],'F':[1]}))
@@ -55,7 +55,7 @@ def myFun(K1,K2,p1,p2):
     return p1*K1+p2*torch.sin(K2)
 parfun = ParamFun(myFun) # definisco una funzione scalare basata su myFun
 out = Output('out',parfun(x.tw(2),F.tw(2)))
-example = Neu4mes(visualizer=None)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(1)
 print(example({'x':[1,1],'F':[1,1]}))
@@ -76,7 +76,7 @@ def myFun(K1,K2,p1):
     return torch.stack([K1,2*K1,3*K1,4*K1],dim=2).squeeze(-1)*p1+K2
 parfun = ParamFun(myFun,parameters_dimensions = {'p1':(1,4)})
 out = Output('out',parfun(x.last(),F.last()))
-example = Neu4mes(visualizer=None)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel()
 print(example({'x':[1],'F':[1]}))
@@ -93,7 +93,7 @@ def myFun(K1,p1):
 K = Parameter('k', dimensions =  1, tw = 1)
 parfun = ParamFun(myFun, parameters = [K] )
 out = Output('out',parfun(x.tw(1)))
-example = Neu4mes(visualizer=None)
+example = Neu4mes()
 example.addModel(out)
 example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))

@@ -11,7 +11,7 @@ from neu4mes.input import Input
 fir_relation_name = 'Fir'
 
 class Fir(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int = None, parameter:Parameter = None):
+    def __init__(self, output_dimension:int|None = None, parameter:Parameter|None = None):
         self.relation_name = fir_relation_name
         self.parameter = parameter
 
