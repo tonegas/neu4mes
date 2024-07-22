@@ -363,9 +363,9 @@ class Neu4mes:
                 idx = i * self.test_batch_size
                 XY = {}
                 for key, val in XY_test.items():
-                    XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
-                    if XY[key].ndim == 2:
-                        XY[key] = XY[key].unsqueeze(-1)
+                    XY[key] = val[idx:idx + self.test_batch_size]
+                    #if XY[key].ndim == 2:
+                    #    XY[key] = XY[key].unsqueeze(-1)
 
                 _, minimize_out = self.model(XY)
                 for ind, (name, items) in enumerate(self.minimize_dict.items()):
@@ -597,7 +597,7 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
 
-        #self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+        self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
 
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not self.data_loaded:
