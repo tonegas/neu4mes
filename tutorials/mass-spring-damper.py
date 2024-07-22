@@ -28,8 +28,9 @@ dxk1 = Output('dx[k+1]', Fir(Fir(x.tw(0.2))+Fir(F.last())))
 
 # Add the neural models to the neu4mes structure
 mass_spring_damper = Neu4mes(visualizer=MPLVisulizer())
-mass_spring_damper.addModel(xk1)
-mass_spring_damper.addModel(dxk1)
+# This two functions are not needed because the minimizeError add the outputs to the models
+#mass_spring_damper.addModel(xk1)
+#mass_spring_damper.addModel(dxk1)
 
 # These functions are used to impose the minimization objectives.
 # Here it is minimized the error between the future position of x get from the dataset x.z(-1)
@@ -53,5 +54,7 @@ params = {'num_of_epochs': 100,
           'test_batch_size':1, 
           'learning_rate':0.001}
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
+
+
 
 
