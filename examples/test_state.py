@@ -202,11 +202,11 @@ elif example == 4:
     print('x_state (last):', mass_spring_damper.data['dataset']['x_state'][-1])
     
     # Training non ricorrente
-    params = {'num_of_epochs': 1, 
+    params = {'num_of_epochs': 100, 
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
-          'learning_rate':0.001}
+          'learning_rate':0.01}
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_horizon=0.3, training_params=params)
 else:
     print(f'There is no Example {example}')
