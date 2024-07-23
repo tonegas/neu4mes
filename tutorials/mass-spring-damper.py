@@ -27,10 +27,9 @@ xk1 = Output('x[k+1]', Fir(x.tw(0.2))+Fir(F.last()))
 dxk1 = Output('dx[k+1]', Fir(Fir(x.tw(0.2))+Fir(F.last())))
 
 # Add the neural models to the neu4mes structure
-mass_spring_damper = Neu4mes()#visualizer=MPLVisulizer())
-# This two functions are not needed because the minimizeError add the outputs to the models
-#mass_spring_damper.addModel(xk1)
-#mass_spring_damper.addModel(dxk1)
+mass_spring_damper = Neu4mes(visualizer=MPLVisulizer())
+mass_spring_damper.addModel(xk1)
+mass_spring_damper.addModel(dxk1)
 
 # These functions are used to impose the minimization objectives.
 # Here it is minimized the error between the future position of x get from the dataset x.z(-1)
@@ -43,7 +42,7 @@ mass_spring_damper.minimizeError('next-vel', dx.next(), dxk1, 'mse')
 mass_spring_damper.neuralizeModel(sample_time = 0.05) # The sampling time depends on the dataset
 
 # Data load
-data_struct = ['time',('x', 'x_state'),'dx','F']
+data_struct = ['time','x','dx','F']
 data_folder = './tutorials/datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(name='mass_spring_dataset', source=data_folder, format=data_struct, delimiter=';')
 

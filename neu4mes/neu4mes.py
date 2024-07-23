@@ -192,13 +192,13 @@ class Neu4mes:
 
         check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
         self.model_def["SampleTime"] = sample_time
-        model_def_final = copy.deepcopy(self.model_def)
-        #model_def_final = self.model_def
+        #model_def_final = copy.deepcopy(self.model_def)
         self.visualizer.showModel()
 
-        check(model_def_final['Inputs'] != {}, RuntimeError, "No model is defined!")
+        check(self.model_def['Inputs'] != {}, RuntimeError, "No model is defined!")
+        json_inputs = self.model_def['Inputs'] | self.model_def['States']
 
-        for key, value in model_def_final['Inputs'].items():
+        for key, value in json_inputs.items():
             self.input_tw_backward[key] = -value['tw'][0]
             self.input_tw_forward[key] = value['tw'][1]
             if value['sw'] == [0,0] and value['tw'] == [0,0]:
@@ -221,35 +221,9 @@ class Neu4mes:
 
         self.visualizer.showModelInputWindow()
 
-        ## Adjust with the correct slicing
-        for _, items in model_def_final['Relations'].items():
-            if items[0] == 'SamplePart':
-                if items[1][0] in model_def_final['Inputs'].keys():
-                    items[2][0] = self.input_ns_backward[items[1][0]] + items[2][0]
-                    items[2][1] = self.input_ns_backward[items[1][0]] + items[2][1]
-                    if len(items) > 3: ## Offset
-                        items[3] = self.input_ns_backward[items[1][0]] + items[3]
-            if items[0] == 'TimePart':
-                if items[1][0] in model_def_final['Inputs'].keys():
-                    items[2][0] = self.input_ns_backward[items[1][0]] + round(items[2][0]/sample_time)
-                    items[2][1] = self.input_ns_backward[items[1][0]] + round(items[2][1]/sample_time)
-                    if len(items) > 3: ## Offset
-                        items[3] = self.input_ns_backward[items[1][0]] + round(items[3]/sample_time)
-                elif items[1][0] in self.model_def['States']:
-                    state_backward = max(abs(self.model_def['States'][items[1][0]]['sw'][0]), abs(round(self.model_def['States'][items[1][0]]['tw'][0]//sample_time)))
-                    items[2][0] = state_backward + round(items[2][0]/sample_time)
-                    items[2][1] = state_backward + round(items[2][1]/sample_time)
-                    if len(items) > 3: ## Offset
-                        items[3] = state_backward + round(items[3]/sample_time)
-                else:
-                    items[2][0] = round(items[2][0]/sample_time)
-                    items[2][1] = round(items[2][1]/sample_time)
-                    if len(items) > 3: ## Offset
-                        items[3] = round(items[3]/sample_time)
-
         #self.visualizer.showModel()
         ## Build the network
-        self.model = Model(model_def_final, self.minimize_list)
+        self.model = Model(copy.deepcopy(self.model_def), self.minimize_list, self.input_ns_backward)
         self.visualizer.showBuiltModel()
         self.neuralized = True
 
@@ -258,7 +232,8 @@ class Neu4mes:
         assert self.neuralized == True, "The network is not neuralized yet."
         check(delimiter in ['\t', '\n', ';', ',', ' '], ValueError, 'delimiter not valid!')
 
-        model_inputs = list(self.model_def['Inputs'].keys())
+        json_inputs = self.model_def['Inputs'] | self.model_def['States']
+        model_inputs = list(json_inputs.keys())
         ## Initialize the dictionary containing the data
         if name in list(self.data.keys()):
             self.visualizer.warning(f'Dataset named {name} already loaded! overriding the existing one..')
@@ -274,14 +249,14 @@ class Neu4mes:
                         if key not in model_inputs:
                             idx += 1
                             break
-                        n_cols = self.model_def['Inputs'][key]['dim']
+                        n_cols = json_inputs[key]['dim']
                         format_idx[key] = (idx, idx+n_cols)
                     idx += n_cols
                 else:
                     if item not in model_inputs:
                         idx += 1
                         continue
-                    n_cols = self.model_def['Inputs'][item]['dim']
+                    n_cols = json_inputs[item]['dim']
                     format_idx[item] = (idx, idx+n_cols)
                     idx += n_cols
 
@@ -491,19 +466,18 @@ class Neu4mes:
             ## Split into train, validation and test
             XY_train, XY_val, XY_test = {}, {}, {}
             for key, samples in self.data[dataset].items():
-                if key in self.model_def['Inputs'].keys():
-                    if val_size == 0.0 and test_size == 0.0: ## we have only training set
-                        XY_train[key] = torch.from_numpy(samples).to(torch.float32)
-                    elif val_size == 0.0 and test_size != 0.0: ## we have only training and test set
-                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
-                        XY_test[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
-                    elif val_size != 0.0 and test_size == 0.0: ## we have only training and validation set
-                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
-                        XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
-                    else: ## we have training, validation and test set
-                        XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
-                        XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):-round(len(samples)*test_size)]).to(torch.float32)
-                        XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
+                if val_size == 0.0 and test_size == 0.0: ## we have only training set
+                    XY_train[key] = torch.from_numpy(samples).to(torch.float32)
+                elif val_size == 0.0 and test_size != 0.0: ## we have only training and test set
+                    XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                    XY_test[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
+                elif val_size != 0.0 and test_size == 0.0: ## we have only training and validation set
+                    XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                    XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
+                else: ## we have training, validation and test set
+                    XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
+                    XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):-round(len(samples)*test_size)]).to(torch.float32)
+                    XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
         else: ## Multi-Dataset
             datasets = list(self.data.keys())
 
