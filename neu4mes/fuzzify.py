@@ -16,26 +16,26 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 fuzzify_relation_name = 'Fuzzify'
 
 class Fuzzify(NeuObj):
-    def __init__(self, output_dimension, range = None, centers = None, functions = 'Triangular'):
+    def __init__(self, output_dimension:int|None = None, range:list|None = None, centers:list|None = None, functions:str = 'Triangular'):
         self.relation_name = fuzzify_relation_name
         super().__init__('F' + fuzzify_relation_name + str(NeuObj.count))
-        self.output_dimension = {'dim' : output_dimension}
         self.json['Functions'][self.name] = {}
-        self.json['Functions'][self.name]['dim_out'] = copy.deepcopy(self.output_dimension)
-        if range is not None:
-            assert centers is None, 'if output is an integer or use centers or use range'
+        if output_dimension is not None:
+            check(range is not None, ValueError, 'if "output_dimension" is not None, "range" must be not setted')
+            check(centers is None, ValueError, 'if "output_dimension" and "range" are not None, then "centers" must be None')
+            self.output_dimension = {'dim': output_dimension}
             interval = ((range[1]-range[0])/(output_dimension-1))
-            self.json['Functions'][self.name]['centers'] = [a for a in np.arange(range[0], range[1]+interval, interval)]
-        elif centers is not None:
-            assert range is None, 'if output is an integer or use centers or use range'
-            assert len(centers) == output_dimension, 'number of centers must be equal to output_dimension'
+            self.json['Functions'][self.name]['centers'] = np.arange(range[0], range[1]+interval, interval).tolist()
+        else:
+            check(centers is not None, ValueError, 'if "output_dimension" is None and "centers" must be setted')
+            self.output_dimension = {'dim': len(centers)}
             self.json['Functions'][self.name]['centers'] = centers
+        self.json['Functions'][self.name]['dim_out'] = copy.deepcopy(self.output_dimension)
 
         if type(functions) is str:
             self.json['Functions'][self.name]['functions'] = functions
             self.json['Functions'][self.name]['names'] = functions
         elif type(functions) is list:
-            #assert len(functions) % self.output_dimension['dim'], 'number of functions must be equal to output_dimension'
             self.json['Functions'][self.name]['functions'] = []
             self.json['Functions'][self.name]['names'] = []
             for func in functions:

@@ -37,6 +37,7 @@ example1.addModel([out_model_next_x,out_x_win,out_f_last,out_next_x])
 example1.neuralizeModel(0.05)
 
 print("------------------------EXAMPLE 1------------------------")
+# Example 1
 # Call your model with the minimum number of inputs
 # 'x' = [1,2,3,4,5,6,7,8,9,10,11] the first 10 sample are in the past and the last sample is the next
 # The output model_next_x contain 1 samples
@@ -46,6 +47,7 @@ for output, result in results.items():
 
 
 print("------------------------EXAMPLE 2------------------------")
+# Example 2
 # In this case the samples are 12 for x and 2 for F, this means that the network will run for two sample time.
 # The first time the input will be F = 5 x = [1,2,3,4,5,6,7,8,9,10] x_next = 11
 # The second time the input will be F = 2 x = [2,3,4,5,6,7,8,9,10,11] x_next = 12
@@ -56,18 +58,21 @@ for output, result in results.items():
     print(f'prediction for {output}: {result}')
 
 print("------------------------EXAMPLE 3------------------------")
+# Example 3
 # In this case the samples are 13 for x and 3 for F, this means that the network will run for tree sample time.
 results = example1(inputs={'F':[[5],[4],[9]],'x':[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13]]}) # 1 window (x = 10) -> 1 output
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
 
 print("------------------------EXAMPLE 4------------------------")
+# Example 4
 # In this example there is 4 sample for the F and only 12 for the x so the minimum number of sample will be generated.
 results = example1(inputs={'F':[[5],[3],[4],[1]],'x':[[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12]]})
 for output, result in results.items():
     print(f'prediction for {output}: {result}')
 
 print("------------------------EXAMPLE 5------------------------")
+# Example 5
 # Using the option sampled the input must be created to reflect the need of the network.
 # In particular the network needs a sample for F and 11 samples for x
 # This way permits to define each sample window independently

@@ -407,6 +407,196 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         self.assertEqual([[[27]],[[29]],[[31]],[[33]]],test.data['val_dataset']['out'].tolist())
         self.assertEqual((4,1,1),test.data['test_dataset']['out'].shape)
         self.assertEqual([[[47]],[[49]],[[51]],[[53]]],test.data['test_dataset']['out'].tolist())
-    
+
+    def test_build_multi_dataset_custom(self):
+        input1 = Input('in1')
+        output = Input('out')
+        rel1 = Fir(input1.tw(0.05))
+        rel2 = Fir(input1.tw([-0.01, 0.02]))
+        rel3 = Fir(input1.tw([-0.05, 0.01]))
+        fun = Output('out', rel1 + rel2 + rel3)
+
+        test = Neu4mes(visualizer=None)
+        test.addModel(fun)
+        test.minimizeError('out', output.z(-1), fun)
+        test.neuralizeModel(0.01)
+
+        train_data_x = np.array(range(10))
+        val_data_x = np.array(range(10, 20))
+        test_data_x = np.array(range(20, 30))
+        data_a = 2
+        data_b = -3
+        train_dataset = {'in1': train_data_x, 'out': (data_a * train_data_x) + data_b}
+        val_dataset = {'in1': val_data_x, 'out': (data_a * val_data_x) + data_b}
+        test_dataset = {'in1': test_data_x, 'out': (data_a * test_data_x) + data_b}
+
+        test.loadData(name='train_dataset', source=train_dataset)
+        test.loadData(name='val_dataset', source=val_dataset)
+        test.loadData(name='test_dataset', source=test_dataset)
+
+        self.assertEqual(3, test.n_datasets)
+
+        self.assertEqual((4, 7, 1), test.data['train_dataset']['in1'].shape)
+        self.assertEqual([[[0], [1], [2], [3], [4], [5], [6]],
+                          [[1], [2], [3], [4], [5], [6], [7]],
+                          [[2], [3], [4], [5], [6], [7], [8]],
+                          [[3], [4], [5], [6], [7], [8], [9]]],
+                         test.data['train_dataset']['in1'].tolist())
+        self.assertEqual((4, 7, 1), test.data['val_dataset']['in1'].shape)
+        self.assertEqual([[[10], [11], [12], [13], [14], [15], [16]],
+                          [[11], [12], [13], [14], [15], [16], [17]],
+                          [[12], [13], [14], [15], [16], [17], [18]],
+                          [[13], [14], [15], [16], [17], [18], [19]]],
+                         test.data['val_dataset']['in1'].tolist())
+        self.assertEqual((4, 7, 1), test.data['test_dataset']['in1'].shape)
+        self.assertEqual([[[20], [21], [22], [23], [24], [25], [26]],
+                          [[21], [22], [23], [24], [25], [26], [27]],
+                          [[22], [23], [24], [25], [26], [27], [28]],
+                          [[23], [24], [25], [26], [27], [28], [29]]],
+                         test.data['test_dataset']['in1'].tolist())
+
+        self.assertEqual((4, 1, 1), test.data['train_dataset']['out'].shape)
+        self.assertEqual([[[7]], [[9]], [[11]], [[13]]], test.data['train_dataset']['out'].tolist())
+        self.assertEqual((4, 1, 1), test.data['val_dataset']['out'].shape)
+        self.assertEqual([[[27]], [[29]], [[31]], [[33]]], test.data['val_dataset']['out'].tolist())
+        self.assertEqual((4, 1, 1), test.data['test_dataset']['out'].shape)
+        self.assertEqual([[[47]], [[49]], [[51]], [[53]]], test.data['test_dataset']['out'].tolist())
+    def test_vector_input_dataset(self):
+        x = Input('x', dimensions=4)
+        y = Input('y', dimensions=3)
+        k = Input('k', dimensions=2)
+        w = Input('w')
+
+
+        out = Output('out', Fir(Linear(Linear(3)(x.tw(0.02)) + y.tw(0.02))))
+        out2 = Output('out2', Fir(Linear(k.last() + Fir(2)(w.tw(0.05,offset=-0.02)))))
+
+        test = Neu4mes()
+        test.minimizeError('out', out, out2)
+        test.neuralizeModel(0.01)
+
+        ## Custom dataset
+        data_x = np.transpose(np.array(
+                 [np.linspace(1,100,100, dtype=np.float32),
+                  np.linspace(2, 101, 100, dtype=np.float32),
+                  np.linspace(3, 102, 100, dtype=np.float32),
+                  np.linspace(4, 103, 100, dtype=np.float32)]))
+        data_y = np.transpose(np.array(
+                 [np.linspace(1,100,100, dtype=np.float32) + 10,
+                  np.linspace(2, 101, 100, dtype=np.float32) + 10,
+                  np.linspace(3, 102, 100, dtype=np.float32) + 10]))
+        data_k = np.transpose(np.array(
+                 [np.linspace(1,100,100, dtype=np.float32) + 20,
+                  np.linspace(2, 101, 100, dtype=np.float32) + 20]))
+        data_w = np.linspace(1,100,100, dtype=np.float32) + 30
+        dataset = {'x': data_x, 'y': data_y, 'w': data_w, 'k': data_k}
+
+        test.loadData(name='dataset', source=dataset)
+
+        self.assertEqual((96, 2, 4),test.data['dataset']['x'].shape)
+        self.assertEqual((96, 2, 3),test.data['dataset']['y'].shape)
+        self.assertEqual((96, 1, 2),test.data['dataset']['k'].shape)
+        self.assertEqual((96, 5, 1),test.data['dataset']['w'].shape)
+
+        self.assertEqual([[4.0, 5.0, 6.0, 7.0], [5.0, 6.0, 7.0, 8.0]],
+                        test.data['dataset']['x'][0].tolist())
+        self.assertEqual([[5.0, 6.0, 7.0, 8.0],[6.0, 7.0, 8.0, 9.0]],
+                        test.data['dataset']['x'][1].tolist())
+        self.assertEqual([[99, 100, 101, 102], [100, 101, 102, 103]],
+                        test.data['dataset']['x'][-1].tolist())
+        self.assertEqual([[98, 99, 100, 101],[99, 100, 101, 102]],
+                        test.data['dataset']['x'][-2].tolist())
+
+        self.assertEqual([[14.0, 15.0, 16.0], [15.0, 16.0, 17.0]],
+                         test.data['dataset']['y'][0].tolist())
+        self.assertEqual([[15.0, 16.0, 17.0], [16.0, 17.0, 18.0]],
+                         test.data['dataset']['y'][1].tolist())
+        self.assertEqual([[109, 110, 111], [110, 111, 112]],
+                         test.data['dataset']['y'][-1].tolist())
+        self.assertEqual([[108, 109, 110], [109, 110, 111]],
+                         test.data['dataset']['y'][-2].tolist())
+
+        self.assertEqual([[25.0, 26.0]],
+                         test.data['dataset']['k'][0].tolist())
+        self.assertEqual([[26.0, 27.0]],
+                         test.data['dataset']['k'][1].tolist())
+        self.assertEqual([[120, 121]],
+                         test.data['dataset']['k'][-1].tolist())
+        self.assertEqual([[119, 120]],
+                         test.data['dataset']['k'][-2].tolist())
+
+        self.assertEqual([[31], [32], [33], [34], [35]],
+                         test.data['dataset']['w'][0].tolist())
+        self.assertEqual([[32], [33], [34], [35], [36]],
+                         test.data['dataset']['w'][1].tolist())
+        self.assertEqual([[126], [127], [128], [129], [130]],
+                         test.data['dataset']['w'][-1].tolist())
+        self.assertEqual([[125], [126], [127], [128], [129]],
+                         test.data['dataset']['w'][-2].tolist())
+
+    def test_vector_input_dataset_files(self):
+        x = Input('x', dimensions=4)
+        y = Input('y', dimensions=3)
+        k = Input('k', dimensions=2)
+        w = Input('w')
+
+        out = Output('out', Fir(Linear(Linear(3)(x.tw(0.02)) + y.tw(0.02))))
+        out2 = Output('out2', Fir(Linear(k.last() + Fir(2)(w.tw(0.05,offset=-0.02)))))
+
+        test = Neu4mes()
+        test.minimizeError('out', out, out2)
+        test.neuralizeModel(0.01)
+
+        data_folder = os.path.join(os.path.dirname(__file__), 'vector_data/')
+        data_struct = ['x', 'y', '','', '', '', 'k', '', '', '', 'w']
+        test.loadData(name='dataset', source=data_folder, format=data_struct, skiplines=1, delimiter='\t', header=None)
+
+        self.assertEqual((22, 2, 4),test.data['dataset']['x'].shape)
+        self.assertEqual((22, 2, 3),test.data['dataset']['y'].shape)
+        self.assertEqual((22, 1, 2),test.data['dataset']['k'].shape)
+        self.assertEqual((22, 5, 1),test.data['dataset']['w'].shape)
+
+        self.assertEqual([[0.804,	0.825,	0.320,	0.488], [0.805,	0.825,	0.322,	0.485]],
+                        test.data['dataset']['x'][0].tolist())
+        self.assertEqual([[0.805,	0.825,	0.322,	0.485],[0.806,	0.824,	0.325,	0.481]],
+                        test.data['dataset']['x'][1].tolist())
+        self.assertEqual([[0.806,	0.824,	0.325,	0.481], [0.807,	0.823,	0.329,	0.477]],
+                        test.data['dataset']['x'][-1].tolist())
+        self.assertEqual([[0.805,	0.825,	0.322,	0.485],[0.806,	0.824,	0.325,	0.481]],
+                        test.data['dataset']['x'][-2].tolist())
+
+        self.assertEqual([[0.350,	1.375,	0.586], [0.350,	1.375,	0.585]],
+                         test.data['dataset']['y'][0].tolist())
+        self.assertEqual([[0.350,	1.375,	0.585], [0.350,	1.375,	0.584]],
+                         test.data['dataset']['y'][1].tolist())
+        self.assertEqual([[0.350,	1.375,	0.584], [0.350,	1.375,	0.582]],
+                         test.data['dataset']['y'][-1].tolist())
+        self.assertEqual([[0.350,	1.375,	0.585], [0.350,	1.375,	0.584]],
+                         test.data['dataset']['y'][-2].tolist())
+
+        self.assertEqual([[0.714,	1.227]],
+                         test.data['dataset']['k'][0].tolist())
+        self.assertEqual([[0.712,	1.225]],
+                         test.data['dataset']['k'][1].tolist())
+        self.assertEqual([[0.710,	1.224]],
+                         test.data['dataset']['k'][-1].tolist())
+        self.assertEqual([[0.712,	1.225]],
+                         test.data['dataset']['k'][-2].tolist())
+
+        self.assertEqual([[12.493], [12.493], [12.495], [12.498], [12.502]],
+                         test.data['dataset']['w'][0].tolist())
+        self.assertEqual([[12.493], [12.495], [12.498], [12.502], [12.508]],
+                         test.data['dataset']['w'][1].tolist())
+        self.assertEqual([[12.495], [12.498], [12.502], [12.508], [12.515]],
+                         test.data['dataset']['w'][-1].tolist())
+        self.assertEqual([[12.493], [12.495], [12.498], [12.502], [12.508]],
+                         test.data['dataset']['w'][-2].tolist())
+
+        ## Load from file
+        ## Try to train the model
+        # test.trainModel(splits=[80, 10, 10],
+        #                 training_params={'num_of_epochs': 100, 'train_batch_size': 4, 'test_batch_size': 4})
+
+
 if __name__ == '__main__':
     unittest.main()

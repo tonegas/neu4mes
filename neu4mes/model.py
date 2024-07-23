@@ -74,7 +74,7 @@ class Model(nn.Module):
                 elif rel_name == 'TimePart':
                     part = inputs[2]
                     offset = inputs[3] if len(inputs) > 3 else None
-                    self.relation_forward[relation] = func(part, offset, self.sample_time)
+                    self.relation_forward[relation] = func(part, offset)
                 elif rel_name == 'SamplePart':
                     part = inputs[2]
                     offset = inputs[3] if len(inputs) > 3 else None

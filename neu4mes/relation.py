@@ -104,9 +104,9 @@ class Stream(Relation):
 
 
 class ToStream():
-    def __new__(cls, *args):
+    def __new__(cls, *args, **kwargs):
         out = super(ToStream,cls).__new__(cls)
-        out.__init__(*args)
+        out.__init__(*args, **kwargs)
         return Stream(out.name,out.json,out.dim,0)
 
 class AutoToStream():
@@ -117,17 +117,3 @@ class AutoToStream():
             return instance(args[0])
         instance = super().__new__(cls)
         return instance
-
-#
-# object.__mul__(self, other)
-# object.__matmul__(self, other)
-# object.__truediv__(self, other)
-# object.__floordiv__(self, other)
-# object.__mod__(self, other)
-# object.__divmod__(self, other)
-# object.__pow__(self, other[, modulo])
-# object.__lshift__(self, other)
-# object.__rshift__(self, other)
-# object.__and__(self, other)
-# object.__xor__(self, other)
-# object.__or__(self, other)

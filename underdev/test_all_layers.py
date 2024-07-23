@@ -144,10 +144,7 @@ y3 = Output('Part3', Part(x_multi.tw([-2,2]), 0, 1))
 y4 = Output('Part4', Part(x_multi.tw([-2,2]), 0, 2))
 
 test = Neu4mes()
-test.addModel(y1)
-test.addModel(y2)
-test.addModel(y3)
-test.addModel(y4)
+test.addModel([y1,y2,y3,y4])
 test.neuralizeModel()
 
 sample = {'x_multi':[[1,2,3],[4,5,6],[7,8,9],[10,11,12]]}

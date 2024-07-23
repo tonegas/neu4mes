@@ -129,9 +129,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         input2 = Input('in2')
         rel3 = Fir(input2.tw(0.05))
         rel4 = Fir(input2.tw([-0.04,0.02]))
-        rel5 = Fir(input2.tw([-0.04, 0.02], offset=-0.03))
-        rel6 = Fir(input2.tw([-0.04, 0.02], offset=0))
-        rel7 = Fir(input2.tw([-0.04, 0.02], offset=0.02))
+        rel5 = Fir(input2.tw([-0.04, 0.02], offset=-0.04))
+        rel6 = Fir(input2.tw([-0.04, 0.02], offset=-0.01))
+        rel7 = Fir(input2.tw([-0.04, 0.02], offset=0.01))
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
         test = Neu4mes(visualizer=None)
@@ -170,16 +170,16 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
     def test_network_building_tw_negative_with_offset(self):
         input2 = Input('in2')
-        rel1 = Fir(input2.tw([-0.05, -0.01], offset=-0.04))
-        rel2 = Fir(input2.tw([-0.02, -0.01], offset=-0.01))
-        rel3 = Fir(input2.tw([-0.06, -0.03], offset=-0.05))
-        rel4 = Fir(input2.tw([-0.06, -0.03], offset=-0.04))
+        rel1 = Fir(input2.tw([-0.05, -0.01], offset=-0.05))
+        rel2 = Fir(input2.tw([-0.02, -0.01], offset=-0.02))
+        rel3 = Fir(input2.tw([-0.06, -0.03], offset=-0.06))
+        rel4 = Fir(input2.tw([-0.06, -0.03], offset=-0.05))
         with self.assertRaises(ValueError):
-            input2.tw([-0.01, -0.01], offset=-0.01)
+            input2.tw([-0.01, -0.01], offset=-0.02)
         with self.assertRaises(IndexError):
-            input2.tw([-0.06, -0.03], offset=-0.06)
+            input2.tw([-0.06, -0.03], offset=-0.07)
         with self.assertRaises(IndexError):
-            input2.tw([-0.06, -0.01], offset=0)
+            input2.tw([-0.06, -0.01], offset=-0.01)
         fun = Output('out', rel1 + rel2 + rel3 + rel4)
 
         test = Neu4mes(visualizer=None)
@@ -290,13 +290,13 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         self.assertEqual(0, test.input_tw_backward['in2'])
         self.assertEqual(0, test.input_tw_forward['in2'])
-        self.assertEqual(5,test.input_ns_backward['in2'])
-        self.assertEqual(2,test.input_ns_forward['in2'])
-        self.assertEqual(7,test.input_n_samples['in2'])
+        self.assertEqual(5, test.input_ns_backward['in2'])
+        self.assertEqual(2, test.input_ns_forward['in2'])
+        self.assertEqual(7, test.input_n_samples['in2'])
 
-        self.assertEqual(5,test.max_samples_backward)
-        self.assertEqual(2,test.max_samples_forward)
-        self.assertEqual(7,test.max_n_samples)
+        self.assertEqual(5, test.max_samples_backward)
+        self.assertEqual(2, test.max_samples_forward)
+        self.assertEqual(7, test.max_n_samples)
 
     def test_network_building_sw_and_tw(self):
         input2 = Input('in2')
@@ -320,32 +320,6 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual(2,test.max_samples_forward)
         self.assertEqual(6,test.max_n_samples)
 
-    '''
-    def test_network_building_discrete_input_and_local_model(self):
-        in1 = Input('in1', values=[2,3,4])
-        in2 = Input('in2')
-        rel = LocalModel(in2.tw(1), in1)
-        fun = Output(in2.z(-1),rel)
-
-        test = Neu4mes()
-        test.addModel(fun)
-        test.neuralizeModel(0.5)
-
-        test_layer = Model(inputs=[test.inputs_for_model['in1']], outputs=test.inputs[('in1', 1)])
-        self.assertEqual([[1.,0.,0.]],test_layer.predict([[2]]).tolist())
-        self.assertEqual([[0.,1.,0.]],test_layer.predict([[3]]).tolist())
-        self.assertEqual([[0.,0.,1.]],test_layer.predict([[4]]).tolist())
-
-        test_layer = Model(inputs=[test.inputs_for_model['in2'],test.inputs_for_model['in1']], outputs=test.outputs['in2__-z1'])
-        weights = test_layer.get_weights()
-        self.assertEqual((2, 3),weights[0].shape) 
-        self.assertEqual([[weights[0][1][0]]],test_layer.predict([np.array([[0,1]]),np.array([[2]])]).tolist())
-        self.assertEqual([[weights[0][1][1]]],test_layer.predict([np.array([[0,1]]),np.array([[3]])]).tolist())
-        self.assertEqual([[weights[0][1][2]]],test_layer.predict([np.array([[0,1]]),np.array([[4]])]).tolist())
-        self.assertEqual([[weights[0][0][0]]],test_layer.predict([np.array([[1,0]]),np.array([[2]])]).tolist())
-        self.assertEqual([[weights[0][0][1]]],test_layer.predict([np.array([[1,0]]),np.array([[3]])]).tolist())
-        self.assertEqual([[weights[0][0][2]]],test_layer.predict([np.array([[1,0]]),np.array([[4]])]).tolist())
-    '''
 
 if __name__ == '__main__':
     unittest.main()

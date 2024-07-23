@@ -93,7 +93,7 @@ def fun1(x):
     return torch.sin(x)
 def fun2(x):
     return torch.cos(x)
-fuz = Fuzzify(4,centers=[-1,0,3,5],functions=[fun1,fun2,fun1,fun2])
+fuz = Fuzzify(centers=[-1,0,3,5],functions=[fun1,fun2,fun1,fun2])
 out = Output('out',fuz(x.last())+fuz(F.last()))
 example = Neu4mes()
 example.addModel(out)
@@ -113,7 +113,7 @@ def fun1(x):
     return torch.cos(x)
 def fun2(x):
     return torch.sin(x)
-fuz = Fuzzify(4,centers=[-9.0,-3.0,3.0,9.0],functions=[fun1,fun2])
+fuz = Fuzzify(centers=[-9.0,-3.0,3.0,9.0],functions=[fun1,fun2])
 out = Output('out', fuz(x.last()))
 example = Neu4mes()
 example.addModel(out)

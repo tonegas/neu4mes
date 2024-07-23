@@ -78,6 +78,7 @@ class Neu4mes:
 
 
     def __call__(self, inputs, sampled=False):
+        check(self.neuralized, ValueError, "The network is not neuralized.")
         model_inputs = list(self.model_def['Inputs'].keys())
         provided_inputs = list(inputs.keys())
         missing_inputs = list(set(model_inputs) - set(provided_inputs))
@@ -125,8 +126,11 @@ class Neu4mes:
                         X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
 
                     input_dim = self.model_def['Inputs'][key]['dim']
-                    if X[key].ndim >= 2:
-                        check(X[key].shape[1] == input_dim, ValueError, 'The second dimension must be equal to the input dimension')
+                    if input_dim > 1:
+                        check(len(X[key].shape) == 2, ValueError,
+                              f'The input {key} must have two dimensions')
+                        check(X[key].shape[1] == input_dim, ValueError,
+                              f'The second dimension of the input "{key}" must be equal to {input_dim}')
 
                     if input_dim == 1 and X[key].shape[-1] != 1: ## add the input dimension
                         X[key] = X[key].unsqueeze(-1)
@@ -188,12 +192,13 @@ class Neu4mes:
 
         check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
         self.model_def["SampleTime"] = sample_time
-
+        model_def_final = copy.deepcopy(self.model_def)
+        #model_def_final = self.model_def
         self.visualizer.showModel()
 
-        check(self.model_def['Inputs'] != {}, RuntimeError, "No model is defined!")
+        check(model_def_final['Inputs'] != {}, RuntimeError, "No model is defined!")
 
-        for key, value in self.model_def['Inputs'].items():
+        for key, value in model_def_final['Inputs'].items():
             self.input_tw_backward[key] = -value['tw'][0]
             self.input_tw_forward[key] = value['tw'][1]
             if value['sw'] == [0,0] and value['tw'] == [0,0]:
@@ -217,15 +222,15 @@ class Neu4mes:
         self.visualizer.showModelInputWindow()
 
         ## Adjust with the correct slicing
-        for _, items in self.model_def['Relations'].items():
+        for _, items in model_def_final['Relations'].items():
             if items[0] == 'SamplePart':
-                if items[1][0] in self.model_def['Inputs'].keys():
+                if items[1][0] in model_def_final['Inputs'].keys():
                     items[2][0] = self.input_ns_backward[items[1][0]] + items[2][0]
                     items[2][1] = self.input_ns_backward[items[1][0]] + items[2][1]
                     if len(items) > 3: ## Offset
                         items[3] = self.input_ns_backward[items[1][0]] + items[3]
             if items[0] == 'TimePart':
-                if items[1][0] in self.model_def['Inputs'].keys():
+                if items[1][0] in model_def_final['Inputs'].keys():
                     items[2][0] = self.input_ns_backward[items[1][0]] + round(items[2][0]/sample_time)
                     items[2][1] = self.input_ns_backward[items[1][0]] + round(items[2][1]/sample_time)
                     if len(items) > 3: ## Offset
@@ -242,13 +247,14 @@ class Neu4mes:
                     if len(items) > 3: ## Offset
                         items[3] = round(items[3]/sample_time)
 
+        #self.visualizer.showModel()
         ## Build the network
-        self.model = Model(self.model_def, self.minimize_list)
+        self.model = Model(model_def_final, self.minimize_list)
         self.visualizer.showBuiltModel()
         self.neuralized = True
 
 
-    def loadData(self, name, source, format=None, skiplines=0, delimiter=',', header='infer'):
+    def loadData(self, name, source, format=None, skiplines=0, delimiter=',', header=None):
         assert self.neuralized == True, "The network is not neuralized yet."
         check(delimiter in ['\t', '\n', ';', ',', ' '], ValueError, 'delimiter not valid!')
 
@@ -377,9 +383,9 @@ class Neu4mes:
                 idx = i * self.test_batch_size
                 XY = {}
                 for key, val in XY_test.items():
-                    XY[key] = torch.from_numpy(val[idx:idx + self.test_batch_size]).to(torch.float32)
-                    if XY[key].ndim == 2:
-                        XY[key] = XY[key].unsqueeze(-1)
+                    XY[key] = val[idx:idx + self.test_batch_size]
+                    #if XY[key].ndim == 2:
+                    #    XY[key] = XY[key].unsqueeze(-1)
 
                 _, minimize_out = self.model(XY)
                 for ind, (name, items) in enumerate(self.minimize_dict.items()):
@@ -624,7 +630,7 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
 
-        #self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+        self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
 
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not self.data_loaded:
