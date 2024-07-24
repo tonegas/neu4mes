@@ -158,7 +158,7 @@ elif example == 4:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.5))
     y_out = Fir(y_state.tw(0.5))
-    x_out.update(x_state)
+    #x_out.update(x_state)
     y_out.update(y_state)
     out = Output('out',x_out+y_out)
 
