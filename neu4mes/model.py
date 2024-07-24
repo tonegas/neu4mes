@@ -53,13 +53,14 @@ class Model(nn.Module):
             else:
                 sample_window = 1
             if type(param_data['dim']) is tuple:
-                param_size = tuple(param_data['dim'])
+                param_size = (sample_window,)+param_data['dim']
             else:
                 param_size = (sample_window, param_data['dim'])
             if 'values' in param_data:
                 self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=True)
             else:
                 self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size, dtype=torch.float32), requires_grad=True)
+
 
         ## save the states updates
         self.states_updates = {}
