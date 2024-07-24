@@ -350,9 +350,15 @@ class Neu4mes:
         with torch.inference_mode():
 
             self.model.eval()
-            A = torch.zeros(len(self.minimize_dict), self.n_samples_test)
-            B = torch.zeros(len(self.minimize_dict), self.n_samples_test)
-            aux_test_losses = np.zeros([len(self.minimize_dict), self.n_samples_test])
+            A = {}
+            B = {}
+            aux_test_losses = {}
+            for (name, items) in self.minimize_dict.items():
+                window = 'tw' if 'tw' in items['A'][1].dim else ('sw' if 'sw' in items['A'][1].dim else None)
+                A[name] = torch.zeros([self.n_samples_test,self.test_batch_size,items['A'][1].dim[window],items['A'][1].dim['dim']])
+                B[name] = torch.zeros([self.n_samples_test,self.test_batch_size,items['B'][1].dim[window],items['B'][1].dim['dim']])
+                aux_test_losses[name] = np.zeros([self.n_samples_test,self.test_batch_size,items['A'][1].dim[window],items['A'][1].dim['dim']])
+
             for i in range(self.n_samples_test):
 
                 idx = i * self.test_batch_size
@@ -364,10 +370,10 @@ class Neu4mes:
 
                 _, minimize_out = self.model(XY)
                 for ind, (name, items) in enumerate(self.minimize_dict.items()):
-                    A[ind][i] = minimize_out[items['A'][0]]
-                    B[ind][i] =  minimize_out[items['B'][0]]
+                    A[name][i] = minimize_out[items['A'][0]]
+                    B[name][i] =  minimize_out[items['B'][0]]
                     loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
-                    aux_test_losses[ind][i] = loss.detach().numpy()
+                    aux_test_losses[name][i] = loss.detach().numpy()
 
 
             # self.model.eval()
@@ -398,10 +404,10 @@ class Neu4mes:
             #         aux_test_losses[ind][i] = loss.detach().numpy()
 
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
-                A_np = A[ind].detach().numpy()
-                B_np = B[ind].detach().numpy()
+                A_np = A[key].detach().numpy()
+                B_np = B[key].detach().numpy()
                 self.performance[key] = {}
-                self.performance[key][value['loss']] = {'epoch_test': test_losses[key], 'epoch_train': train_losses[key], 'test': np.mean(aux_test_losses[ind])}
+                self.performance[key][value['loss']] = {'epoch_test': test_losses[key], 'epoch_train': train_losses[key], 'test': np.mean(aux_test_losses[name])}
                 self.performance[key]['fvu'] = {}
                 # Compute FVU
                 residual = A_np - B_np
@@ -432,7 +438,7 @@ class Neu4mes:
                 self.prediction[key]['B'] = B_np.tolist()
 
             self.performance['total'] = {}
-            self.performance['total']['mean_error'] = {'test': np.mean(aux_test_losses)}
+            self.performance['total']['mean_error'] = {'test': np.mean([value for key,value in aux_test_losses.items()])}
             self.performance['total']['fvu'] = np.mean([self.performance[key]['fvu']['total'] for key in self.minimize_dict.keys()])
             self.performance['total']['aic'] = np.mean([self.performance[key]['aic']['value']for key in self.minimize_dict.keys()])
 
@@ -604,7 +610,8 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
 
-        self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+        if self.n_samples_test > 0:
+            self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
 
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not self.data_loaded:
