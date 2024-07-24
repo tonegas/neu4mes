@@ -3,12 +3,14 @@ from pprint import pformat
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
+from neu4mes.utilis import check
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
 MAIN_JSON = {
                 'SampleTime': 0,
                 'Inputs' : {},
+                'States' : {},
                 'Functions' : {},
                 'Parameters' : {},
                 'Outputs': {},
@@ -101,6 +103,11 @@ class Stream(Relation):
         self.json = copy.deepcopy(json)
         self.dim = dim
 
+    def update(self, obj):
+        from neu4mes.input import State
+        check(type(obj) is State, TypeError,
+              f"The {obj} must be a State and not a {type(obj)}.")
+        self.json['States'][obj.name]['update'] = self.name
 
 
 class ToStream():
