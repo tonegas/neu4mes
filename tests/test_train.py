@@ -269,7 +269,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
 
-    def test_train_vactor_input(self):
+    def test_train_vector_input(self):
         x = Input('x', dimensions=4)
         y = Input('y', dimensions=3)
         k = Input('k', dimensions=2)
