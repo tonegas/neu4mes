@@ -53,13 +53,14 @@ class Model(nn.Module):
             else:
                 sample_window = 1
             if type(param_data['dim']) is tuple:
-                param_size = tuple(param_data['dim'])
+                param_size = (sample_window,)+param_data['dim']
             else:
                 param_size = (sample_window, param_data['dim'])
             if 'values' in param_data:
                 self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=True)
             else:
                 self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size, dtype=torch.float32), requires_grad=True)
+
 
         ## save the states updates
         self.states_updates = {}
@@ -92,7 +93,10 @@ class Model(nn.Module):
                 elif rel_name == 'Fir':  
                     self.relation_forward[relation] = func(self.all_parameters[inputs[2]])
                 elif rel_name == 'Linear':
-                    self.relation_forward[relation] = func(self.all_parameters[inputs[2]],inputs[3])
+                    if inputs[3]:
+                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]],self.all_parameters[inputs[3]])
+                    else:
+                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]], None)
                 elif rel_name == 'TimePart':
                     part = inputs[2]
                     offset = inputs[3] if len(inputs) > 3 else None

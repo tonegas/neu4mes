@@ -69,9 +69,10 @@ class SamplePart(Stream, ToStream):
               f"The type of {obj} is {type(obj)} and is not supported for SamplePart operation.")
         check('sw' in obj.dim, KeyError, 'Input must have a sample window')
         check(i < j, ValueError, 'i must be smaller than j')
-        if obj.name in obj.json['Inputs']:
-            backward_idx = obj.json['Inputs'][obj.name]['sw'][0]
-            forward_idx = obj.json['Inputs'][obj.name]['sw'][1]
+        all_inputs = obj.json['Inputs'] | obj.json['States']
+        if obj.name in all_inputs:
+            backward_idx = all_inputs[obj.name]['sw'][0]
+            forward_idx = all_inputs[obj.name]['sw'][1]
         else:
             backward_idx = 0
             forward_idx = obj.dim['sw']
@@ -131,9 +132,10 @@ class TimePart(Stream, ToStream):
               f"The type of {obj} is {type(obj)} and is not supported for TimePart operation.")
         check('tw' in obj.dim, KeyError, 'Input must have a time window')
         check(i < j, ValueError, 'i must be smaller than j')
-        if obj.name in obj.json['Inputs']:
-            backward_idx = obj.json['Inputs'][obj.name]['tw'][0]
-            forward_idx = obj.json['Inputs'][obj.name]['tw'][1]
+        all_inputs = obj.json['Inputs'] | obj.json['States']
+        if obj.name in all_inputs:
+            backward_idx = all_inputs[obj.name]['tw'][0]
+            forward_idx = all_inputs[obj.name]['tw'][1]
         else:
             backward_idx = 0
             forward_idx = obj.dim['tw']

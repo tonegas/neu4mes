@@ -4,35 +4,34 @@ import numpy as np
 
 from neu4mes.relation import NeuObj, Stream
 from neu4mes.utilis import check
-from neu4mes.visualizer import Visualizer
 from neu4mes.part import SamplePart, TimePart
 
-class Input(NeuObj, Stream):
-    def __init__(self, name, dimensions:int = 1, values = None):
+
+
+class InputState(NeuObj, Stream):
+    def __init__(self, json_name, name, dimensions:int = 1):
         NeuObj.__init__(self, name)
         check(type(dimensions) == int, TypeError,"The dimensions must be a integer")
-        self.json['Inputs'][self.name] = {'dim': dimensions, 'tw': [0, 0], 'sw': [0,0] }
+        self.json_name = json_name
+        self.json[self.json_name][self.name] = {'dim': dimensions, 'tw': [0, 0], 'sw': [0,0] }
         self.dim = {'dim': dimensions}
-        if values:
-            self.values = values
-            self.json['Inputs'][self.name]['discrete'] = values
         Stream.__init__(self, name, self.json, self.dim)
 
     def tw(self, tw, offset = None):
         dim = copy.deepcopy(self.dim)
         json = copy.deepcopy(self.json)
         if type(tw) is list:
-            json['Inputs'][self.name]['tw'] = tw
+            json[self.json_name][self.name]['tw'] = tw
             tw = tw[1] - tw[0]
         else:
-            json['Inputs'][self.name]['tw'][0] = -tw
+            json[self.json_name][self.name]['tw'][0] = -tw
         check(tw > 0, ValueError, "The time window must be positive")
         dim['tw'] = tw
         if offset is not None:
-            check(json['Inputs'][self.name]['tw'][0] <= offset < json['Inputs'][self.name]['tw'][1],
+            check(json[self.json_name][self.name]['tw'][0] <= offset < json[self.json_name][self.name]['tw'][1],
                   IndexError,
                   "The offset must be inside the time window")
-        return TimePart(Stream(self.name, json, dim), json['Inputs'][self.name]['tw'][0], json['Inputs'][self.name]['tw'][1], offset)
+        return TimePart(Stream(self.name, json, dim), json[self.json_name][self.name]['tw'][0], json[self.json_name][self.name]['tw'][1], offset)
 
     # Select a sample window
     # Example T = [-3,-2,-1,0,1,2]       # time vector 0 represent the last passed instant
@@ -51,18 +50,18 @@ class Input(NeuObj, Stream):
         json = copy.deepcopy(self.json)
         if type(sw) is list:
             check(type(sw[0]) == int and type(sw[1]) == int, TypeError, "The sample window must be integer")
-            json['Inputs'][self.name]['sw'] = sw
+            json[self.json_name][self.name]['sw'] = sw
             sw = sw[1] - sw[0]
         else:
             check(type(sw) == int, TypeError, "The sample window must be integer")
-            json['Inputs'][self.name]['sw'][0] = -sw
+            json[self.json_name][self.name]['sw'][0] = -sw
         check(sw > 0, ValueError, "The sample window must be positive")
         dim['sw'] = sw
         if offset is not None:
-            check(json['Inputs'][self.name]['sw'][0] <= offset < json['Inputs'][self.name]['sw'][1],
+            check(json[self.json_name][self.name]['sw'][0] <= offset < json[self.json_name][self.name]['sw'][1],
                   IndexError,
                   "The offset must be inside the sample window")
-        return SamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], offset)
+        return SamplePart(Stream(self.name, json, dim), json[self.json_name][self.name]['sw'][0], json[self.json_name][self.name]['sw'][1], offset)
 
     # Select the unitary delay
     # Example T = [-3,-2,-1,0,1,2] # time vector 0 represent the last passed instant
@@ -73,9 +72,9 @@ class Input(NeuObj, Stream):
         dim = copy.deepcopy(self.dim)
         json = copy.deepcopy(self.json)
         sw = [(-delay) - 1, (-delay)]
-        json['Inputs'][self.name]['sw'] = sw
+        json[self.json_name][self.name]['sw'] = sw
         dim['sw'] = sw[1] - sw[0]
-        return SamplePart(Stream(self.name, json, dim), json['Inputs'][self.name]['sw'][0], json['Inputs'][self.name]['sw'][1], None)
+        return SamplePart(Stream(self.name, json, dim), json[self.json_name][self.name]['sw'][0], json[self.json_name][self.name]['sw'][1], None)
 
     def last(self):
         return self.z(0)
@@ -85,3 +84,12 @@ class Input(NeuObj, Stream):
 
     # def s(self, derivate):
     #     return Stream((self.name, {'s':derivate}), self.json, self.dim)
+
+
+class Input(InputState):
+    def __init__(self, name, dimensions:int = 1):
+        InputState.__init__(self, 'Inputs', name, dimensions)
+
+class State(InputState):
+    def __init__(self, name, dimensions:int = 1):
+        InputState.__init__(self, 'States', name, dimensions)
