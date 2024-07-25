@@ -12,33 +12,39 @@ import signal
 
 
 line = sys.stdin.readline().strip()
+key, A, B, sample_time = None, None, None, None
 if line:
     try:
         # Convert to float and append to buffer
         data_point = json.loads(line)
+        name_data = data_point['name_data']
+        key = data_point['key']
         A = data_point['prediction_A']
         B = data_point['prediction_B']
         sample_time = data_point['sample_time']
-        key = data_point['key']
     except ValueError:
-        pass
+        exit()
 
 fig, ax = plt.subplots()
 # Clear the current plot
 plt.clf()
 # Plot data
-plt.title(f'Data of {key}')
-plt.plot(np.arange(0,len(A)*sample_time,sample_time), A, label='A')
-plt.plot(np.arange(0,len(B)*sample_time,sample_time), B, '-.', label='B')
+plt.title(f'{name_data} Data of {key}')
+A_t = np.transpose(np.array(A))
+B_t = np.transpose(np.array(B))
+for ind_win in range(A_t.shape[0]):
+    for ind_dim in range(A_t.shape[1]):
+        plt.plot(np.arange(0,len(A_t[ind_win,ind_dim])*sample_time,sample_time), A_t[ind_win,ind_dim], label=f'A win[{ind_win}] dim[{ind_dim}]')
+        plt.plot(np.arange(0,len(B_t[ind_win,ind_dim])*sample_time,sample_time), B_t[ind_win,ind_dim], '-.', label=f'B win[{ind_win}] dim[{ind_dim}]')
 
 plt.grid(True)
 plt.legend(loc='best')
 plt.xlabel('Time (s)')
 plt.ylabel('Value')
 # Set plot limits
-min_val = min([min(A), min(B)])
-max_val = max([max(A), max(B)])
-plt.ylim(min_val - min_val / 10, max_val + max_val / 10)
+# min_val = min([min(A), min(B)])
+# max_val = max([max(A), max(B)])
+# plt.ylim(min_val - min_val / 10, max_val + max_val / 10)
 plt.show()
 
     # # Plot

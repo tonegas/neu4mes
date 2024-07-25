@@ -46,13 +46,15 @@ class MPLVisulizer(TextVisualizer):
             for key in self.n4m.minimize_dict.keys():
                 self.process_training[key].terminate()
 
-    def showResults(self):
-        super().showResults()
+    def showResults(self, name_data):
+        super().showResults(name_data)
         for key in self.n4m.minimize_dict.keys():
             # Start the data visualizer process
             self.process_results[key] = subprocess.Popen(['python', self.time_series_visualizer_script], stdin=subprocess.PIPE,
-                                                 text=True)
-            data = {"key": key, "performance": self.n4m.performance[key],
+                                                text=True)
+            data = {"name_data": name_data,
+                    "key": key,
+                    "performance": self.n4m.performance[key],
                     "prediction_A": self.n4m.prediction[key]['A'],
                     "prediction_B": self.n4m.prediction[key]['B'],
                     "sample_time": self.n4m.model_def["SampleTime"]}

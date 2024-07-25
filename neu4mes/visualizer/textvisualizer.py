@@ -73,8 +73,6 @@ class TextVisualizer(Visualizer):
             self.__param("Total number of samples:", f'{self.n4m.num_of_samples[name]}')
             for key in self.n4m.model_def['Inputs'].keys():
                 self.__param(f"Shape of {key}:", f'{self.n4m.data[name][key].shape}')
-            self.__singleline()
-            self.__param("Available Datasets:", f'{self.n4m.datasets_loaded}')
             self.__line()
 
     def showTraining(self, epoch, train_losses, val_losses):
@@ -152,15 +150,28 @@ class TextVisualizer(Visualizer):
             self.__param("Total time of Training:", f'{time}')
             self.__line()
 
-    def showResults(self):
+    def showTrainParams(self):
+        if self.verbose >= 1:
+            self.__title(" Neu4mes Model Train Parameters ")
+            self.__paramjson("learning rate:",self.n4m.learning_rate)
+            self.__paramjson("num of epochs:",self.n4m.num_of_epochs)
+            self.__param("Available Datasets:", f'{self.n4m.datasets_loaded}')
+            self.__param("train {batch size, samples}:", f"{{{self.n4m.train_batch_size}, {self.n4m.n_samples_train}}}")
+            self.__param("val {batch size, samples}:", f"{{{self.n4m.val_batch_size}, {self.n4m.n_samples_val}}}")
+            self.__param("test {batch size, samples}:", f"{{{self.n4m.test_batch_size}, {self.n4m.n_samples_test}}}")
+            if self.n4m.n_samples_horizon:
+                self.__paramjson("prediction horizon:", self.n4m.n_samples_horizon)
+            self.__line()
+
+    def showResults(self, name_data):
         if self.verbose >= 1:
             loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.minimize_dict.items())])
-            self.__title(" Neu4mes Model Results ", 12 + (len(loss_type_list) + 2) * 20)
+            self.__title(f" Neu4mes Model Results for {name_data} ", 12 + (len(loss_type_list) + 2) * 20)
             print(color('|' + (f'Loss').center(10, ' ') + '|'), end='')
             for loss in loss_type_list:
-                print(color((f'{loss} (test)').center(19, ' ') + '|'), end='')
-            print(color((f'FVU (test)').center(19, ' ') + '|'), end='')
-            print(color((f'AIC (test)').center(19, ' ') + '|'))
+                print(color((f'{loss} ('+name_data+')').center(19, ' ') + '|'), end='')
+            print(color((f'FVU ('+name_data+')').center(19, ' ') + '|'), end='')
+            print(color((f'AIC ('+name_data+')').center(19, ' ') + '|'))
 
             print(color('|' + (f'').center(10, ' ') + '|'), end='')
             for i in range(len(loss_type_list)):
@@ -173,7 +184,7 @@ class TextVisualizer(Visualizer):
                 print(color('|'+(f'{key}').center(10, ' ') + '|'), end='')
                 for loss in list(loss_type_list):
                     if value["loss"] == loss:
-                        print(color((f'{self.n4m.performance[key][value["loss"]]["test"]:.4f}').center(19, ' ') + '|'), end='')
+                        print(color((f'{self.n4m.performance[key][value["loss"]][name_data]:.4f}').center(19, ' ') + '|'), end='')
                     else:
                         print(color((f' ').center(19, ' ') + '|'), end='')
                 print(color((f'{self.n4m.performance[key]["fvu"]["total"]:.4f}').center(19, ' ') + '|'), end='')
@@ -181,7 +192,7 @@ class TextVisualizer(Visualizer):
 
             print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
             print(color('|'+(f'Total').center(10, ' ') + '|'), end='')
-            print(color((f'{self.n4m.performance["total"]["mean_error"]["test"]:.4f}').center(len(loss_type_list)*20-1, ' ') + '|'), end='')
+            print(color((f'{self.n4m.performance["total"]["mean_error"][name_data]:.4f}').center(len(loss_type_list)*20-1, ' ') + '|'), end='')
             print(color((f'{self.n4m.performance["total"]["fvu"]:.4f}').center(19, ' ') + '|'), end='')
             print(color((f'{self.n4m.performance["total"]["aic"]:.4f}').center(19, ' ') + '|'))
 

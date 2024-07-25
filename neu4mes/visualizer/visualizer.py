@@ -45,8 +45,11 @@ class Visualizer():
     def showTraining(self, epoch, train_losses, val_losses):
         pass
 
+    def showTrainParams(self):
+        pass
+
     def showTrainingTime(self, time):
         pass
 
-    def showResults(self):
+    def showResults(self, name_data):
         pass
