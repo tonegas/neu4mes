@@ -571,7 +571,7 @@ class Neu4mes:
                     if (self.n_samples_horizon == 0) or (self.n_samples_horizon != 0 and ((i+self.n_samples_horizon)%self.n_samples_horizon == 0)):
                         _, minimize_out = self.model(XY, initialize_state=True)  ## Recurrent Training with state variables
                     else:
-                        _, minimize_out = self.model(XY)
+                        _, minimize_out = self.model(XY, initialize_state=False)
                     ## Validation Loss
                     for ind, (name, items) in enumerate(self.minimize_dict.items()):
                         loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
@@ -601,7 +601,7 @@ class Neu4mes:
                 if (self.n_samples_horizon == 0) or (self.n_samples_horizon != 0 and ((i+self.n_samples_horizon)%self.n_samples_horizon == 0)):
                     _, minimize_out = self.model(XY, initialize_state=True)  ## Recurrent Training with state variables
                 else:
-                    _, minimize_out = self.model(XY)
+                    _, minimize_out = self.model(XY, initialize_state=False)
                 ## Test Loss
                 for ind, (name, items) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
@@ -610,8 +610,9 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
 
-        if self.n_samples_test > 0:
-            self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+        ## TODO: adjust the result analysis
+        #if self.n_samples_test > 0:
+        #    self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
 
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not self.data_loaded:
