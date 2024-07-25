@@ -147,7 +147,7 @@ class Model(nn.Module):
         available_keys = set(list(self.inputs.keys()) + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
         ## Initialize the state variables
         if initialize_state:
-            print('INITIALIZE')
+            #print('INITIALIZE')
             for state, value in self.state_model.items():
                 if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
                     self.states[state] = kwargs[state].clone()
@@ -156,8 +156,8 @@ class Model(nn.Module):
                     batch_size = list(kwargs.values())[0].shape[0]
                     window_size = round(max(abs(value['sw'][0]), abs(value['tw'][0]//self.sample_time)) + max(value['sw'][1], value['tw'][1]//self.sample_time))
                     self.states[state] = torch.zeros(size=(batch_size, window_size, value['dim']), dtype=torch.float32, requires_grad=False)
-                print('state key: ', state)
-                print('values: ', self.states[state])
+                #print('state key: ', state)
+                #print('values: ', self.states[state])
 
         ## Forward pass through the relations
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs

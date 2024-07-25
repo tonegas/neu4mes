@@ -516,6 +516,7 @@ class Neu4mes:
         self.n_samples_test = self.n_samples_test//self.test_batch_size
         assert self.n_samples_train > 0, f'There are {self.n_samples_train} samples for training.'
         self.n_samples_horizon = round(prediction_horizon // self.model_def['SampleTime'])
+        print(f'n samples train: {self.n_samples_train}, n sample val: {self.n_samples_val}, n sample test: {self.n_samples_test}')
 
         ## define optimizer and loss functions
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
