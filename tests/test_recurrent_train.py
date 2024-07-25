@@ -31,7 +31,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.minimizeError('pos', out.z(-1), y)
         test.neuralizeModel(0.01)
 
-        test.loadData(source=dataset)
+        test.loadData(name='dataset',source=dataset)
 
         training_params = {}
         training_params['train_batch_size'] = 4

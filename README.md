@@ -144,11 +144,11 @@ In the function `minimizeError` is used the `z(-1)` function. This function get 
 The function `z(...)` method can be used on an `Input` variable to get a time shifted value.
 
 The obective of the minimization is to reduce the error between
-`x_{z}_i` that represent one sample of the next position of the mass get from the dataset and 
-`x_{z_est}_i` is one sample of the output of our estimator.
+`x_z` that represent one sample of the next position of the mass get from the dataset and 
+`x_z_est` is one sample of the output of our estimator.
 The matematical formulation is as follow:
 ```math
-\frac{1}{n} \sum_{i=0}^{n} (x_{z}_i - x_{z_est}_i)^2
+\frac{1}{n} \sum_{i=0}^{n} (x_{z_i} - x_{{z\_est}_i})^2
 ```
 where `n` represents the number of sample in the dataset.
 
