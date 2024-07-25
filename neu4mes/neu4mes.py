@@ -64,10 +64,8 @@ class Neu4mes:
         # Training Parameters
         self.learning_rate = 0.01
         self.num_of_epochs = 100
-        self.train_batch_size = 1
-        self.test_batch_size = 1
-        self.val_batch_size = 1 
-        self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
+        self.train_batch_size, self.val_batch_size, self.test_batch_size = 1, 1, 1
+        self.n_samples_train, self.n_samples_val, self.n_samples_test = None, None, None
         self.n_samples_horizon = None
         self.optimizer = None
         self.losses = {}
@@ -332,85 +330,123 @@ class Neu4mes:
         self.visualizer.showDataset(name=name)
 
     def __getTrainParams(self, training_params):
-        if bool(training_params):
-            self.learning_rate = (training_params['learning_rate'] if 'learning_rate' in training_params else self.learning_rate)
-            self.num_of_epochs = (training_params['num_of_epochs'] if 'num_of_epochs' in training_params else self.num_of_epochs)
-            self.train_batch_size = (training_params['train_batch_size'] if 'train_batch_size' in training_params else self.train_batch_size)
-            self.test_batch_size = (training_params['test_batch_size'] if 'test_batch_size' in training_params else self.test_batch_size)
-            self.val_batch_size = (training_params['val_batch_size'] if 'val_batch_size' in training_params else self.val_batch_size)
+        # Set all parameters in training_params
+        for key,value in training_params.items():
+            try:
+                getattr(self, key)
+                setattr(self, key, value)
+            except:
+                raise KeyError(f"The training_params contains a wrong key: {key}.")
 
-            ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to 1
-            if self.train_batch_size > self.n_samples_train:
-                self.train_batch_size = 1
-            if self.val_batch_size > self.n_samples_val:
-                self.val_batch_size = 1
-            if self.test_batch_size > self.n_samples_test:
-                self.test_batch_size = 1
-            
-    
-    ## TODO: Adjust the Plotting function
-    def resultAnalysis(self, train_losses, val_losses, test_losses, XY_train, XY_val, XY_test):
+        if self.train_batch_size > self.n_samples_train:
+            self.train_batch_size = 1
+        if self.val_batch_size > self.n_samples_val:
+            self.val_batch_size = 1
+        if self.test_batch_size > self.n_samples_test:
+            self.test_batch_size = 1
+
+    # def resultAnalysis(self, name_data, losses, XY_data, n_samples, batch_size):
+    #     with torch.inference_mode():
+    #
+    #         self.model.eval()
+    #         A = {}
+    #         B = {}
+    #         aux_losses = {}
+    #         for (name, items) in self.minimize_dict.items():
+    #             window = 'tw' if 'tw' in items['A'][1].dim else ('sw' if 'sw' in items['A'][1].dim else None)
+    #             A[name] = torch.zeros([n_samples, batch_size, items['A'][1].dim[window], items['A'][1].dim['dim']])
+    #             B[name] = torch.zeros([n_samples, batch_size, items['B'][1].dim[window], items['B'][1].dim['dim']])
+    #             aux_losses[name] = np.zeros(
+    #                 [n_samples, batch_size, items['A'][1].dim[window], items['A'][1].dim['dim']])
+    #
+    #         for i in range(n_samples):
+    #
+    #             idx = i * batch_size
+    #             XY = {}
+    #             for key, val in XY_data.items():
+    #                 XY[key] = val[idx:idx + batch_size]
+    #                 # if XY[key].ndim == 2:
+    #                 #    XY[key] = XY[key].unsqueeze(-1)
+    #
+    #             _, minimize_out = self.model(XY)
+    #             for ind, (name, items) in enumerate(self.minimize_dict.items()):
+    #                 A[name][i] = minimize_out[items['A'][0]]
+    #                 B[name][i] = minimize_out[items['B'][0]]
+    #                 loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+    #                 aux_losses[name][i] = loss.detach().numpy()
+    #
+    #         for ind, (key, value) in enumerate(self.minimize_dict.items()):
+    #             A_np = A[key].detach().numpy()
+    #             B_np = B[key].detach().numpy()
+    #             self.performance[key] = {}
+    #             self.performance[key][value['loss']] = {'epoch' + name_data: losses[key],
+    #                                                     name_data: np.mean(aux_losses[key])}
+    #             self.performance[key]['fvu'] = {}
+    #             # Compute FVU
+    #             residual = A_np - B_np
+    #             error_var = np.var(residual)
+    #             error_mean = np.mean(residual)
+    #             # error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
+    #             # print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
+    #             self.performance[key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+    #             self.performance[key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+    #             self.performance[key]['fvu']['total'] = np.mean(
+    #                 [self.performance[key]['fvu']['A'], self.performance[key]['fvu']['B']]).item()
+    #             # Compute AIC
+    #             # normal_dist = norm(0, error_var ** 0.5)
+    #             # probability_of_residual = normal_dist.pdf(residual)
+    #             # log_likelihood_first = sum(np.log(probability_of_residual))
+    #             p1 = -len(residual) / 2.0 * np.log(2 * np.pi)
+    #             p2 = -len(residual) / 2.0 * np.log(error_var)
+    #             p3 = -1 / (2.0 * error_var) * np.sum(residual ** 2)
+    #             log_likelihood = p1 + p2 + p3
+    #             # print(f"{key} log likelihood second mode:{log_likelihood} = {p1}+{p2}+{p3} first mode: {log_likelihood_first}")
+    #             total_params = sum(p.numel() for p in self.model.parameters() if
+    #                                p.requires_grad)  # TODO to be check the number is doubled
+    #             # print(f"{key} total_params:{total_params}")
+    #             aic = - 2 * log_likelihood + 2 * total_params
+    #             # print(f"{key} aic:{aic}")
+    #             self.performance[key]['aic'] = {'value': aic, 'total_params': total_params,
+    #                                             'log_likelihood': log_likelihood}
+    #             # Prediction and target
+    #             self.prediction[key] = {}
+    #             self.prediction[key]['A'] = A_np.tolist()
+    #             self.prediction[key]['B'] = B_np.tolist()
+    #
+    #         self.performance['total'] = {}
+    #         self.performance['total']['mean_error'] = {name_data: np.mean([value for key, value in aux_losses.items()])}
+    #         self.performance['total']['fvu'] = np.mean(
+    #             [self.performance[key]['fvu']['total'] for key in self.minimize_dict.keys()])
+    #         self.performance['total']['aic'] = np.mean(
+    #             [self.performance[key]['aic']['value'] for key in self.minimize_dict.keys()])
+    #
+    #     self.visualizer.showResults(name_data)
+
+    def resultAnalysis(self, name_data, losses, XY_data):
         with torch.inference_mode():
 
             self.model.eval()
             A = {}
             B = {}
-            aux_test_losses = {}
+            aux_losses = {}
             for (name, items) in self.minimize_dict.items():
                 window = 'tw' if 'tw' in items['A'][1].dim else ('sw' if 'sw' in items['A'][1].dim else None)
-                A[name] = torch.zeros([self.n_samples_test,self.test_batch_size,items['A'][1].dim[window],items['A'][1].dim['dim']])
-                B[name] = torch.zeros([self.n_samples_test,self.test_batch_size,items['B'][1].dim[window],items['B'][1].dim['dim']])
-                aux_test_losses[name] = np.zeros([self.n_samples_test,self.test_batch_size,items['A'][1].dim[window],items['A'][1].dim['dim']])
+                A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'][1].dim[window],items['A'][1].dim['dim']])
+                B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'][1].dim[window],items['B'][1].dim['dim']])
+                aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'][1].dim[window],items['A'][1].dim['dim']])
 
-            for i in range(self.n_samples_test):
-
-                idx = i * self.test_batch_size
-                XY = {}
-                for key, val in XY_test.items():
-                    XY[key] = val[idx:idx + self.test_batch_size]
-                    #if XY[key].ndim == 2:
-                    #    XY[key] = XY[key].unsqueeze(-1)
-
-                _, minimize_out = self.model(XY)
-                for ind, (name, items) in enumerate(self.minimize_dict.items()):
-                    A[name][i] = minimize_out[items['A'][0]]
-                    B[name][i] =  minimize_out[items['B'][0]]
-                    loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
-                    aux_test_losses[name][i] = loss.detach().numpy()
-
-
-            # self.model.eval()
-            # key = list(XY_test.keys())[0]
-            # samples = len(XY_test[key])
-            # #samples = self.n_samples_test
-            # #samples = 1
-            #
-            # #batch_size = int(len(XY_test['x']) / samples)
-            # aux_test_losses = np.zeros([len(self.minimize_dict), samples])
-            # A = torch.zeros(len(self.minimize_dict), samples)
-            # B = torch.zeros(len(self.minimize_dict), samples)
-            # for i in range(samples):
-            #
-            #     XY = {}
-            #     for key, val in XY_test.items():
-            #         XY[key] = torch.from_numpy(val[i]).to(torch.float32).unsqueeze(dim=0)
-            #
-            #     # idx = i * batch_size
-            #     # XY = {}
-            #     # for key, val in XY_test.items():
-            #     #     XY[key] = torch.from_numpy(val[idx:idx + batch_size]).to(torch.float32)
-            #     out = self.model(XY)
-            #     for ind, (key, value) in enumerate(self.minimize_dict.items()):
-            #         A[ind][i] = out[value['A'][0]]
-            #         B[ind][i] = out[value['B'][0]]
-            #         loss = self.loss_fn(A[ind][i], B[ind][i])
-            #         aux_test_losses[ind][i] = loss.detach().numpy()
+            _, minimize_out = self.model(XY_data)
+            for ind, (name, items) in enumerate(self.minimize_dict.items()):
+                A[name] = minimize_out[items['A'][0]]
+                B[name] = minimize_out[items['B'][0]]
+                loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                aux_losses[name] = loss.detach().numpy()
 
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A_np = A[key].detach().numpy()
                 B_np = B[key].detach().numpy()
                 self.performance[key] = {}
-                self.performance[key][value['loss']] = {'epoch_test': test_losses[key], 'epoch_train': train_losses[key], 'test': np.mean(aux_test_losses[name])}
+                self.performance[key][value['loss']] = {'epoch'+name_data: losses[key], name_data: np.mean(aux_losses[key]).item()}
                 self.performance[key]['fvu'] = {}
                 # Compute FVU
                 residual = A_np - B_np
@@ -441,11 +477,11 @@ class Neu4mes:
                 self.prediction[key]['B'] = B_np.tolist()
 
             self.performance['total'] = {}
-            self.performance['total']['mean_error'] = {'test': np.mean([value for key,value in aux_test_losses.items()])}
+            self.performance['total']['mean_error'] = {name_data: np.mean([value for key,value in aux_losses.items()])}
             self.performance['total']['fvu'] = np.mean([self.performance[key]['fvu']['total'] for key in self.minimize_dict.keys()])
             self.performance['total']['aic'] = np.mean([self.performance[key]['aic']['value']for key in self.minimize_dict.keys()])
 
-        self.visualizer.showResults()
+        self.visualizer.showResults(name_data)
 
     def trainModel(self, train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10], prediction_horizon=0, shuffle_data=True, training_params = {}):
         if not self.data_loaded:
@@ -516,7 +552,8 @@ class Neu4mes:
         self.n_samples_test = self.n_samples_test//self.test_batch_size
         assert self.n_samples_train > 0, f'There are {self.n_samples_train} samples for training.'
         self.n_samples_horizon = round(prediction_horizon // self.model_def['SampleTime'])
-        print(f'n samples train: {self.n_samples_train}, n sample val: {self.n_samples_val}, n sample test: {self.n_samples_test}')
+        self.visualizer.showTrainParams()
+
 
         ## define optimizer and loss functions
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -614,8 +651,12 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(aux_test_losses[ind]).tolist()
 
+        if self.n_samples_train > 0:
+            self.resultAnalysis('Training', train_losses, XY_train)
+        if self.n_samples_val > 0:
+            self.resultAnalysis('Validation', val_losses, XY_val)
         if self.n_samples_test > 0:
-            self.resultAnalysis(train_losses, val_losses, test_losses, XY_train, XY_val, XY_test)
+            self.resultAnalysis('Test', test_losses, XY_test)
 
     def trainRecurrentModel(self, close_loop, prediction_horizon=None, step=1, test_percentage = 0, training_params = {}):
         if not self.data_loaded:
