@@ -36,6 +36,7 @@ from neu4mes.localmodel import LocalModel
 from neu4mes.parameter import Parameter
 from neu4mes.logger import logging
 from neu4mes.visualizer import Visualizer, TextVisualizer, MPLVisulizer
+from neu4mes.initializer import init_negexp, init_lin, init_constant
 
 import os, os.path, logging
 from pprint import pp, pprint

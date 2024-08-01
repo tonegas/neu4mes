@@ -1,4 +1,5 @@
 import copy
+import inspect
 
 import torch.nn as nn
 
@@ -11,8 +12,10 @@ from neu4mes.input import Input
 fir_relation_name = 'Fir'
 
 class Fir(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int|None = None, parameter:Parameter|None = None):
+    def __init__(self, output_dimension:int|None = None, parameter:Parameter|None = None, parameter_init = None, parameter_init_params = None):
         self.relation_name = fir_relation_name
+        self.parameter_init = parameter_init
+        self.parameter_init_params = parameter_init_params
         self.parameter = parameter
 
         if parameter is None:
@@ -54,6 +57,14 @@ class Fir(NeuObj, AutoToStream):
             if self.parameter:
                 cond = 'sw' not in self.json['Parameters'][self.name] and 'tw' not in self.json['Parameters'][self.name]
                 check(cond, KeyError,'The parameter have a time window and the input no')
+
+        if self.parameter_init is not None:
+            check('values' not in self.json['Parameters'][self.name], ValueError, f"The parameter {self.name} is already initialized.")
+            check(inspect.isfunction(self.parameter_init), ValueError,
+                  f"The b_init parameter must be a function.")
+            self.json['Parameters'][self.name]['init_fun'] = { 'code' : inspect.getsource(self.parameter_init), 'name' : self.parameter_init.__name__, 'params' : self.parameter_init_params }
+            if self.parameter_init_params is not None:
+                self.json['Parameters'][self.name]['init_fun']['params'] = self.parameter_init_params
 
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]

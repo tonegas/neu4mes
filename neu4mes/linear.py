@@ -1,4 +1,5 @@
 import copy
+import inspect
 
 import torch.nn as nn
 import torch
@@ -8,14 +9,21 @@ from neu4mes.input import Input
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.utilis import check
+from neu4mes.visualizer import Visualizer
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int|None = None, W:Parameter|None = None, b:bool|Parameter|None = None):
+    def __init__(self, output_dimension:int|None = None, W_init = None, W_init_params = None, b_init = None, b_init_params = None,
+                 W:Parameter|None = None, b:bool|Parameter|None = None):
         self.relation_name = linear_relation_name
+        self.W_init = W_init
+        self.W_init_params = W_init_params
+        self.b_init = b_init
+        self.b_init_params = b_init_params
         self.W = W
         self.b = b
         self.bname = None
+        self.Wname = None
         super().__init__('P' + linear_relation_name + str(NeuObj.count))
 
         if W is None:
@@ -45,7 +53,6 @@ class Linear(NeuObj, AutoToStream):
                 self.bname = self.name + 'b'
                 self.json['Parameters'][self.bname] = { 'dim': self.output_dimension }
 
-
     def __call__(self, obj:Stream) -> Stream:
         stream_name = linear_relation_name + str(Stream.count)
         check(type(obj) is Stream, TypeError,
@@ -57,6 +64,22 @@ class Linear(NeuObj, AutoToStream):
         else:
             check(self.W.dim['dim'][0] == obj.dim['dim'], ValueError,
                   'the input dimension must be equal to the first dim of the parameter')
+
+        if self.W_init is not None:
+            check('values' not in self.json['Parameters'][self.Wname], ValueError, f"The parameter {self.Wname} is already initialized.")
+            check(inspect.isfunction(self.W_init), ValueError,
+                  f"The W_init parameter must be a function.")
+            self.json['Parameters'][self.Wname]['init_fun'] = { 'code' : inspect.getsource(self.W_init), 'name' : self.W_init.__name__}
+            if self.W_init_params is not None:
+                self.json['Parameters'][self.Wname]['init_fun']['params'] = self.W_init_params
+
+        if self.b_init is not None:
+            check('values' not in self.json['Parameters'][self.bname], ValueError, f"The parameter {self.bname} is already initialized.")
+            check(inspect.isfunction(self.b_init), ValueError,
+                  f"The b_init parameter must be a function.")
+            self.json['Parameters'][self.bname]['init_fun'] = { 'code' : inspect.getsource(self.b_init), 'name' : self.b_init.__name__ }
+            if self.b_init_params is not None:
+                self.json['Parameters'][self.Wname]['init_fun']['params'] = self.b_init_params
 
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname]

@@ -57,9 +57,24 @@ class Model(nn.Module):
             else:
                 param_size = (sample_window, param_data['dim'])
             if 'values' in param_data:
-                self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=True)
+                self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32),
+                                                         requires_grad=True)
+            elif 'init_fun' in param_data:
+                exec(param_data['init_fun']['code'], globals())
+                function_to_call = globals()[param_data['init_fun']['name']]
+                from itertools import product
+                import numpy as np
+                values = np.zeros(param_size)
+                for indexes in product(*(range(v) for v in param_size)):
+                    if 'params' in param_data['init_fun']:
+                        values[indexes] = function_to_call(indexes, param_size, param_data['init_fun']['params'])
+                    else:
+                        values[indexes] = function_to_call(indexes, param_size)
+                self.all_parameters[name] = nn.Parameter(torch.tensor(values.tolist(), dtype=torch.float32),
+                                                         requires_grad=True)
             else:
-                self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size, dtype=torch.float32), requires_grad=True)
+                self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size, dtype=torch.float32),
+                                                         requires_grad=True)
 
 
         ## save the states updates
