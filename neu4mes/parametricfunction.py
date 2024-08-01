@@ -14,14 +14,12 @@ class ParamFun(NeuObj):
     def __init__(self, param_fun, parameters_dimensions = None, parameters = None):
         self.relation_name = paramfun_relation_name
         self.param_fun = param_fun
-        #self.output_dimension = {'dim' : output_dimension }
         self.output_dimension = {}
         super().__init__('F'+paramfun_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {
             'code' : inspect.getsource(param_fun),
             'name' : param_fun.__name__
         }
-        #self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
         self.json['Functions'][self.name]['parameters'] = []
         self.__set_params(parameters_dimensions = parameters_dimensions, parameters = parameters)
 
