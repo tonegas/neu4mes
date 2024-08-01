@@ -570,19 +570,20 @@ class Neu4mes:
         import time
         ## start the train timer
         start = time.time()
-
+        XY_train_aux = copy.deepcopy(XY_train)
         for epoch in range(self.num_of_epochs):
             ## TRAIN
             self.model.train()
             ## Sample Shuffle
             if shuffle_data:
-                XY_train = {key: val[torch.randperm(val.size(0))] for key, val in XY_train.items()}
+                randomize = torch.randperm(XY_train[list(XY_train.keys())[0]].shape[0])
+                XY_train_aux = {key: val[randomize] for key, val in XY_train_aux.items()}
             ## Initialize the train losses vector
             aux_train_losses = torch.zeros([len(self.minimize_dict),self.n_samples_train])
             for i in range(self.n_samples_train):
                 idx = i*self.train_batch_size
                 ## Build the input tensor
-                XY = {key: val[idx:idx+self.train_batch_size] for key, val in XY_train.items()}
+                XY = {key: val[idx:idx+self.train_batch_size] for key, val in XY_train_aux.items()}
                 ## Reset gradient
                 self.optimizer.zero_grad()
                 ## Model Forward
