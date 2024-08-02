@@ -61,8 +61,8 @@ class Fir(NeuObj, AutoToStream):
         if self.parameter_init is not None:
             check('values' not in self.json['Parameters'][self.name], ValueError, f"The parameter {self.name} is already initialized.")
             check(inspect.isfunction(self.parameter_init), ValueError,
-                  f"The b_init parameter must be a function.")
-            self.json['Parameters'][self.name]['init_fun'] = { 'code' : inspect.getsource(self.parameter_init), 'name' : self.parameter_init.__name__, 'params' : self.parameter_init_params }
+                  f"The parameter_init parameter must be a function.")
+            self.json['Parameters'][self.name]['init_fun'] = { 'code' : inspect.getsource(self.parameter_init), 'name' : self.parameter_init.__name__ }
             if self.parameter_init_params is not None:
                 self.json['Parameters'][self.name]['init_fun']['params'] = self.parameter_init_params
 
