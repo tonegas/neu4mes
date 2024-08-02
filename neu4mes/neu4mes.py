@@ -150,6 +150,20 @@ class Neu4mes:
 
         return result_dict
 
+    def get_samples(self, dataset, index, window=1):
+        if self.data_loaded:
+            result_dict = {}
+            for key in self.model_def['Inputs'].keys():
+                result_dict[key] = []
+            for idx in range(window):
+                for key ,samples in self.data[dataset].items():
+                    if key in self.model_def['Inputs'].keys():
+                        result_dict[key].append(samples[index+idx])
+            return result_dict
+        else:
+            print('The Dataset must first be loaded using <loadData> function!')
+            return {}
+
     def get_random_samples(self, dataset, window=1):
         if self.data_loaded:
             result_dict = {}
@@ -328,6 +342,45 @@ class Neu4mes:
         self.datasets_loaded.add(name)
         ## Show the dataset
         self.visualizer.showDataset(name=name)
+
+    def filterData(self, filter_function, dataset_name = None):
+        idx_to_remove = []
+        if dataset_name is None:
+            for name in self.data.keys():
+                dataset = self.data[name]
+                n_samples = len(dataset[list(dataset.keys())[0]])
+
+                data_for_filter = []
+                for i in range(n_samples):
+                    new_sample = {key: val[i] for key, val in dataset.items()}
+                    data_for_filter.append(new_sample)
+
+                for idx, sample in enumerate(data_for_filter):
+                    if not filter_function(sample):
+                        idx_to_remove.append(idx)
+
+                for key in self.data[name].keys():
+                    self.data[name][key] = np.delete(self.data[name][key], idx_to_remove, axis=0)
+                    self.num_of_samples[name] = self.data[name][key].shape[0]
+                self.visualizer.showDataset(name=name)
+
+        else:
+            dataset = self.data[dataset_name]
+            n_samples = len(dataset[list(dataset.keys())[0]])
+
+            data_for_filter = []
+            for i in range(n_samples):
+                new_sample = {key: val[i] for key, val in dataset.items()}
+                data_for_filter.append(new_sample)
+
+            for idx, sample in enumerate(data_for_filter):
+                if not filter_function(sample):
+                    idx_to_remove.append(idx)
+
+            for key in self.data[dataset_name].keys():
+                self.data[dataset_name][key] = np.delete(self.data[dataset_name][key], idx_to_remove, axis=0)
+                self.num_of_samples[dataset_name] = self.data[dataset_name][key].shape[0]
+            self.visualizer.showDataset(name=dataset_name)
 
     def __getTrainParams(self, training_params):
         # Set all parameters in training_params
