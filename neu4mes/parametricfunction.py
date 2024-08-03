@@ -97,16 +97,15 @@ class ParamFun(NeuObj):
 
     def __set_params(self, n_input = None, parameters_dimensions = None, parameters = None):
         if parameters is not None:
-            assert parameters_dimensions is None, 'parameters_dimensions must be None if parameters is set'
-            assert type(parameters) is list, 'parameters must be a list'
+            check(parameters_dimensions is None, ValueError, '\"parameters_dimensions\" must be None if \"parameters\" is set')
+            check(type(parameters) is list, TypeError, '\"parameters\" must be a list')
             for param in parameters:
                 if type(param) is Parameter:
                     self.json['Functions'][self.name]['parameters'].append(param.name)
-                    #self.json['Parameters'][param.name] = param.dim
                     self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param.name])
 
         elif parameters_dimensions is not None:
-            assert type(parameters_dimensions) is dict, 'parameters_dimensions must be a dict'
+            check(type(parameters_dimensions) is dict, TypeError, '\"parameters_dimensions\" must be a dict')
             funinfo = inspect.getfullargspec(self.param_fun)
             for i in range(len(parameters_dimensions)):
                 param_name = self.name + str(funinfo.args[-1 - i])
@@ -115,11 +114,12 @@ class ParamFun(NeuObj):
 
         elif n_input is not None:
             funinfo = inspect.getfullargspec(self.param_fun)
-            n_params = len(funinfo.args) - n_input
+            n_input_params = len(funinfo.args) - n_input
             if len(self.json['Functions'][self.name]['parameters']) != 0:
-                assert n_params == len(self.json['Functions'][self.name]['parameters']), 'number of input are not correct for the number of parameters'
+                n_params = len(self.json['Functions'][self.name]['parameters'])
+                check(n_input_params == n_params, ValueError,f'The number of input params are {n_input_params} but the number of parameters are {n_params}')
             else:
-                for i in range(n_params):
+                for i in range(n_input_params):
                     param_name = self.name + str(funinfo.args[-1 - i])
                     self.json['Functions'][self.name]['parameters'].append(param_name)
                     self.json['Parameters'][param_name] = {'dim' : 1}
@@ -132,7 +132,6 @@ class Parametric_Layer(nn.Module):
         ## Add the function to the globals
         try:
             exec(params['code'], globals())
-            #print(f'executing {self.name}...')
         except Exception as e:
             print(f"An error occurred: {e}")
 

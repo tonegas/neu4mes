@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from neu4mes.utilis import check
 
 available_losses = ['mse', 'rmse', 'mae']
 
@@ -18,7 +19,7 @@ class CustomRMSE(nn.Module):
 class CustomLoss(nn.Module):
     def __init__(self, loss_type='mse'):
         super(CustomLoss, self).__init__()
-        assert loss_type in available_losses, f'Error: {loss_type} not available. Possible losses are: [{available_losses}]'
+        check(loss_type in available_losses, TypeError, f'The \"{loss_type}\" loss is not available. Possible losses are: {available_losses}.')
         self.loss_type = loss_type
         self.loss = nn.MSELoss()
         if self.loss_type == 'mae':
