@@ -13,8 +13,8 @@ from neu4mes.visualizer import Visualizer
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int|None = None, W_init = None, W_init_params = None, b_init = None, b_init_params = None,
-                 W:Parameter|None = None, b:bool|Parameter|None = None):
+    def __init__(self, output_dimension:int|None = None, W_init:None = None, W_init_params:None = None, b_init:None = None, b_init_params:None = None,
+                 W:Parameter|None = None, b:bool|Parameter|None = None, dropout:int = 0):
         self.relation_name = linear_relation_name
         self.W_init = W_init
         self.W_init_params = W_init_params
@@ -24,6 +24,7 @@ class Linear(NeuObj, AutoToStream):
         self.b = b
         self.bname = None
         self.Wname = None
+        self.dropout = dropout
         super().__init__('P' + linear_relation_name + str(NeuObj.count))
 
         if W is None:
@@ -82,23 +83,26 @@ class Linear(NeuObj, AutoToStream):
                 self.json['Parameters'][self.Wname]['init_fun']['params'] = self.b_init_params
 
         stream_json = merge(self.json,obj.json)
-        stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname]
+        stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname, self.dropout]
         return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
 
 class Linear_Layer(nn.Module):
-    def __init__(self, weights, bias):
+    def __init__(self, weights, bias, dropout):
         super(Linear_Layer, self).__init__()
         biasbool = False if bias is None else True
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
         self.lin = nn.Linear(in_features=weights.size(1), out_features=weights.size(2), bias=biasbool)
         self.lin.weight = nn.Parameter(weights[0].t())
         if biasbool:
             self.lin.bias = nn.Parameter(bias)
 
     def forward(self, x):
+        if self.dropout is not None:
+            x = self.dropout(x)
         x = self.lin(x)
         return x
 
-def createLinear(self, weights, bias):
-    return Linear_Layer(weights, bias)
+def createLinear(self, weights, bias, dropout):
+    return Linear_Layer(weights, bias, dropout)
 
 setattr(Model, linear_relation_name, createLinear)

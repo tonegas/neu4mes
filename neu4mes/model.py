@@ -106,12 +106,12 @@ class Model(nn.Module):
                 elif rel_name == 'Fuzzify':
                     self.relation_forward[relation] = func(self.functions[inputs[2]])
                 elif rel_name == 'Fir':  
-                    self.relation_forward[relation] = func(self.all_parameters[inputs[2]])
+                    self.relation_forward[relation] = func(self.all_parameters[inputs[2]],inputs[3])
                 elif rel_name == 'Linear':
-                    if inputs[3]:
-                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]],self.all_parameters[inputs[3]])
+                    if inputs[3] is not None:
+                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]],self.all_parameters[inputs[3]], inputs[4])
                     else:
-                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]], None)
+                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]], None, inputs[4])
                 elif rel_name == 'TimePart':
                     part = inputs[2]
                     offset = inputs[3] if len(inputs) > 3 else None

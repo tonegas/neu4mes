@@ -12,11 +12,13 @@ from neu4mes.input import Input
 fir_relation_name = 'Fir'
 
 class Fir(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int|None = None, parameter:Parameter|None = None, parameter_init = None, parameter_init_params = None):
+    def __init__(self, output_dimension:int|None = None, parameter_init:None = None, parameter_init_params:None = None,
+                 parameter:Parameter|None = None, dropout:int = 0):
         self.relation_name = fir_relation_name
         self.parameter_init = parameter_init
         self.parameter_init_params = parameter_init_params
         self.parameter = parameter
+        self.dropout = dropout
 
         if parameter is None:
             self.output_dimension = 1 if output_dimension is None else output_dimension
@@ -32,7 +34,6 @@ class Fir(NeuObj, AutoToStream):
                 self.output_dimension = output_dimension
                 check(parameter.dim['dim'] == self.output_dimension, ValueError, 'output_dimension must be equal to dim of the Parameter')
             super().__init__(parameter.name)
-            #self.json['Parameters'][self.name] = copy.deepcopy(parameter.dim)
             self.json['Parameters'][self.name] = copy.deepcopy(parameter.json['Parameters'][parameter.name])
 
     def __call__(self, obj:Stream) -> Stream:
@@ -67,20 +68,23 @@ class Fir(NeuObj, AutoToStream):
                 self.json['Parameters'][self.name]['init_fun']['params'] = self.parameter_init_params
 
         stream_json = merge(self.json,obj.json)
-        stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
+        stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name, self.dropout]
         return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
 
 class Fir_Layer(nn.Module):
-    def __init__(self, weights):
+    def __init__(self, weights, dropout):
         super(Fir_Layer, self).__init__()
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
         self.lin = nn.Linear(in_features=weights.size(0), out_features=weights.size(1), bias=False)
         self.lin.weight = nn.Parameter(weights.t())
 
     def forward(self, x):
         x = x.permute(0, 2, 1)
+        if self.dropout is not None:
+            x = self.dropout(x)
         return self.lin(x)
 
-def createFir(self, weights):
-    return Fir_Layer(weights)
+def createFir(self, weights, dropout):
+    return Fir_Layer(weights, dropout)
 
 setattr(Model, fir_relation_name, createFir)
