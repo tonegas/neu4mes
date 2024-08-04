@@ -569,7 +569,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual(results['out'], [[[-0.03303150087594986, 0.023659050464630127, 0.0185492392629385]], [[-0.03303150087594986, 0.023659050464630127, 0.0185492392629385]]])
 
         parfun = ParamFun(myfun2)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             Output('out', parfun(Fir(3)(parfun(in1.tw(0.4), in2.tw(0.4)))))
 
         parfun = ParamFun(myfun2)
