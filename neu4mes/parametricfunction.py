@@ -103,6 +103,11 @@ class ParamFun(NeuObj):
                 if type(param) is Parameter:
                     self.json['Functions'][self.name]['parameters'].append(param.name)
                     self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param.name])
+                elif type(param) is str:
+                    self.json['Functions'][self.name]['parameters'].append(param)
+                    self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param])
+                else:
+                    check(type(param) is Parameter or type(param) is str, TypeError, 'The element inside the \"parameters\" list must be a Parameter or str')
 
         elif parameters_dimensions is not None:
             check(type(parameters_dimensions) is dict, TypeError, '\"parameters_dimensions\" must be a dict')

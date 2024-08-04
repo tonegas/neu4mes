@@ -30,8 +30,11 @@ class Linear(NeuObj, AutoToStream):
         if W is None:
             self.output_dimension = 1 if output_dimension is None else output_dimension
             self.Wname = self.name + 'W'
+        elif type(W) is str:
+            self.output_dimension = 1 if output_dimension is None else output_dimension
+            self.Wname = W
         else:
-            check(type(W) is Parameter, TypeError, 'The "W" must be of type Parameter.')
+            check(type(W) is Parameter or type(W) is str, TypeError, 'The "W" must be of type Parameter or str.')
             window = 'tw' if 'tw' in W.dim else ('sw' if 'sw' in W.dim else None)
             check(window == None, ValueError, 'The "W" must not have window dimension.')
             check(len(W.dim['dim']) == 2, ValueError,'The "W" dimensions must be a tuple of 2.')
@@ -42,7 +45,7 @@ class Linear(NeuObj, AutoToStream):
             self.json['Parameters'][W.name] = copy.deepcopy(W.json['Parameters'][W.name])
 
         if b is not None:
-            check(type(b) is Parameter or type(b) is bool, TypeError, 'The "b" must be of type Parameter or bool.')
+            check(type(b) is Parameter or type(b) is bool or type(b) is str, TypeError, 'The "b" must be of type Parameter, bool or str.')
             if type(b) is Parameter:
                 check(type(b.dim['dim']) is int, ValueError, 'The "b" dimensions must be an integer.')
                 if output_dimension is not None:
@@ -50,6 +53,9 @@ class Linear(NeuObj, AutoToStream):
                           'output_dimension must be equal to the dim of the "b".')
                 self.bname = b.name
                 self.json['Parameters'][b.name] = copy.deepcopy(b.json['Parameters'][b.name])
+            elif type(b) is str:
+                self.bname = b
+                self.json['Parameters'][self.bname] = { 'dim': self.output_dimension }
             else:
                 self.bname = self.name + 'b'
                 self.json['Parameters'][self.bname] = { 'dim': self.output_dimension }
@@ -60,11 +66,11 @@ class Linear(NeuObj, AutoToStream):
               f"The type of {obj} is {type(obj)} and is not supported for Linear operation.")
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
 
-        if self.W is None:
-            self.json['Parameters'][self.Wname] = { 'dim': (obj.dim['dim'],self.output_dimension,) }
-        else:
+        if type(self.W) is Parameter:
             check(self.W.dim['dim'][0] == obj.dim['dim'], ValueError,
                   'the input dimension must be equal to the first dim of the parameter')
+        else:
+            self.json['Parameters'][self.Wname] = { 'dim': (obj.dim['dim'],self.output_dimension,) }
 
         if self.W_init is not None:
             check('values' not in self.json['Parameters'][self.Wname], ValueError, f"The parameter {self.Wname} is already initialized.")

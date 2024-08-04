@@ -13,7 +13,7 @@ fir_relation_name = 'Fir'
 
 class Fir(NeuObj, AutoToStream):
     def __init__(self, output_dimension:int|None = None, parameter_init:None = None, parameter_init_params:None = None,
-                 parameter:Parameter|None = None, dropout:int = 0):
+                 parameter:Parameter|None|str = None, dropout:int = 0):
         self.relation_name = fir_relation_name
         self.parameter_init = parameter_init
         self.parameter_init_params = parameter_init_params
@@ -23,6 +23,10 @@ class Fir(NeuObj, AutoToStream):
         if parameter is None:
             self.output_dimension = 1 if output_dimension is None else output_dimension
             super().__init__('P' + fir_relation_name + str(NeuObj.count))
+            self.json['Parameters'][self.name] = { 'dim': self.output_dimension }
+        elif type(parameter) is str:
+            self.output_dimension = 1 if output_dimension is None else output_dimension
+            super().__init__(parameter)
             self.json['Parameters'][self.name] = { 'dim': self.output_dimension }
         else:
             check(type(parameter) is Parameter, TypeError, 'Input parameter must be of type Parameter')
@@ -45,7 +49,7 @@ class Fir(NeuObj, AutoToStream):
         check('dim' in obj.dim and obj.dim['dim'] == 1, ValueError, 'Input dimension must be scalar')
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
         if window:
-            if self.parameter:
+            if type(self.parameter) is Parameter:
                 check(window in self.json['Parameters'][self.name],
                       KeyError,
                       f"The window \'{window}\' of the input is not in the parameter")
@@ -55,7 +59,7 @@ class Fir(NeuObj, AutoToStream):
             else:
                 self.json['Parameters'][self.name][window] = obj.dim[window]
         else:
-            if self.parameter:
+            if type(self.parameter) is Parameter:
                 cond = 'sw' not in self.json['Parameters'][self.name] and 'tw' not in self.json['Parameters'][self.name]
                 check(cond, KeyError,'The parameter have a time window and the input no')
 
