@@ -61,7 +61,8 @@ class Model(nn.Module):
             else:
                 self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size, dtype=torch.float32), requires_grad=True)
 
-
+        ## Initialize state variables
+        self.clear_state()
         ## save the states updates
         self.states_updates = {}
         for state, param in self.state_model.items():
@@ -147,7 +148,6 @@ class Model(nn.Module):
         available_keys = set(list(self.inputs.keys()) + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
         ## Initialize the state variables
         if initialize_state:
-            print('INITIALIZE')
             for state, value in self.state_model.items():
                 if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
                     self.states[state] = kwargs[state].clone()
@@ -156,8 +156,9 @@ class Model(nn.Module):
                     batch_size = list(kwargs.values())[0].shape[0]
                     window_size = round(max(abs(value['sw'][0]), abs(value['tw'][0]//self.sample_time)) + max(value['sw'][1], value['tw'][1]//self.sample_time))
                     self.states[state] = torch.zeros(size=(batch_size, window_size, value['dim']), dtype=torch.float32, requires_grad=False)
-                print('state key: ', state)
-                print('values: ', self.states[state])
+                    #self.states[state] = self.states[state].expand(batch_size, -1, -1)
+                #print('state key: ', state)
+                #print('values: ', self.states[state])
 
         ## Forward pass through the relations
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs
@@ -194,11 +195,11 @@ class Model(nn.Module):
 
                     ## Update the state if necessary
                     if relation in self.states_updates.keys():
-                        print('relation to update: ', relation)
                         shift = result_dict[relation].shape[1]
+                        #print('result relation: ', result_dict[relation])
                         self.states[self.states_updates[relation]] = torch.roll(self.states[self.states_updates[relation]], shifts=-shift, dims=1)
                         self.states[self.states_updates[relation]][:, -shift:, :] = result_dict[relation]  ## TODO: .detach()???
-                        print('relation updated: ', self.states[self.states_updates[relation]])
+                        #print('relation updated: ', self.states[self.states_updates[relation]])
                         
         ## Return a dictionary with all the outputs final values
         output_dict = {key: result_dict[value] for key, value in self.outputs.items()}
@@ -212,3 +213,16 @@ class Model(nn.Module):
                 minimize_dict[key] = result_dict[key]
                 
         return output_dict, minimize_dict
+    
+    def clear_state(self, state=None):
+        if state: ## Clear a specific state variable
+            if state in self.states.keys():
+                window_size = round(max(abs(self.state_model[state]['sw'][0]), abs(self.state_model[state]['tw'][0]//self.sample_time)) + 
+                                    max(self.state_model[state]['sw'][1], self.state_model[state]['tw'][1]//self.sample_time))
+                self.states[state] = torch.zeros(size=(1, window_size, self.state_model[state]['dim']), dtype=torch.float32, requires_grad=False)
+        else: ## Clear all states variables
+            self.states = {}
+            for key, value in self.state_model.items():
+                window_size = round(max(abs(value['sw'][0]), abs(value['tw'][0]//self.sample_time)) + max(value['sw'][1], value['tw'][1]//self.sample_time))
+                self.states[key] = torch.zeros(size=(1, window_size, value['dim']), dtype=torch.float32, requires_grad=False)
+

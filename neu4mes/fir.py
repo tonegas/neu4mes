@@ -67,7 +67,8 @@ class Fir_Layer(nn.Module):
 
     def forward(self, x):
         x = x.permute(0, 2, 1)
-        return self.lin(x)
+        x = self.lin(x)
+        return x
 
 def createFir(self, weights):
     return Fir_Layer(weights)

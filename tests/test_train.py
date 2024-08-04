@@ -107,7 +107,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
 
         test = Neu4mes(visualizer=None)
-        test.minimizeError('out', output.z(-1), rel1)
+        test.minimizeError('out', output.next(), rel1)
         test.neuralizeModel(0.01)
 
         data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -127,19 +127,18 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # batch_size > 5 -> NO
         # num_of_training_sample must be multiple of batch_size
         # num_of_test_sample must be multiple of batch_size and at least 50%
-        # 10 / 2 * 0.4 = 2 for training
-        # 10 / 2 * 0.3 = 1 for validation
-        # 10 / 2 * 0.3 = 1 for test
-        self.assertEqual(2,test.n_samples_train)
-        self.assertEqual(1,test.n_samples_val)
-        self.assertEqual(1,test.n_samples_test)
+        # 10 * 0.4 = 2 for training
+        # 10 * 0.3 = 1 for validation
+        # 10 * 0.3 = 1 for test
+        self.assertEqual(4,test.n_samples_train)
+        self.assertEqual(3,test.n_samples_val)
+        self.assertEqual(3,test.n_samples_test)
         self.assertEqual(10,test.num_of_samples['dataset'])
         self.assertEqual(2,test.train_batch_size)
         self.assertEqual(2,test.val_batch_size)
         self.assertEqual(2,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
-    
     
     def test_build_dataset_batch4(self):
         input1 = Input('in1')
@@ -167,10 +166,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # batch_size > 1 -> YES
         # num_of_training_sample must be multiple of batch_size
         # num_of_test_sample must be multiple of batch_size and at least 10%
-        # 10 / 2 * 0.8 = 4 for training
-        # 10 / 1 * 0.1 = 1 for validation
-        # 10 / 1 * 0.1 = 1 for test
-        self.assertEqual(4,test.n_samples_train)
+        # 10 * 0.8 = 8 for training
+        # 10 * 0.1 = 1 for validation
+        # 10 * 0.1 = 1 for test
+        self.assertEqual(8,test.n_samples_train)
         self.assertEqual(1,test.n_samples_val)
         self.assertEqual(1,test.n_samples_test)
         self.assertEqual(10,test.num_of_samples['dataset'])
@@ -211,11 +210,11 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # batch_size > 1 -> YES
         # num_of_training_sample must be multiple of batch_size
         # num_of_test_sample must be multiple of batch_size and at least 10%
-        # 15 / 2 * 0.8 = 6 for training
-        # 15 / 2 * 0.2 = 1 for validation
-        # 15 / 2 * 0.0 = 0 for test
-        self.assertEqual(6,test.n_samples_train)
-        self.assertEqual(1,test.n_samples_val)
+        # 15 * 0.8 = 12 for training
+        # 15 * 0.2 = 3 for validation
+        # 15 * 0.0 = 0 for test
+        self.assertEqual(12,test.n_samples_train)
+        self.assertEqual(3,test.n_samples_val)
         self.assertEqual(0,test.n_samples_test)
         self.assertEqual(15,test.num_of_samples['dataset'])
         self.assertEqual(2,test.train_batch_size)
@@ -263,8 +262,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(3,test.train_batch_size)
         self.assertEqual(2,test.val_batch_size)
         self.assertEqual(1,test.test_batch_size)
-        self.assertEqual(3,test.n_samples_train)
-        self.assertEqual(4,test.n_samples_val)
+        self.assertEqual(9,test.n_samples_train)
+        self.assertEqual(9,test.n_samples_val)
         self.assertEqual(9,test.n_samples_test)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
@@ -278,7 +277,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         out = Output('out', Fir(Linear(Linear(3)(x.tw(0.02)) + y.tw(0.02))))
         out2 = Output('out2', Fir(Linear(k.last() + Fir(2)(w.tw(0.05,offset=-0.02)))))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', out, out2)
         test.neuralizeModel(0.01)
 
@@ -314,10 +313,9 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(6, test.train_batch_size)
         self.assertEqual(2, test.val_batch_size)
         self.assertEqual(2, test.test_batch_size)
-        self.assertEqual(3, test.n_samples_train)
-        self.assertEqual(1, test.n_samples_val)
-        self.assertEqual(1, test.n_samples_test)
-
-
+        self.assertEqual(18, test.n_samples_train)
+        self.assertEqual(2, test.n_samples_val)
+        self.assertEqual(2, test.n_samples_test)
+    
 if __name__ == '__main__':
     unittest.main()
