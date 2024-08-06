@@ -25,7 +25,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out', rel1)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0,test.input_tw_backward['in1'])
@@ -45,7 +45,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0.05,test.input_tw_backward['in1'])
@@ -68,7 +68,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2+rel3+rel4)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual({'in1': 0.05, 'in2': 0.05}, test.input_tw_backward)
@@ -91,7 +91,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0.05,test.input_tw_backward['in2'])
@@ -112,7 +112,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0.05, test.input_tw_backward['in2'])
@@ -135,7 +135,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0.05, test.input_tw_backward['in2'])
@@ -155,7 +155,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0.06,test.input_tw_backward['in2'])
@@ -183,7 +183,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out', rel1 + rel2 + rel3 + rel4)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0.06,test.input_tw_backward['in2'])
@@ -202,7 +202,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel = Fir(input1.tw([0.03,0.04]))
         fun = Output('out', rel)
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         input2 = Input('in2')
@@ -211,7 +211,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(-0.01, test.input_tw_backward['in2'])
@@ -238,7 +238,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out', rel1 + rel2)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(-0.01,test.input_tw_backward['in2'])
@@ -261,7 +261,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0,test.input_tw_backward['in1'])
@@ -285,7 +285,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5+rel6+rel7+rel8)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0, test.input_tw_backward['in2'])
@@ -307,7 +307,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(0.01,test.input_tw_backward['in2'])

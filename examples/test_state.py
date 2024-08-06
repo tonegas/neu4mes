@@ -18,7 +18,7 @@ if example == 1:
 
     mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel(out)
-    mass_spring_damper.minimizeError('error', out, x.next())
+    mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
 
@@ -52,7 +52,7 @@ elif example == 2:
 
     mass_spring_damper = Neu4mes()
     mass_spring_damper.addModel(out)
-    mass_spring_damper.minimizeError('error', out, x.next())
+    mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
 
@@ -92,7 +92,7 @@ elif example == 3:
 
     mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel(out)
-    mass_spring_damper.minimizeError('error', out, x.next())
+    mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
 
@@ -127,7 +127,7 @@ elif example == 4:
 
     mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel(out)
-    mass_spring_damper.minimizeError('error', out, x.next())
+    mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
 
@@ -162,7 +162,7 @@ elif example == 5:
 
     mass_spring_damper = Neu4mes()
     mass_spring_damper.addModel(out)
-    mass_spring_damper.minimizeError('error', out, x.next())
+    mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
 
@@ -198,7 +198,7 @@ elif example == 6:
 
     mass_spring_damper = Neu4mes()
     mass_spring_damper.addModel(out)
-    mass_spring_damper.minimizeError('error', out, x.next())
+    mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
 

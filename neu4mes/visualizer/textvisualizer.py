@@ -34,7 +34,7 @@ class TextVisualizer(Visualizer):
             print(color(pformat(self.n4m.model_def),GREEN))
             self.__line()
 
-    def showMinimizeError(self,variable_name):
+    def showaddMinimize(self,variable_name):
         if self.verbose >= 2:
             self.__title(f" Minimize Error of {variable_name} with {self.n4m.minimize_dict[variable_name]['loss']} ")
             self.__paramjson(f"Model {self.n4m.minimize_dict[variable_name]['A'][0]}", self.n4m.minimize_dict[variable_name]['A'][1].json)
@@ -159,8 +159,8 @@ class TextVisualizer(Visualizer):
             self.__param("train {batch size, samples}:", f"{{{self.n4m.train_batch_size}, {self.n4m.n_samples_train}}}")
             self.__param("val {batch size, samples}:", f"{{{self.n4m.val_batch_size}, {self.n4m.n_samples_val}}}")
             self.__param("test {batch size, samples}:", f"{{{self.n4m.test_batch_size}, {self.n4m.n_samples_test}}}")
-            if self.n4m.n_samples_horizon:
-                self.__paramjson("prediction horizon:", self.n4m.n_samples_horizon)
+            if self.n4m.prediction_samples:
+                self.__paramjson("prediction samples:", self.n4m.prediction_samples)
             self.__line()
 
     def showResults(self, name_data):

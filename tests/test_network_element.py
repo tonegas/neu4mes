@@ -19,7 +19,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out', rel1)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[1, 1], [1, 1]]
@@ -33,7 +33,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
         
         list_of_dimensions = [[5,1], [1,1]]
@@ -50,7 +50,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2+rel3+rel4)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
         
         list_of_dimensions = [[5,1], [1,1], [5,1], [4,1]]
@@ -67,7 +67,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5+rel6+rel7)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         self.assertEqual(test.max_n_samples, 8) # 5 samples + 3 samples of the horizon
@@ -86,7 +86,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[5,1], [4,1], [5,1]]
@@ -103,7 +103,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5+rel6)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
@@ -117,7 +117,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[3,1], [3,1]]
@@ -131,7 +131,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1+rel2)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[3,1], [3,1]]
@@ -148,7 +148,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel3+rel4+rel5+rel6)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
@@ -165,7 +165,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output('out',rel1)
 
         test = Neu4mes(visualizer=None)
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[6,1], [1,1]]
@@ -187,7 +187,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun25 = Output('out52', rel25)
 
         test = Neu4mes(visualizer=None)
-        test.addModel([fun1,fun2,fun15,fun25])
+        test.addModel('fun',[fun1,fun2,fun15,fun25])
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[1,1],[1,5],[3,1],[3,5]]
@@ -202,7 +202,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         fun = Output(in2.z(-1),rel)
 
         test = Neu4mes()
-        test.addModel(fun)
+        test.addModel('fun',fun)
         test.neuralizeModel(0.5)
 
         test_layer = Model(inputs=[test.inputs_for_model['in1']], outputs=test.inputs[('in1', 1)])

@@ -56,10 +56,10 @@ y4 = Output('fir_multi_out_multi_window',fir_multi_out_multi_window(x.tw([-5,0])
 
 test = Neu4mes()
 
-test.minimizeError('out', target_y.last(), y1, 'rmse')
-test.minimizeError('out1', target_y.last(), y2, 'rmse')
-test.minimizeError('out2', target_y_multi.last(), y3, 'rmse')
-test.minimizeError('out3', target_y_multi.last(), y4, 'rmse')
+test.addMinimize('out', target_y.last(), y1, 'rmse')
+test.addMinimize('out1', target_y.last(), y2, 'rmse')
+test.addMinimize('out2', target_y_multi.last(), y3, 'rmse')
+test.addMinimize('out3', target_y_multi.last(), y4, 'rmse')
 
 # Neuralize the models
 test.neuralizeModel()
@@ -250,10 +250,10 @@ y4 = Output('fir_multi_out_multi_window',fir_multi_out_multi_window(x.tw([-5,0])
 
 test = Neu4mes()
 
-test.minimizeError('out', target_y.sw(1), y1, 'rmse')
-test.minimizeError('out1', target_y.sw(1), y2, 'rmse')
-test.minimizeError('out2', target_y_multi.sw(1), y3, 'rmse')
-test.minimizeError('out3', target_y_multi.sw(1), y4, 'rmse')
+test.addMinimize('out', target_y.sw(1), y1, 'rmse')
+test.addMinimize('out1', target_y.sw(1), y2, 'rmse')
+test.addMinimize('out2', target_y_multi.sw(1), y3, 'rmse')
+test.addMinimize('out3', target_y_multi.sw(1), y4, 'rmse')
 
 # Neuralize the models
 test.neuralizeModel()

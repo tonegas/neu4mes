@@ -27,7 +27,7 @@ class Visualizer():
     def showModel(self):
         pass
 
-    def showMinimizeError(self,variable_name):
+    def showaddMinimize(self,variable_name):
         pass
 
     def showModelInputWindow(self):

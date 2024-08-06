@@ -18,8 +18,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         # Add the neural model to the neu4mes structure and neuralization of the model
         test = Neu4mes(visualizer=None)
-        test.addModel(x_z)
-        test.minimizeError('next-pos', x.z(-1), x_z, 'mse')
+        test.addModel('x_z',x_z)
+        test.addMinimize('next-pos', x.z(-1), x_z, 'mse')
 
         # Create the neural network
         test.neuralizeModel(sample_time=0.05)  # The sampling time depends to the dataset
@@ -35,7 +35,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
 
         test = Neu4mes(visualizer=None)
-        test.minimizeError('out', output.z(-1), rel1)
+        test.addMinimize('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
         data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -71,7 +71,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
 
         test = Neu4mes(visualizer=None)
-        test.minimizeError('out', output.z(-1), rel1)
+        test.addMinimize('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
         data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -107,7 +107,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
 
         test = Neu4mes(visualizer=None)
-        test.minimizeError('out', output.next(), rel1)
+        test.addMinimize('out', output.next(), rel1)
         test.neuralizeModel(0.01)
 
         data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -146,7 +146,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
 
         test = Neu4mes(visualizer=None)
-        test.minimizeError('out', output.z(-1), rel1)
+        test.addMinimize('out', output.z(-1), rel1)
         test.neuralizeModel(0.01)
 
         data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
@@ -185,7 +185,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
 
         test = Neu4mes(visualizer=None)
-        test.minimizeError('out', output.next(), rel1)
+        test.addMinimize('out', output.next(), rel1)
         test.neuralizeModel(0.01)
 
         x_size = 20
@@ -236,8 +236,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         # Add the neural model to the neu4mes structure and neuralization of the model
         test = Neu4mes(visualizer=None)
-        test.addModel(x_z)
-        test.minimizeError('next-pos', x.z(-1), x_z, 'mse')
+        test.addModel('x_z',x_z)
+        test.addMinimize('next-pos', x.z(-1), x_z, 'mse')
 
         # Create the neural network
         test.neuralizeModel(sample_time=0.05)  # The sampling time depends to the dataset
@@ -278,7 +278,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         out2 = Output('out2', Fir(Linear(k.last() + Fir(2)(w.tw(0.05,offset=-0.02)))))
 
         test = Neu4mes(visualizer=None)
-        test.minimizeError('out', out, out2)
+        test.addMinimize('out', out, out2)
         test.neuralizeModel(0.01)
 
         data_folder = os.path.join(os.path.dirname(__file__), 'vector_data/')

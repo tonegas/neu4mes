@@ -26,8 +26,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         y = Output('y', rel1)
 
         test = Neu4mes(seed=42)
-        test.addModel(y)
-        test.minimizeError('pos', out.next(), y)
+        test.addModel('y',y)
+        test.addMinimize('pos', out.next(), y)
         test.neuralizeModel(0.01)
 
         test.loadData(name='dataset',source=dataset)
@@ -62,7 +62,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         test = Neu4mes()
         test.addModel(out)
-        test.minimizeError('pos', x.next(), out)
+        test.addMinimize('pos', x.next(), out)
         test.neuralizeModel(0.01)
 
         test.loadData(name='dataset',source=dataset)
@@ -85,7 +85,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         test = Neu4mes()
         test.addModel(out)
-        test.minimizeError('pos', y.last(), out)
+        test.addMinimize('pos', y.last(), out)
         test.neuralizeModel(0.01)
 
         test.loadData(name='dataset',source=dataset)
@@ -110,8 +110,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test = Neu4mes(seed=42)
         test.addModel(out_x)
         test.addModel(out_y)
-        test.minimizeError('pos_x', x.next(), out_x)
-        test.minimizeError('pos_y', y.next(), out_y)
+        test.addMinimize('pos_x', x.next(), out_x)
+        test.addMinimize('pos_y', y.next(), out_y)
         test.neuralizeModel(0.01)
 
         test.loadData(name='dataset',source=dataset)
@@ -137,7 +137,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         test = Neu4mes(seed=42)
         test.addModel(out)
-        test.minimizeError('pos_x', x.next(), out)
+        test.addMinimize('pos_x', x.next(), out)
         test.neuralizeModel(0.01)
 
         result = test(inputs={'x': [2], 'x_state':[1]})

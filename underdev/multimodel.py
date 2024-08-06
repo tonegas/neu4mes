@@ -25,7 +25,7 @@ b = Output('b',Linear(W='condiviso')(a.last())+Linear(W='A')(Fir(parameter='B')(
 
 model = Neu4mes()
 model.addModel('b_model',b)
-model.minimizeError('b_min',b,b_t.last())
+model.addMinimize('b_min',b,b_t.last())
 model.neuralizeModel(0.1)
 model.loadData('dataset', dataset)
 
@@ -39,7 +39,7 @@ d_t = Input('d_t')
 d = Output('d',Linear(W='condiviso')(c.last())+Fir(parameter='C')(c.tw(0.5))+Fir(parameter='D')(b_in.tw(0.2)))
 
 model.addModel('d_model', d)
-model.minimizeError('d_min',d,d_t.last())
+model.addMinimize('d_min',d,d_t.last())
 model.neuralizeModel(0.1)
 
 # Faccio il traning solo dei parametri di d_model

@@ -32,7 +32,7 @@ out_next_x = Output('next_x',next_x)
 
 # Create the model and add the outputs
 example1 = Neu4mes()
-example1.addModel([out_model_next_x,out_x_win,out_f_last,out_next_x])
+example1.addModel('all_out',[out_model_next_x,out_x_win,out_f_last,out_next_x])
 # Choose the Samplingrate and neuralize the model
 example1.neuralizeModel(0.05)
 

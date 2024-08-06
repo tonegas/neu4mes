@@ -28,15 +28,15 @@ dxk1 = Output('dx[k+1]', Fir(Fir(x.tw(0.2))+Fir(F.last())))
 
 # Add the neural models to the neu4mes structure
 mass_spring_damper = Neu4mes()
-mass_spring_damper.addModel(xk1)
-mass_spring_damper.addModel(dxk1)
+mass_spring_damper.addModel('xk1',xk1)
+mass_spring_damper.addModel('dxk1',dxk1)
 
 # These functions are used to impose the minimization objectives.
 # Here it is minimized the error between the future position of x get from the dataset x.z(-1)
 # and the estimator designed useing the neural network. The miniminzation is imposed via MSE error.
-mass_spring_damper.minimizeError('next-pos', x.next(), xk1, 'mse')
+mass_spring_damper.addMinimize('next-pos', x.next(), xk1, 'mse')
 # The second minimization is between the velocity get from the dataset and the velocity estimator.
-mass_spring_damper.minimizeError('next-vel', dx.next(), dxk1, 'mse')
+mass_spring_damper.addMinimize('next-vel', dx.next(), dxk1, 'mse')
 
 # Nauralize the model and gatting the neural network. The sampling time depends on the datasets.
 mass_spring_damper.neuralizeModel(sample_time = 0.05) # The sampling time depends on the dataset

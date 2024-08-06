@@ -18,7 +18,7 @@ est_x_k1 = Output('xk1',x_k1)
 
 mass_spring_damper = Neu4mes(verbose = True)
 mass_spring_damper.addModel(est_x_k1)
-mass_spring_damper.minimizeError(x.z(-1), x_k1, )
+mass_spring_damper.addMinimize(x.z(-1), x_k1, )
 mass_spring_damper.neuralizeModel(0.1)
 data_struct = ['time','x','x_s','F']
 data_folder = './examples/datasets/mass-spring-damper/data/'
@@ -58,7 +58,7 @@ mass_spring_damper.clearState() # Funzione che ripulisce lo stato
 x.z(-1) # Operazione non ammissibile su uno stato non può accedere al futuro
 # Quindi per leggere un valore dal dataset posso utilizzare una nuova variabile input
 x_true = Input('x')
-mass_spring_damper.minimizeError(x_true.z(-1), x_k1, )
+mass_spring_damper.addMinimize(x_true.z(-1), x_k1, )
 
 # Caricamento dei dati in questo caso è presente 'x' come input
 data_struct = ['time','x','x_s','F'] # La x la uso sia per inizializzare lo stato sia per inizializzare x_true
@@ -75,7 +75,7 @@ mass_spring_damper.trainModel(test_percentage = 10, show_results = True, predict
 # Mettiamo il caso che voglio inizializzare lo stato a zero basterà che nessuna colonna del dataset sia uguale alla variabile di stato
 x_true = Input('xy')
 data_struct = ['time','xy','x_s','F']
-mass_spring_damper.minimizeError(x_true.z(-1), x_k1, )
+mass_spring_damper.addMinimize(x_true.z(-1), x_k1, )
 mass_spring_damper.loadData(data_struct)
 
 # Training non ricorrente ma in questo caso la variabile di stato è settata a 0 in pratica si usa sempre una finestra di zero
@@ -137,7 +137,7 @@ mass_spring_damper = Neu4mes(verbose = True)
 mass_spring_damper.addModel(est_x_k1)
 mass_spring_damper.neuralizeModel(0.05)
 
-mass_spring_damper.minimizeError('error', x_k1, F.next())
+mass_spring_damper.addMinimize('error', x_k1, F.next())
 
 # Caricamento dei dati in questo caso è presente 'x' come input
 data_struct = ['time',('x','x_state'),'x_s','F'] # La x la uso sia per inizializzare lo stato

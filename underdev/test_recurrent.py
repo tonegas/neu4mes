@@ -25,8 +25,8 @@ est_x_k1 = Output('xk1',x_k1)  ## TODO: should work without Output
 
 mass_spring_damper = Neu4mes()
 mass_spring_damper.addModel(est_x_k1) ## TODO: should work without addModel
-mass_spring_damper.minimizeError('out',x.z(-1),x_k1)
-#mass_spring_damper.minimizeError('out2', x_k1, x_k2)
+mass_spring_damper.addMinimize('out',x.z(-1),x_k1)
+#mass_spring_damper.addMinimize('out2', x_k1, x_k2)
 mass_spring_damper.neuralizeModel(0.1)
 
 ## build custom dataset

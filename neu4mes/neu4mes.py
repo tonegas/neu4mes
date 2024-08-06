@@ -16,6 +16,7 @@ from neu4mes.relation import NeuObj, merge
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
+from neu4mes.relation import Stream
 from neu4mes.model import Model
 from neu4mes.utilis import check, argmax_max, argmin_min
 
@@ -27,7 +28,7 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
 class Neu4mes:
     name = None
-    def __init__(self, model_def = 0, visualizer = 'Standard', seed=None):
+    def __init__(self, visualizer = 'Standard', seed=None):
 
         # Visualizer
         if visualizer == 'Standard':
@@ -39,8 +40,8 @@ class Neu4mes:
         self.visualizer.set_n4m(self)
 
         # Inizialize the model definition
+        self.json_models = {}
         self.model_def = NeuObj().json
-        self.addModel(model_def)
 
         ## Set the random seed for reproducibility
         if seed:
@@ -220,24 +221,32 @@ class Neu4mes:
             return {}
 
 
-    def addModel(self, model_def):
-        if type(model_def) is Output:
-            self.model_def = merge(self.model_def, model_def.json)
-        elif type(model_def) is dict:
-            self.model_def = merge(self.model_def, model_def)
-        elif type(model_def) is list:
-            for item in model_def:
-                self.addModel(item)
+    def addModel(self, name, json_model):
+        if type(json_model) is Output:
+            self.json_models[name] = copy.deepcopy(json_model)
+            self.model_def = merge(self.model_def, json_model.json)
+        elif type(json_model) is list:
+            for item in json_model:
+                self.addModel(name, item)
+
+    def removeModel(self, name):
+        if type(name) is str:
+            del self.json_models[name]
+            self.model_def = copy.deepcopy(NeuObj().json)
+            for json_model in self.json_models:
+                self.model_def = merge(self.model_def, json_model)
 
 
-    def minimizeError(self, variable_name, streamA, streamB, loss_function='mse'):
+    def addMinimize(self, variable_name, streamA, streamB, loss_function='mse'):
+        check(isinstance(streamA, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
+        check(isinstance(streamB, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
         self.model_def = merge(self.model_def, streamA.json)
         self.model_def = merge(self.model_def, streamB.json)
-        A = (streamA.name[0] if type(streamA.name) is tuple else streamA.name)
-        B = (streamB.name[0] if type(streamB.name) is tuple else streamB.name)
+        A = streamA.name
+        B = streamB.name
         self.minimize_list.append((A, B, loss_function))
         self.minimize_dict[variable_name]={'A':(A, copy.deepcopy(streamA)), 'B':(B, copy.deepcopy(streamB)), 'loss':loss_function}
-        self.visualizer.showMinimizeError(variable_name)
+        self.visualizer.showaddMinimize(variable_name)
 
 
     def neuralizeModel(self, sample_time = 1):

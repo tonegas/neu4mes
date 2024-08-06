@@ -43,7 +43,7 @@ class MyTestCase(unittest.TestCase):
         out_fun = Fir(in1.tw(0.1)) + Fir(in2.last())
         out = Output('out', out_fun)
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.01)
         results = test({'in1': [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],'in2': [[5]]})
         self.assertEqual(1, len(results['out']))
@@ -81,8 +81,8 @@ class MyTestCase(unittest.TestCase):
         out15 = Output('x.sw([0,1])',  in1.sw([0, 1]))
 
         test = Neu4mes(visualizer=None)
-        #test.addModel([out0,out1,out2,out3,out4,out5,out6,out7,out11,out12,out13,out14,out15])
-        test.addModel([out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15])
+        #test.addModel('out',[out0,out1,out2,out3,out4,out5,out6,out7,out11,out12,out13,out14,out15])
+        test.addModel('out',[out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15])
 
         test.neuralizeModel(1)
         # Time                  -2,-1,0,1,2,3 # zero represent the last passed instant
@@ -139,7 +139,7 @@ class MyTestCase(unittest.TestCase):
         out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
         test = Neu4mes(visualizer=None)
-        test.addModel([out1,out2,out3,out4,out5,out6,out7,out8,out9])
+        test.addModel('out',[out1,out2,out3,out4,out5,out6,out7,out8,out9])
 
         test.neuralizeModel(1)
         # Time                  -2,-1,0,1,2,3 # zero represent the last passed instant
@@ -184,7 +184,7 @@ class MyTestCase(unittest.TestCase):
         out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
         test = Neu4mes(visualizer=None)
-        test.addModel([out1, out2, out3, out4, out5, out6, out7, out8, out9])
+        test.addModel('out',[out1, out2, out3, out4, out5, out6, out7, out8, out9])
 
         test.neuralizeModel(1)
 
@@ -237,7 +237,7 @@ class MyTestCase(unittest.TestCase):
         out6 = Output('mul2', in2.tw([-2, 2]) * in2.tw([-3, 1], offset=-2))
 
         test = Neu4mes(visualizer=None)
-        test.addModel([out1, out2, out3, out4, out5, out6])
+        test.addModel('out',[out1, out2, out3, out4, out5, out6])
 
         test.neuralizeModel(1)
         # Single input
@@ -297,7 +297,7 @@ class MyTestCase(unittest.TestCase):
         out7 = Output('Fir6', Fir(6)(in1.sw([-2,-1], offset=-2)))#
 
         test = Neu4mes(visualizer=None)
-        test.addModel([out1,out2,out3,out4,out5,out6,out7])
+        test.addModel('out',[out1,out2,out3,out4,out5,out6,out7])
         test.neuralizeModel(1)
         # Single input
         # Time                 -2    -1    0    1    2    3
@@ -355,7 +355,7 @@ class MyTestCase(unittest.TestCase):
         out5 = Output('out5', Fir(parameter=p5)(x.sw([-2, 0])))
 
         test = Neu4mes(visualizer=None)
-        test.addModel([out1, out2, out3, out4, out5])
+        test.addModel('out',[out1, out2, out3, out4, out5])
         test.neuralizeModel(0.5)
         # Time   -2, -1, 0, 1, 2, 3, 4
         input = [-2, -1, 0, 1, 2, 3, 12]
@@ -380,7 +380,7 @@ class MyTestCase(unittest.TestCase):
         parfun = ParamFun(myfun)
         out = Output('out', parfun(in1.last()))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         #results = test({'in1': 1})   
@@ -396,7 +396,7 @@ class MyTestCase(unittest.TestCase):
 
         out = Output('out', ParamFun(myfun)(in1.tw(0.2)))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         with self.assertRaises(StopIteration):
@@ -418,7 +418,7 @@ class MyTestCase(unittest.TestCase):
 
         out = Output('out', ParamFun(myfun)(in1.last(),in1.last()))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         #results = test({'in1': 1})
@@ -432,7 +432,7 @@ class MyTestCase(unittest.TestCase):
 
         out = Output('out', ParamFun(myfun)(in1.tw(0.1), in1.tw(0.1)))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         #results = test({'in1': 2})
@@ -444,7 +444,7 @@ class MyTestCase(unittest.TestCase):
 
         out = Output('out', ParamFun(myfun)(in1.tw(0.2), in1.tw(0.2)))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         results = test({'in1': [2,4]})
@@ -456,7 +456,7 @@ class MyTestCase(unittest.TestCase):
 
         out = Output('out', ParamFun(myfun)(in1.tw(0.3), in1.tw(0.3)))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         with self.assertRaises(StopIteration):
@@ -480,7 +480,7 @@ class MyTestCase(unittest.TestCase):
         
         out = Output('out', ParamFun(myfun)(in1.tw(0.4), in1.tw(0.4)))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
         with self.assertRaises(StopIteration):
             test({'in1': [[1, 2, 2], [3, 4, 5]]})
@@ -495,7 +495,7 @@ class MyTestCase(unittest.TestCase):
         parfun = ParamFun(myfun3, parameters=[p1,p2])
         out = Output('out', parfun(in1.last(),in2.last()))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         results = test({'in1': [[1,2,3]],'in2':[[5,6]]})
@@ -512,7 +512,7 @@ class MyTestCase(unittest.TestCase):
         in2 = Input('in2')
         out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4))))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         with self.assertRaises(StopIteration):
@@ -531,7 +531,7 @@ class MyTestCase(unittest.TestCase):
         in2 = Input('in2')
         out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4),in2.tw(0.4))))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
         with self.assertRaises(StopIteration): ## TODO: change to KeyError when checking the inputs
             test({'in1': [[1, 2, 2, 4]]})
@@ -561,7 +561,7 @@ class MyTestCase(unittest.TestCase):
         in2 = Input('in2')
         out = Output('out', Fir(3)(ParamFun(myfun2)(in1.tw(0.4), in2.tw(0.4))))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [1, 2, 2, 4]]}, sampled=True)
@@ -575,7 +575,7 @@ class MyTestCase(unittest.TestCase):
         parfun = ParamFun(myfun2)
         out = Output('out', parfun(Fir(3)(parfun(in1.tw(0.4)))))
         test = Neu4mes(visualizer=None)
-        test.addModel(out)
+        test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         results = test({'in1': [[1, 2, 2, 4], [2, 1, 1, 3]]}, sampled=True)
@@ -623,7 +623,7 @@ class MyTestCase(unittest.TestCase):
         linW = Parameter('linW',dimensions=(4,1),values=[[[1],[1],[1],[1]]])
         outtot = Output('outtot', tot1 + Linear(W=linW)(tot4))
         test = Neu4mes(visualizer=None)
-        test.addModel([out1,out4,outtot])
+        test.addModel('out',[out1,out4,outtot])
         test.neuralizeModel()
 
         results = test({'in1': [1, 2, -2],'in4': [[6, 2, 2, 4], [7, 2, 2, 4], [-6, -5, 5, 4]]})
@@ -650,7 +650,7 @@ class MyTestCase(unittest.TestCase):
         oWb = Output('outWb' , Linear(W = W15,b = b15)(input) + Linear(W = W45, b = b45)(input4))
 
         n = Neu4mes(visualizer=None)
-        n.addModel([o,o3,oW,oWb])
+        n.addModel('out',[o,o3,oW,oWb])
         n.neuralizeModel()
         results = n({'in': [1, 2], 'in4': [[6, 2, 2, 4], [7, 2, 2, 4]]})
         self.assertEqual((2,), np.array(results['out']).shape)
@@ -682,7 +682,7 @@ class MyTestCase(unittest.TestCase):
         oW = Output('outW' , Linear(W = W15)(input2) + Linear(W = W45)(input42))
         oWb = Output('outWb' , Linear(W = W15,b = b15)(input2) + Linear(W = W45, b = b45)(input42))
         n = Neu4mes(visualizer=None)
-        n.addModel([o,o3,oW,oWb])
+        n.addModel('out',[o,o3,oW,oWb])
         n.neuralizeModel()
         results = n({'in': [1, 2], 'in4': [[6, 2, 2, 4], [7, 2, 2, 4]]})
         self.assertEqual((1, 2), np.array(results['out']).shape)
@@ -763,7 +763,7 @@ class MyTestCase(unittest.TestCase):
         in_SS2 = Output('in_SS2', SampleSelect(sw3, 1))
         in_SS3 = Output('in_SS3', SampleSelect(sw3, 2))
         test = Neu4mes(visualizer=None)
-        test.addModel([out_sw3, out_sw32,
+        test.addModel('out',[out_sw3, out_sw32,
                        in_SP1first, in_SP1mid, in_SP1last, in_SP1all, in_SP1off1, in_SP1off2, in_SP1off3,
                        in_SS1, in_SS2, in_SS3])
         test.neuralizeModel()
@@ -884,7 +884,7 @@ class MyTestCase(unittest.TestCase):
         in_TP1off3 = Output('in_TP1off3', TimePart(tw32, 0, 3, offset=2))
 
         test = Neu4mes(visualizer=None)
-        test.addModel([out_tw3, out_tw32,
+        test.addModel('out',[out_tw3, out_tw32,
                        in_TP1first, in_TP1mid, in_TP1last, in_TP1all, in_TP1off1, in_TP1off2, in_TP1off3])
         test.neuralizeModel()
         results = test({'in1': [0, 1, 2, 3, 4, 5, 6, 7]})
@@ -975,7 +975,7 @@ class MyTestCase(unittest.TestCase):
         in_S4 = Output('in_S4', Select(tw3, 3))
 
         test = Neu4mes(visualizer=None)
-        test.addModel([out_tw3, out_tw32,
+        test.addModel('out',[out_tw3, out_tw32,
                        in_P1first, in_P1mid, in_P1last, in_P1all,
                        in_S1, in_S2, in_S3, in_S4])
         test.neuralizeModel()

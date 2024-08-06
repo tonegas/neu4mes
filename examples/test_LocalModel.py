@@ -17,7 +17,7 @@ print("------------------------EXAMPLE 1------------------------")
 loc = LocalModel(input_function = lambda : Fir)(x.tw(1),activationA)
 out = Output('out',loc)
 example = Neu4mes()
-example.addModel(out)
+example.addModel('out',out)
 example.neuralizeModel(0.25)
 # The output is 2 samples
 print(example({'x':[-1,0,1,2,0]}))
@@ -31,7 +31,7 @@ print("------------------------EXAMPLE 2------------------------")
 loc = LocalModel(input_function = Fir())(x.tw(1),activationA)
 out = Output('out',loc)
 example = Neu4mes()
-example.addModel(out)
+example.addModel('out',out)
 example.neuralizeModel(0.25)
 # The output is 2 samples
 print(example({'x':[-1,0,1,2,0]}))
@@ -45,7 +45,7 @@ print("------------------------EXAMPLE 3------------------------")
 loc = LocalModel(input_function = Fir)(x.tw(1),(activationA,activationB))
 out = Output('out',loc)
 example = Neu4mes()
-example.addModel(out)
+example.addModel('out',out)
 example.neuralizeModel(0.5)
 # The output is 3 samples
 print(example({'x':[-1,0,1,2],'F':[-1,0,1]}))
@@ -60,7 +60,7 @@ def myFun(in1,p1):
 loc = LocalModel(output_function = lambda:ParamFun(myFun))(x.last(),activationA)
 out = Output('out',loc)
 example = Neu4mes()
-example.addModel(out)
+example.addModel('out',out)
 example.neuralizeModel(0.05)
 # The output is 2 samples
 print(example({'x':[2,3]}))
@@ -77,7 +77,7 @@ def myFun(in1,p1,p2):
 loc = LocalModel(input_function = lambda:ParamFun(myFun), output_function = lambda:Fir)(x.last(),activationA)
 out = Output('out', loc)
 example = Neu4mes()
-example.addModel(out)
+example.addModel('out',out)
 example.neuralizeModel(0.5)
 # The output is 2 samples
 print(example({'x':[2,3]}))
@@ -99,7 +99,7 @@ def myFun(in1,p1,p2):
 loc = LocalModel(input_function = lambda:ParamFun(myFun), output_function = Fir(3))(x.tw(1),(activationA,activationB))
 out = Output('out', loc)
 example = Neu4mes()
-example.addModel([out])
+example.addModel('out',out)
 example.neuralizeModel(0.5)
 # Single sample but with dimension 3 due to the dimension of the output of the Fir
 print(example({'x':[2,3]}))
@@ -171,7 +171,7 @@ sum = fir00+fir01+fir10+fir11
 out_sum = Output('out_sum', sum)
 out = Output('out', loc)
 example = Neu4mes()
-example.addModel([out_in_00,out_in_01,out_in_10,out_in_11,
+example.addModel('all_out',[out_in_00,out_in_01,out_in_10,out_in_11,
                   out_act_selA0,out_act_selA1,out_act_selB0,out_act_selB1,
                   out_mul00,out_mul01,out_mul10,out_mul11,
                   out_fir00,out_fir01,out_fir10,out_fir11,

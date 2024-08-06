@@ -35,8 +35,8 @@ engine_force = local_model(torque.sw(n), fuzzi_gear)
 out = Output('accelleration', air_drag_force+breaking_force+gravity_force+engine_force)
 
 # Add the neural model to the neu4mes structure and neuralization of the model
-vehicle.addModel([out])
-vehicle.minimizeError('acc_error', acc.last(), out, loss_function='rmse')
+vehicle.addModel('acc',[out])
+vehicle.addMinimize('acc_error', acc.last(), out, loss_function='rmse')
 vehicle.neuralizeModel(0.05)
 
 # Load the training and the validation dataset
