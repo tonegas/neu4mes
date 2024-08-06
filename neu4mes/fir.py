@@ -72,7 +72,7 @@ class Fir(NeuObj, AutoToStream):
                 self.json['Parameters'][self.name]['init_fun']['params'] = self.parameter_init_params
 
         stream_json = merge(self.json,obj.json)
-        stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name, self.dropout]
+        stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name]
         return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
 
 class Fir_Layer(nn.Module):

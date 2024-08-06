@@ -461,6 +461,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         self.assertEqual([[[27]], [[29]], [[31]], [[33]]], test.data['val_dataset']['out'].tolist())
         self.assertEqual((4, 1, 1), test.data['test_dataset']['out'].shape)
         self.assertEqual([[[47]], [[49]], [[51]], [[53]]], test.data['test_dataset']['out'].tolist())
+
     def test_vector_input_dataset(self):
         x = Input('x', dimensions=4)
         y = Input('y', dimensions=3)
@@ -471,7 +472,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         out = Output('out', Fir(Linear(Linear(3)(x.tw(0.02)) + y.tw(0.02))))
         out2 = Output('out2', Fir(Linear(k.last() + Fir(2)(w.tw(0.05,offset=-0.02)))))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', out, out2)
         test.neuralizeModel(0.01)
 
@@ -543,7 +544,7 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
         out = Output('out', Fir(Linear(Linear(3)(x.tw(0.02)) + y.tw(0.02))))
         out2 = Output('out2', Fir(Linear(k.last() + Fir(2)(w.tw(0.05,offset=-0.02)))))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.minimizeError('out', out, out2)
         test.neuralizeModel(0.01)
 

@@ -27,7 +27,7 @@ xk1 = Output('x[k+1]', Fir(x.tw(0.2))+Fir(F.last()))
 dxk1 = Output('dx[k+1]', Fir(Fir(x.tw(0.2))+Fir(F.last())))
 
 # Add the neural models to the neu4mes structure
-mass_spring_damper = Neu4mes(visualizer=MPLVisulizer())
+mass_spring_damper = Neu4mes()
 mass_spring_damper.addModel(xk1)
 mass_spring_damper.addModel(dxk1)
 
@@ -48,8 +48,8 @@ mass_spring_damper.loadData(name='mass_spring_dataset', source=data_folder, form
 
 #Neural network train
 params = {'num_of_epochs': 100, 
-          'train_batch_size': 4, 
-          'val_batch_size':4, 
+          'train_batch_size': 128, 
+          'val_batch_size':128, 
           'test_batch_size':1, 
           'learning_rate':0.001}
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)

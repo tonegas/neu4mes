@@ -5,3 +5,11 @@
 8. add the activation functions to the visualizer
 9. Adjust the 'ResultAnalysis' function
 
+10. Adjust recurrent train inside the train
+11. test state variables with multiple window
+12. test state variables with multiple dimension
+13. adjust the call function with state variables
+14. filter function to eliminate data 
+
+TODO:
+1- MultiModel
