@@ -11,7 +11,5 @@
 13. adjust the call function with state variables
 14. filter function to eliminate data 
 
-Call function with recurrent
-
-CASO 1: using close_loop
-- define close_loop when calling predict
+TODO:
+1- MultiModel

@@ -5,8 +5,8 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
-example = 4
-
+example = 5
+## TODO: sposta in test con assert e inizializzazione dei FIR e seed
 if example == 1:
     print('#### EXAMPLE 1 - NON Recurrent Training ####')
     x = Input('x') 
@@ -16,7 +16,7 @@ if example == 1:
     x_out.update(x_state)
     out = Output('out',x_out)
 
-    mass_spring_damper = Neu4mes()
+    mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel(out)
     mass_spring_damper.minimizeError('error', out, x.next())
 
@@ -75,10 +75,13 @@ elif example == 2:
           'learning_rate':0.001}
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_horizon=0.2, shuffle_data=False, training_params=params)
 
+    print('finale state: ', mass_spring_damper.model.states)
+    mass_spring_damper.clear_state()
+    print('state clear: ', mass_spring_damper.model.states)
+
 elif example == 3:
     print('#### EXAMPLE 3 - NON Recurrent Training (2 state variables) ####')
     x = Input('x') 
-    F = Input('F')
     x_state = State('x_state')
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.5))
@@ -87,7 +90,7 @@ elif example == 3:
     y_out.update(y_state)
     out = Output('out',x_out+y_out)
 
-    mass_spring_damper = Neu4mes()
+    mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel(out)
     mass_spring_damper.minimizeError('error', out, x.next())
 
@@ -108,7 +111,7 @@ elif example == 3:
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.001}
-    mass_spring_damper.trainModel(splits=[70,20,10], shuffle_data=False, training_params=params)
+    mass_spring_damper.trainModel(splits=[100,0,0], shuffle_data=False, training_params=params)
 
 elif example == 4:
     print('#### EXAMPLE 4 - Recurrent Training (2 state variables) ####')
@@ -122,7 +125,7 @@ elif example == 4:
     y_out.update(y_state)
     out = Output('out',x_out+y_out)
 
-    mass_spring_damper = Neu4mes()
+    mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel(out)
     mass_spring_damper.minimizeError('error', out, x.next())
 

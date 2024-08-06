@@ -84,13 +84,30 @@ class Neu4mes:
         self.prediction = {}
 
 
-    def __call__(self, inputs, sampled=False):
+    def __call__(self, inputs, sampled=False, close_loop={}):
         check(self.neuralized, ValueError, "The network is not neuralized.")
+
+        close_loop_windows = {}
+        for close_in, close_out in close_loop.items():
+            check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
+            check(close_out in self.model_def['Outputs'], ValueError, f'the tag {close_out} is not an output of the network')
+            if close_in in inputs.keys():
+                close_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
+            else:
+                close_loop_windows[close_in] = 1
+
         model_inputs = list(self.model_def['Inputs'].keys()) 
         model_states = list(self.model_def['States'].keys())
         provided_inputs = list(inputs.keys())
         missing_inputs = list(set(model_inputs) - set(provided_inputs))
         extra_inputs = list(set(provided_inputs) - set(model_inputs))
+        non_recurrent_inputs = list(set(provided_inputs) - set(close_loop.keys()) - set(model_states))
+
+        for key in model_states:
+            if key in inputs.keys():
+                close_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
+            else:
+                close_loop_windows[key] = 1
 
         ## Ignoring extra inputs if not necessary
         if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
@@ -101,11 +118,11 @@ class Neu4mes:
 
         ## Determine the Maximal number of samples that can be created
         if sampled:
-            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in provided_inputs])
-            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in provided_inputs])
+            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in non_recurrent_inputs])
+            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in non_recurrent_inputs])
         else:
-            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in provided_inputs])
-            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in provided_inputs])
+            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
+            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
 
@@ -125,13 +142,17 @@ class Neu4mes:
 
         ## Cycle through all the samples provided
         with torch.inference_mode():
+            X = {}
             for i in range(window_dim):
-                X = {}
                 for key, val in inputs.items():
-                    if sampled:
-                        X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32)
-                    else:
-                        X[key] = torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
+                    if key in close_loop.keys() or key in model_states:
+                        if i >= close_loop_windows[key]:
+                            if key in model_states and key in X.keys():
+                                del X[key]
+                            continue
+
+                    ## Collect the inputs
+                    X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
 
                     if key in model_inputs:
                         input_dim = self.model_def['Inputs'][key]['dim']
@@ -150,12 +171,16 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(0)
                     if X[key].ndim <= 2: ## add the time dimension
                         X[key] = X[key].unsqueeze(0)
-
+                        
                 ## Model Predict
-                if model_states and (i == 0): ## TODO: change         
-                    result, _  = self.model(X, initialize_state=True)
-                else:
-                    result, _ = self.model(X, initialize_state=False)
+                result, _ = self.model(X)
+
+                ## Update the recurrent variable
+                for close_in, close_out in close_loop.items():
+                    if i >= close_loop_windows[close_in]-1:
+                        dim = result[close_out].shape[1]  ## take the output time dimension
+                        X[close_in] = torch.roll(X[close_in], shifts=-dim, dims=1) ## Roll the time window
+                        X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
 
                 ## Append the prediction of the current sample to the result dictionary
                 for key in self.model_def['Outputs'].keys():
@@ -473,7 +498,7 @@ class Neu4mes:
         self.close_loop = close_loop
         if self.close_loop:
             for input, output in self.close_loop.items():
-                check(input in (self.model_def['Inputs'] | self.model_def['States']), ValueError, f'the tag {input} is not an input variable nor a state variable')
+                check(input in self.model_def['Inputs'], ValueError, f'the tag {input} is not an input variable.')
                 check(output in self.model_def['Outputs'], ValueError, f'the tag {output} is not an output of the network')
             self.visualizer.warning(f'Recurrent train: closing the loop for {prediction_horizon} time steps')
             recurrent_train = True
@@ -617,14 +642,18 @@ class Neu4mes:
             horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
             for horizon_idx in range(prediction_samples):
                 ## Model Forward
-                if (prediction_samples == 1) or (prediction_samples != 1 and horizon_idx == 0):
-                    out, minimize_out = self.model(XY, initialize_state=True)  ## Training with state variables
-                else:
-                    out, minimize_out = self.model(XY, initialize_state=False)  ## Normal Training
+                out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
                 for ind, (name, items) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
                     horizon_losses[ind].append(loss)
+
+                ## remove the states variables from the data
+                if prediction_samples > 1:
+                    for state_key in self.model_def['States'].keys():
+                        if state_key in XY.keys():
+                            del XY[state_key]
+
                 if close_loop:
                     ## Update the input with the recurrent prediction
                     if horizon_idx != prediction_samples-1:
@@ -665,7 +694,7 @@ class Neu4mes:
             if train:
                 self.optimizer.zero_grad()
             ## Model Forward
-            _, minimize_out = self.model(XY)  ## Normal Training
+            _, minimize_out = self.model(XY)  ## Forward pass
             ## Loss Calculation
             for ind, (name, items) in enumerate(self.minimize_dict.items()):
                 loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
@@ -677,8 +706,8 @@ class Neu4mes:
                 self.optimizer.step()
         return aux_losses
     
-    def clear_state(self, state):
-        check(self.neuralized, "The network is not neuralized yet.")
+    def clear_state(self, state=None):
+        check(self.neuralized, ValueError, "The network is not neuralized yet.")
         if self.model_def['States']:
             if state:
                 self.model.clear_state(state=state)

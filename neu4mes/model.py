@@ -66,7 +66,7 @@ class Model(nn.Module):
         ## save the states updates
         self.states_updates = {}
         for state, param in self.state_model.items():
-            self.states_updates[param['update']] = state
+            self.states_updates[state] = param['update']
 
         ## Create all the relations
         for relation, inputs in self.relations.items():
@@ -142,23 +142,21 @@ class Model(nn.Module):
         ## list of all the network Outputs
         self.network_outputs = self.network_output_predictions.union(self.network_output_minimizers)
 
-    def forward(self, kwargs, initialize_state=False):
+    def forward(self, kwargs):
         result_dict = {}
         ## Initially i have only the inputs from the dataset, the parameters, and the constants
         available_keys = set(list(self.inputs.keys()) + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
         ## Initialize the state variables
-        if initialize_state:
-            for state, value in self.state_model.items():
-                if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
-                    self.states[state] = kwargs[state].clone()
-                    self.states[state].requires_grad = False
-                else: ## the state variable must be initialized with zeros
-                    batch_size = list(kwargs.values())[0].shape[0]
-                    window_size = round(max(abs(value['sw'][0]), abs(value['tw'][0]//self.sample_time)) + max(value['sw'][1], value['tw'][1]//self.sample_time))
-                    self.states[state] = torch.zeros(size=(batch_size, window_size, value['dim']), dtype=torch.float32, requires_grad=False)
-                    #self.states[state] = self.states[state].expand(batch_size, -1, -1)
-                #print('state key: ', state)
-                #print('values: ', self.states[state])
+        batch_size = list(kwargs.values())[0].shape[0] ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
+        
+        ## Initialize State variables if necessary
+        for state in self.state_model.keys():
+            if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
+                self.states[state] = kwargs[state].clone()
+                self.states[state].requires_grad = False
+            elif batch_size > self.states[state].shape[0]:
+                self.states[state] = self.states[state].repeat(batch_size, 1, 1)
+                self.states[state].requires_grad = False
 
         ## Forward pass through the relations
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs
@@ -181,11 +179,11 @@ class Model(nn.Module):
 
                     ## Execute the current relation
                     if 'ParamFun' in relation:
-                            layer_parameters = []
-                            func_parameters = self.functions[self.relations[relation][2]]['parameters']
-                            for func_par in func_parameters:
-                                layer_parameters.append(self.all_parameters[func_par])
-                            result_dict[relation] = self.relation_forward[relation](layer_inputs, layer_parameters)
+                        layer_parameters = []
+                        func_parameters = self.functions[self.relations[relation][2]]['parameters']
+                        for func_par in func_parameters:
+                            layer_parameters.append(self.all_parameters[func_par])
+                        result_dict[relation] = self.relation_forward[relation](layer_inputs, layer_parameters)
                     else:
                         if len(layer_inputs) <= 1: ## i have a single forward pass
                             result_dict[relation] = self.relation_forward[relation](layer_inputs[0])
@@ -194,12 +192,12 @@ class Model(nn.Module):
                     available_keys.add(relation)
 
                     ## Update the state if necessary
-                    if relation in self.states_updates.keys():
-                        shift = result_dict[relation].shape[1]
-                        #print('result relation: ', result_dict[relation])
-                        self.states[self.states_updates[relation]] = torch.roll(self.states[self.states_updates[relation]], shifts=-shift, dims=1)
-                        self.states[self.states_updates[relation]][:, -shift:, :] = result_dict[relation]  ## TODO: .detach()???
-                        #print('relation updated: ', self.states[self.states_updates[relation]])
+                    if relation in self.states_updates.values():
+                        for state in [key for key, value in self.states_updates.items() if value == relation]:
+                            shift = result_dict[relation].shape[1]
+                            self.states[state] = torch.roll(self.states[state], shifts=-shift, dims=1)
+                            self.states[state][:, -shift:, :] = result_dict[relation].detach()  
+                            self.states[state].requires_grad = False
                         
         ## Return a dictionary with all the outputs final values
         output_dict = {key: result_dict[value] for key, value in self.outputs.items()}
