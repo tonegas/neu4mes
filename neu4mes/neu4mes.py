@@ -39,19 +39,18 @@ class Neu4mes:
             self.visualizer = Visualizer()
         self.visualizer.set_n4m(self)
 
-        # Inizialize the model definition
-        self.json_models = {}
-        self.model_def = NeuObj().json
-
         ## Set the random seed for reproducibility
         if seed:
             torch.manual_seed(seed=seed) ## set the pytorch seed
             random.seed(seed) ## set the random module seed
             np.random.seed(seed) ## set the numpy seed
 
-        # Network Parametrs
-        self.minimize_list = []
+        # Inizialize the model definition
+        self.stream_dict = {}
         self.minimize_dict = {}
+        self.model_def = NeuObj().json
+
+        # Network Parametrs
         self.input_tw_backward, self.input_tw_forward = {}, {}
         self.input_ns_backward, self.input_ns_forward = {}, {}
         self.input_n_samples = {}
@@ -221,32 +220,49 @@ class Neu4mes:
             return {}
 
 
-    def addModel(self, name, json_model):
-        if type(json_model) is Output:
-            self.json_models[name] = copy.deepcopy(json_model)
-            self.model_def = merge(self.model_def, json_model.json)
-        elif type(json_model) is list:
-            for item in json_model:
-                self.addModel(name, item)
+    def addModel(self, name, stream_list):
+        if type(stream_list) is Output:
+            stream_list = [stream_list]
+        if type(stream_list) is list:
+            self.stream_dict[name] = copy.deepcopy(stream_list)
+        else:
+            raise TypeError(f'json_model is type {type(stream_list)} but must be an Output or list of Output!')
+        self.__update_model()
 
-    def removeModel(self, name):
-        if type(name) is str:
-            del self.json_models[name]
-            self.model_def = copy.deepcopy(NeuObj().json)
-            for json_model in self.json_models:
-                self.model_def = merge(self.model_def, json_model)
+    def removeModel(self, name_list):
+        if type(name_list) is str:
+            name_list = [name_list]
+        if type(name_list) is list:
+            for name in name_list:
+                check(name in self.stream_dict, IndexError, f"The name {name} is not part of the available models")
+                del self.stream_dict[name]
+        self.__update_model()
 
-
-    def addMinimize(self, variable_name, streamA, streamB, loss_function='mse'):
+    def addMinimize(self, name, streamA, streamB, loss_function='mse'):
         check(isinstance(streamA, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
         check(isinstance(streamB, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
-        self.model_def = merge(self.model_def, streamA.json)
-        self.model_def = merge(self.model_def, streamB.json)
-        A = streamA.name
-        B = streamB.name
-        self.minimize_list.append((A, B, loss_function))
-        self.minimize_dict[variable_name]={'A':(A, copy.deepcopy(streamA)), 'B':(B, copy.deepcopy(streamB)), 'loss':loss_function}
-        self.visualizer.showaddMinimize(variable_name)
+        self.minimize_dict[name]={'A':copy.deepcopy(streamA), 'B': copy.deepcopy(streamB), 'loss':loss_function}
+        self.__update_model()
+        self.visualizer.showaddMinimize(name)
+
+    def removeMinimize(self, name_list):
+        if type(name_list) is str:
+            name_list = [name_list]
+        if type(name_list) is list:
+            for name in name_list:
+                check(name in self.minimize_dict, IndexError, f"The name {name} is not part of the available minimuzes")
+                del self.minimize_dict[name]
+        self.__update_model()
+        self.visualizer.showaddMinimize(name)
+
+    def __update_model(self):
+        self.model_def = copy.deepcopy(NeuObj().json)
+        for key, stream_list in self.stream_dict.items():
+            for stream in stream_list:
+                self.model_def = merge(self.model_def, stream.json)
+        for key, minimize in self.minimize_dict.items():
+            self.model_def = merge(self.model_def, minimize['A'].json)
+            self.model_def = merge(self.model_def, minimize['B'].json)
 
 
     def neuralizeModel(self, sample_time = 1):
@@ -287,7 +303,7 @@ class Neu4mes:
 
         #self.visualizer.showModel()
         ## Build the network
-        self.model = Model(copy.deepcopy(self.model_def), self.minimize_list, self.input_ns_backward)
+        self.model = Model(copy.deepcopy(self.model_def), self.minimize_dict, self.input_ns_backward)
         self.visualizer.showBuiltModel()
         self.neuralized = True
 
@@ -458,17 +474,17 @@ class Neu4mes:
             B = {}
             aux_losses = {}
             for (name, items) in self.minimize_dict.items():
-                window = 'tw' if 'tw' in items['A'][1].dim else ('sw' if 'sw' in items['A'][1].dim else None)
-                A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'][1].dim[window],items['A'][1].dim['dim']])
-                B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'][1].dim[window],items['B'][1].dim['dim']])
-                aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'][1].dim[window],items['A'][1].dim['dim']])
+                window = 'tw' if 'tw' in items['A'].dim else ('sw' if 'sw' in items['A'].dim else None)
+                A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
+                B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
+                aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
             _, minimize_out = self.model(XY_data)
-            for ind, (name, items) in enumerate(self.minimize_dict.items()):
-                A[name] = minimize_out[items['A'][0]]
-                B[name] = minimize_out[items['B'][0]]
-                loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
-                aux_losses[name] = loss.detach().numpy()
+            for ind, (key, value) in enumerate(self.minimize_dict.items()):
+                A[key] = minimize_out[value['A'].name]
+                B[key] = minimize_out[value['B'].name]
+                loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
+                aux_losses[key] = loss.detach().numpy()
 
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A_np = A[key].detach().numpy()
@@ -672,8 +688,8 @@ class Neu4mes:
                 ## Model Forward
                 out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
-                for ind, (name, items) in enumerate(self.minimize_dict.items()):
-                    loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+                for ind, (key, value) in enumerate(self.minimize_dict.items()):
+                    loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
                     horizon_losses[ind].append(loss)
 
                 ## remove the states variables from the data
@@ -724,8 +740,8 @@ class Neu4mes:
             ## Model Forward
             _, minimize_out = self.model(XY)  ## Forward pass
             ## Loss Calculation
-            for ind, (name, items) in enumerate(self.minimize_dict.items()):
-                loss = self.losses[name](minimize_out[items['A'][0]], minimize_out[items['B'][0]])
+            for ind, (key, value) in enumerate(self.minimize_dict.items()):
+                loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
                 if train:
                     loss.backward(retain_graph=True)
                 aux_losses[ind][idx//batch_size]= loss.item()

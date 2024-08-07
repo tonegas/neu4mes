@@ -30,7 +30,7 @@ model.neuralizeModel(0.1)
 model.loadData('dataset', dataset)
 
 # Faccio il training solo di b_model
-model.trainModel()
+#model.trainModel()
 
 # Modello d
 c = Input('c')
@@ -65,9 +65,11 @@ model.trainModel(connect={'b_in':'b'}, lr_gain = {'condiviso':0,'A':1,'B':1,'C':
 # Aggiungiamo anche una funzione per scegliere il gain delle funzioni minimize
 # Equivalenti
 model.trainModel(model = 'b_model', connect={'b_in':'b'}, minimize_gain={'d_min':0})
-model.trainModel(connect={'b_in':'b'}, lr_gain = {'condiviso':0,'A':1,'B':1,'C':0,'D':0}, minimize_gain={'d_min':0}
+model.trainModel(connect={'b_in':'b'}, lr_gain = {'condiviso':0,'A':1,'B':1,'C':0,'D':0}, minimize_gain={'d_min':0})
 
 # Serve una funzione per rimuovere un modello e rimuovere una minimize
-# Questa funzione ci ragioniamo
-model.removeModel(['d_model'])
+model.removeModel('d_model')
+model.removeMinimize('d_min')
+model.neuralizeModel(0.1)
+
 

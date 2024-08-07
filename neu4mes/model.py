@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 class Model(nn.Module):
-    def __init__(self, model_def, minimize_list, input_ns_backward):
+    def __init__(self, model_def,  minimize_dict, input_ns_backward):
         super(Model, self).__init__()
         self.inputs = model_def['Inputs']
         self.outputs = model_def['Outputs']
@@ -11,9 +11,9 @@ class Model(nn.Module):
         self.sample_time = model_def['SampleTime']
         self.functions = model_def['Functions']
         self.state_model = model_def['States']
-        self.minimizers = minimize_list
+        self.minimizers = minimize_dict
         self.input_ns_backward = input_ns_backward
-        self.minimizers_keys = [i[0] for i in self.minimizers] + [i[1] for i in self.minimizers]
+        self.minimizers_keys = [minimize_dict[key]['A'].name for key in minimize_dict] + [minimize_dict[key]['B'].name for key in minimize_dict]
 
         ## Build the network
         self.all_parameters = {}
@@ -149,9 +149,9 @@ class Model(nn.Module):
 
         ## list of network minimization outputs
         self.network_output_minimizers = [] 
-        for el1, el2, _ in self.minimizers:
-            self.network_output_minimizers.append(self.outputs[el1]) if el1 in self.outputs.keys() else self.network_output_minimizers.append(el1)
-            self.network_output_minimizers.append(self.outputs[el2]) if el2 in self.outputs.keys() else self.network_output_minimizers.append(el2)
+        for key,value in self.minimizers.items():
+            self.network_output_minimizers.append(self.outputs[value['A'].name]) if value['A'].name in self.outputs.keys() else self.network_output_minimizers.append(value['A'].name)
+            self.network_output_minimizers.append(self.outputs[value['B'].name]) if value['B'].name in self.outputs.keys() else self.network_output_minimizers.append(value['B'].name)
         self.network_output_minimizers = set(self.network_output_minimizers)
 
         ## list of all the network Outputs
