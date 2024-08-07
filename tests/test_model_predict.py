@@ -1099,13 +1099,13 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out_neg'], [-15.0])
         ## three sample prediction with both close loops
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_horizon=3)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
         self.assertEqual(result['out'], [0.0, 30.0, 58.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
         ## three sample prediction with both close loops but y gets initialized for 3 steps
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_horizon=3)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
         self.assertEqual(result['out'], [0.0, 9.0, 31.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])

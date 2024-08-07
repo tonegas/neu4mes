@@ -38,7 +38,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['test_batch_size'] = 1
         training_params['learning_rate'] = 0.1
         training_params['num_of_epochs'] = 5
-        test.trainModel(splits=[70,20,10], close_loop={'in1':'y'}, prediction_horizon=0.05, step=1, training_params = training_params)
+        test.trainModel(splits=[70,20,10], close_loop={'in1':'y'}, prediction_samples=5, step=1, training_params = training_params)
 
         self.assertEqual(346,test.n_samples_train) ## ((500 - 5) * 0.7)  = 346
         self.assertEqual(99,test.n_samples_val) ## ((500 - 5) * 0.2)  = 99
@@ -69,7 +69,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['test_batch_size'] = 1
         training_params['learning_rate'] = 0.1
         training_params['num_of_epochs'] = 50
-        test.trainModel(splits=[100,0,0], close_loop={'in1':'out'}, prediction_horizon=0.03, step=1, training_params = training_params)
+        test.trainModel(splits=[100,0,0], close_loop={'in1':'out'}, prediction_samples=3, step=1, training_params = training_params)
     
     def test_recurrent_train_single_close_loop(self):
         data_x = np.array(list(range(1,101,1)), dtype=np.float32)
@@ -92,7 +92,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['test_batch_size'] = 1
         training_params['learning_rate'] = 0.01
         training_params['num_of_epochs'] = 50
-        test.trainModel(splits=[80,20,0], close_loop={'x':'out'}, prediction_horizon=0.03, step=3, training_params = training_params)
+        test.trainModel(splits=[80,20,0], close_loop={'x':'out'}, prediction_samples=3, step=3, training_params = training_params)
     
     def test_recurrent_train_multiple_close_loop(self):
         data_x = np.array(list(range(1,101,1)), dtype=np.float32)
@@ -120,7 +120,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['num_of_epochs'] = 50
 
         print('test before train: ', test(inputs={'x':[100,101,102,103,104], 'y':[200,202,204,206,208]}))
-        test.trainModel(splits=[80,20,0], close_loop={'x':'out_x', 'y':'out_y'}, prediction_horizon=0.03, step=1, training_params = training_params)
+        test.trainModel(splits=[80,20,0], close_loop={'x':'out_x', 'y':'out_y'}, prediction_samples=3, step=1, training_params = training_params)
         print('test after train: ', test(inputs={'x':[100,101,102,103,104], 'y':[200,202,204,206,208]}))
     
     def test_recurrent_train_one_state_variable(self):
