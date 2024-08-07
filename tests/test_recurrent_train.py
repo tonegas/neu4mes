@@ -25,7 +25,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
         y = Output('y', rel1)
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel(y)
         test.minimizeError('pos', out.next(), y)
         test.neuralizeModel(0.01)
@@ -37,30 +37,26 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['val_batch_size'] = 4
         training_params['test_batch_size'] = 1
         training_params['learning_rate'] = 0.1
-        training_params['num_of_epochs'] = 1
-        test.trainModel(splits=[100,0,0], close_loop={'in1':'y'}, prediction_horizon=0.05, step=1, training_params = training_params)
+        training_params['num_of_epochs'] = 5
+        test.trainModel(splits=[70,20,10], close_loop={'in1':'y'}, prediction_horizon=0.05, step=1, training_params = training_params)
 
-        # 15 lines in the dataset
-        # 5 lines for input + 1 for output -> total of sample 10
-        # 10 / 2 = 5 for training and test
-        self.assertEqual(86,test.n_samples_train) ## ((500 - 5) * 0.7) // 4 = 86
-        self.assertEqual(24,test.n_samples_val) ## ((500 - 5) * 0.2) // 4 = 24
-        self.assertEqual(50,test.n_samples_test) ## ((500 - 5) * 0.1) // 1 = 50
+        self.assertEqual(346,test.n_samples_train) ## ((500 - 5) * 0.7)  = 346
+        self.assertEqual(99,test.n_samples_val) ## ((500 - 5) * 0.2)  = 99
+        self.assertEqual(50,test.n_samples_test) ## ((500 - 5) * 0.1)  = 50
         self.assertEqual(495,test.num_of_samples['dataset'])
         self.assertEqual(4,test.train_batch_size)
         self.assertEqual(4,test.val_batch_size)
         self.assertEqual(1,test.test_batch_size)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
-    '''
+    
     def test_recurrent_train_one_variable(self):
-        data_x = np.array(list(range(1,21,1)), dtype=np.float32)
-        dataset = {'x': data_x}
+        x = Input('in1')
+        p = Parameter('p', dimensions=1, sw=1, values=[[1.0]])
+        fir = Fir(parameter=p)(x.last())
+        out = Output('out', fir)
 
-        x = Input('x')
-        out = Output('out', Fir(x.last()))
-
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel(out)
         test.minimizeError('pos', x.next(), out)
         test.neuralizeModel(0.01)
@@ -72,8 +68,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['val_batch_size'] = 4
         training_params['test_batch_size'] = 1
         training_params['learning_rate'] = 0.1
-        training_params['num_of_epochs'] = 1
-        test.trainModel(splits=[100,0,0], close_loop={'x':'out'}, prediction_horizon=0.03, step=1, training_params = training_params)
+        training_params['num_of_epochs'] = 50
+        test.trainModel(splits=[100,0,0], close_loop={'in1':'out'}, prediction_horizon=0.03, step=1, training_params = training_params)
     
     def test_recurrent_train_single_close_loop(self):
         data_x = np.array(list(range(1,101,1)), dtype=np.float32)
@@ -83,7 +79,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         y = Input('y')
         out = Output('out', Fir(x.last()))
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel(out)
         test.minimizeError('pos', y.last(), out)
         test.neuralizeModel(0.01)
@@ -107,7 +103,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         out_x = Output('out_x', Fir(x.last()))
         out_y = Output('out_y', Fir(y.last()))
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel(out_x)
         test.addModel(out_y)
         test.minimizeError('pos_x', x.next(), out_x)
@@ -126,7 +122,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         print('test before train: ', test(inputs={'x':[100,101,102,103,104], 'y':[200,202,204,206,208]}))
         test.trainModel(splits=[80,20,0], close_loop={'x':'out_x', 'y':'out_y'}, prediction_horizon=0.03, step=1, training_params = training_params)
         print('test after train: ', test(inputs={'x':[100,101,102,103,104], 'y':[200,202,204,206,208]}))
-
+    
     def test_recurrent_train_one_state_variable(self):
         
         x = Input('x')
@@ -144,6 +140,6 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(test.model.states['x_state'], torch.tensor(result['out']))
         result = test(inputs={'x': [2]})
         self.assertEqual(test.model.states['x_state'], torch.tensor(0.0))
-    '''
+    
 if __name__ == '__main__':
     unittest.main()

@@ -28,6 +28,7 @@ def myfun3(a, b, p1, p2):
 # The third is the size of the signal
 
 class MyTestCase(unittest.TestCase):
+    
     def TestAlmostEqual(self, data1, data2, precision=4):
         assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2, dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'
         if type(data1) == type(data2) == list:  
@@ -54,7 +55,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]], 'in2': [[5], [7], [9]]})
         self.assertEqual(3, len(results['out']))
         self.TestAlmostEqual([33.74938201904297, 40.309326171875, 46.86927032470703], results['out'])
-
+    
     def test_single_in_window(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
         torch.manual_seed(1)
@@ -119,7 +120,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([-2], results['x.sw([-3,-2])'])
         self.assertEqual((1,), np.array(results['x.sw([0,1])']).shape)
         self.TestAlmostEqual([1],results['x.sw([0,1])'])
-
+    
     def test_single_in_window_offset(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
         torch.manual_seed(1)
@@ -220,7 +221,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((2,6,3), np.array(results['x.sw([-3, 3])-2']).shape)
         self.TestAlmostEqual([[[-2,3,4],[-1,2,2],[0,0,0],[1,2,3],[2,7,3],[3,3,3]],
                                     [[-2,0,-1],[-1,-2,-3],[0,0,0],[1,5,0],[2,1,0],[1,0,-1]]], results['x.sw([-3, 3])-2'])
-
+    
     def test_single_in_window_offset_aritmetic(self):
         # Elementwise arithmetic, Activation, Trigonometric
         # the dimensions and time window remain unchanged, for the
@@ -320,7 +321,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((3,1,7), np.array(results['Fir7']).shape)
         self.assertEqual((3,1,4), np.array(results['Fir4']).shape)
         self.assertEqual((3,1,6), np.array(results['Fir6']).shape)
-
+    
     def test_fir_and_parameter(self):
         x = Input('x')
         p1 = Parameter('p1', tw=3, values=[[1],[2],[3],[6],[2],[3]])
@@ -371,7 +372,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([[[6.0, -2.0]], [[10.0, 0.0]]], results['out4'])
         self.assertEqual((2, 1, 2), np.array(results['out5']).shape)
         self.TestAlmostEqual([[[2.0, 0.0]], [[2.0, 1.0]]], results['out5'])
-
+    
     def test_single_in_window_offset_parametric_function(self):
         # An input dimension is temporal and does not remain unchanged unless redefined on output
         # If there are multiple inputs the function returns an error if the dimensions are not defined
@@ -484,7 +485,7 @@ class MyTestCase(unittest.TestCase):
         test.neuralizeModel(0.1)
         with self.assertRaises(StopIteration):
             test({'in1': [[1, 2, 2], [3, 4, 5]]})
-
+    
     def test_vectorial_input_parametric_function(self):
         # Vector input for parametric function
         torch.manual_seed(1)
@@ -505,7 +506,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1,2,3],[5,6,7]],'in2':[[5,6],[7,8]]})
         self.assertEqual((2,3), np.array(results['out']).shape)
         self.TestAlmostEqual(results['out'], [[23,52,81],[41,94,147]])
-
+    
     def test_parametric_function_and_fir(self):
         torch.manual_seed(1)
         in1 = Input('in1')
@@ -588,7 +589,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1, 2, 2, 4],[2, 2, 4, 3]],'in2': [[6, 2, 2, 4],[2, 2, 4, 4]]}, sampled=True)
         self.assertEqual((2,1,3), np.array(results['out']).shape)
         self.TestAlmostEqual(results['out'], [[[0.548146665096283, 0.6267049908638, 0.5457861423492432]], [[0.2763473391532898, 0.45648545026779175, 0.4165944457054138]]])
-
+    
     def test_trigonometri_parameter_and_numeric_constant(self):
         torch.manual_seed(1)
         in1 = Input('in1').last()
@@ -694,7 +695,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([[[-13.0, 32.0, 45.0, 60.0, 79.0], [-11.0, 36.0, 51., 68., 89.]]], results['outW'])
         self.assertEqual((1, 2, 5), np.array(results['outWb']).shape)
         self.TestAlmostEqual([[[-7, 36, 51, 68, 89], [-5, 40, 57, 76, 99]]], results['outWb'])
-
+    
     def test_sample_part_and_select(self):
         in1 = Input('in1')
         # Offset before the sample window
@@ -930,7 +931,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([[-1, 0, 1], [-1, 0, 3]], results['in_TP1off2'])
         self.assertEqual((2, 3), np.array(results['in_TP1off3']).shape)
         self.TestAlmostEqual([[-2, -1, 0], [-4, -3, 0]], results['in_TP1off3'])
-
+    
     def test_part_and_select(self):
         in1 = Input('in1',dimensions=4)
 
@@ -1032,8 +1033,178 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([[-2, 0, 2],[-2, 0, -2]], results['in_S3'])
         self.assertEqual((2, 3), np.array(results['in_S4']).shape)
         self.TestAlmostEqual([[-1, 0, 2],[-2, 0, -6]], results['in_S4'])
+    
+    def test_recurrent_training(self):
+        ## the memory is not shared between different calls
+        x = Input('x') 
+        F = Input('F')
+        p = Parameter('p', tw=0.5, dimensions=1, values=[[1.0],[1.0],[1.0],[1.0],[1.0]])
+        x_out = Fir(parameter=p)(x.tw(0.5))+F.last()
+        out = Output('out',x_out)
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel(out)
+        test.neuralizeModel(0.1)
 
+        ## one sample prediction with F initialized with zeros
+        result = test(inputs={'x':[1,2,3,4,5]}, close_loop={'F':'out'})
+        self.assertEqual(result['out'], [15.0])
+        ## 5 samples prediction with F initialized with zero only the first time
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9]}, close_loop={'F':'out'})
+        self.assertEqual(result['out'], [15.0, 35.0, 60.0, 90.0, 125.0])
+        ## one sample prediction with F initialized with [1]
+        result = test(inputs={'x':[1,2,3,4,5], 'F':[1]}, close_loop={'F':'out'})
+        self.assertEqual(result['out'], [16.0])
+        ## 5 samples prediction with F initialized with [1] only the first time
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1]}, close_loop={'F':'out'})
+        self.assertEqual(result['out'], [16.0, 36.0, 61.0, 91.0, 126.0])
+        ## 5 samples prediction with F initialized with [1] the first time, [2] the second time and [3] the third time
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1,2,3]}, close_loop={'F':'out'})
+        self.assertEqual(result['out'], [16.0, 22.0, 28.0, 58.0, 93.0])
+        ## one sample prediction with F initialized with [1] (the other values are ignored)
+        result = test(inputs={'x':[1,2,3,4,5], 'F':[1,2,3]}, close_loop={'F':'out'})
+        self.assertEqual(result['out'], [16.0])
 
+    def test_recurrent_training_complex(self):
+        ## the memory is not shared between different calls
+        x = Input('x') 
+        y = Input('y')
+        p = Parameter('p', tw=0.5, dimensions=1, values=[[1.0],[1.0],[1.0],[1.0],[1.0]])
+        n = Parameter('n', tw=0.5, dimensions=1, values=[[-1.0],[-1.0],[-1.0],[-1.0],[-1.0]])
+        fir_pos = Fir(parameter=p)(x.tw(0.5))
+        fir_neg = Fir(parameter=n)(y.tw(0.5))
+        out_pos = Output('out_pos', fir_pos)
+        out_neg = Output('out_neg', fir_neg)
+        out = Output('out',fir_neg+fir_pos)
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel(out)
+        test.addModel(out_pos)
+        test.addModel(out_neg)
+        test.neuralizeModel(0.1)
+
+        ## two sample prediction with x in close loop
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6]}, close_loop={'x':'out_pos'})
+        self.assertEqual(result['out'], [0.0, 9.0])
+        self.assertEqual(result['out_pos'], [15.0, 29.0])
+        self.assertEqual(result['out_neg'], [-15.0, -20.0])
+        ## two sample prediction with y in close loop
+        result = test(inputs={'x':[1,2,3,4,5,6], 'y':[1,2,3,4,5]}, close_loop={'y':'out_pos'})
+        self.assertEqual(result['out'], [0.0, -9.0])
+        self.assertEqual(result['out_pos'], [15.0, 20.0])
+        self.assertEqual(result['out_neg'], [-15.0, -29.0])
+        ## one sample prediction with both close loops
+        ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, close_loop={'x':'out_pos', 'y':'out_neg'})
+        self.assertEqual(result['out'], [0.0])
+        self.assertEqual(result['out_pos'], [15.0])
+        self.assertEqual(result['out_neg'], [-15.0])
+        ## three sample prediction with both close loops
+        ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_horizon=3)
+        self.assertEqual(result['out'], [0.0, 30.0, 58.0])
+        self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
+        self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
+        ## three sample prediction with both close loops but y gets initialized for 3 steps
+        ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_horizon=3)
+        self.assertEqual(result['out'], [0.0, 9.0, 31.0])
+        self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
+        self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
+    
+    def test_state_variables(self):
+        ## the state is saved inside the model so the memory is shared between different calls
+        x = Input('x') 
+        F_state = State('F')
+        y_state = State('y')
+        z_state = State('z')
+        p = Parameter('p', tw=0.5, dimensions=1, values=[[1.0],[1.0],[1.0],[1.0],[1.0]])
+        x_out = Fir(parameter=p)(x.tw(0.5))+F_state.last()+y_state.last()+z_state.last()
+        x_out.update(F_state)
+        x_out.update(y_state)
+        x_out.update(z_state)
+        out = Output('out',x_out)
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel(out)
+        test.neuralizeModel(0.1)
+
+        ## one sample prediction with state variables not initialized
+        ## (they will have the last valid state)
+        result = test(inputs={'x':[1,2,3,4,5]})
+        self.assertEqual(result['out'], [15.0])
+        ## 5 sample prediction with state variables not initialized
+        ## (the first prediction will preserve the state of the previous test [15.0])
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9]})
+        self.assertEqual(result['out'], [60.0, 200.0, 625.0, 1905.0, 5750.0])
+        ## one sample prediction with state variables initialized with zero
+        test.clear_state()
+        result = test(inputs={'x':[1,2,3,4,5]})
+        self.assertEqual(result['out'], [15.0])
+        ## one sample prediction with F initialized with [1] and the others not initialized (so they will have 15.0 in the memory)
+        result = test(inputs={'x':[1,2,3,4,5], 'F':[1]})
+        self.assertEqual(result['out'], [46.0])
+        ## one sample prediction with all the state variables initialized
+        result = test(inputs={'x':[1,2,3,4,5], 'F':[1], 'y':[2], 'z':[3]})
+        self.assertEqual(result['out'], [21.0])
+        ## 5 samples prediction with state variables initialized as many times as they have values to take
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1,2,3], 'y':[2,3], 'z':[3]})
+        self.assertEqual(result['out'], [21.0, 46.0, 120.0, 390.0, 1205.0])
+    
+    def test_state_variables_complex(self):
+        ## the state is saved inside the model so the memory is shared between different calls
+        x = Input('x') 
+        y_state = State('y')
+        z_state = State('z')
+        x_p = Parameter('x_p', tw=0.5, dimensions=1, values=[[1.0],[1.0],[1.0],[1.0],[1.0]])
+        y_p = Parameter('y_p', tw=0.5, dimensions=1, values=[[2.0],[2.0],[2.0],[2.0],[2.0]])
+        z_p = Parameter('z_p', tw=0.5, dimensions=1, values=[[3.0],[3.0],[3.0],[3.0],[3.0]])
+        x_fir = Fir(parameter=x_p)(x.tw(0.5))
+        y_fir = Fir(parameter=y_p)(y_state.tw(0.5))
+        z_fir = Fir(parameter=z_p)(z_state.tw(0.5))
+        y_fir.update(y_state)
+        z_fir.update(z_state)
+        out_x = Output('out_x', x_fir)
+        out_y = Output('out_y', y_fir)
+        out_z = Output('out_z', z_fir)
+        out = Output('out',x_fir+y_fir+z_fir)
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel([out, out_x, out_y, out_z])
+        test.neuralizeModel(0.1)
+
+        ## one sample prediction with state variables not initialized
+        ## (they will have the last valid state)
+        result = test(inputs={'x':[1,2,3,4,5]})
+        self.assertEqual(result['out'], [15.0])
+        self.assertEqual(result['out_x'], [15.0])
+        self.assertEqual(result['out_y'], [0.0])
+        self.assertEqual(result['out_z'], [0.0])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+        ## 1 sample prediction with state variables all initialized
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5], 'z':[1,2,3,4,5]})
+        self.assertEqual(result['out'], [90.0])
+        self.assertEqual(result['out_x'], [15.0])
+        self.assertEqual(result['out_y'], [30.0])
+        self.assertEqual(result['out_z'], [45.0])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [30.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [45.0]]])
+        ## clear state of y
+        test.clear_state(state='y')
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [45.0]]])
+        ## multi-sample prediction with states initialized as many times as they have values
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'y':[1,2,3,4,5,6,7], 'z':[1,2,3,4,5,6]})
+        self.assertEqual(result['out'], [90.0, 120.0, 309.0, 1101.0, 4155.0])
+        self.assertEqual(result['out_x'], [15.0, 20.0, 25.0, 30.0, 35.0])
+        self.assertEqual(result['out_y'], [30.0, 40.0, 50.0, 144.0, 424.0])
+        self.assertEqual(result['out_z'], [45.0, 60.0, 234.0, 927.0, 3696.0])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[6.0], [7.0], [50.0], [144.0], [424.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[6.0], [60.0], [234.0], [927.0], [3696.0]]])
+        ## Clear all states
+        test.clear_state()
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+    
 if __name__ == '__main__':
     unittest.main()
 

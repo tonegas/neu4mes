@@ -84,7 +84,7 @@ class Neu4mes:
         self.prediction = {}
 
 
-    def __call__(self, inputs, sampled=False, close_loop={}):
+    def __call__(self, inputs, sampled=False, close_loop={}, prediction_horizon=1):
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
         close_loop_windows = {}
@@ -101,7 +101,6 @@ class Neu4mes:
         provided_inputs = list(inputs.keys())
         missing_inputs = list(set(model_inputs) - set(provided_inputs))
         extra_inputs = list(set(provided_inputs) - set(model_inputs))
-        non_recurrent_inputs = list(set(provided_inputs) - set(close_loop.keys()) - set(model_states))
 
         for key in model_states:
             if key in inputs.keys():
@@ -115,14 +114,20 @@ class Neu4mes:
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
+        non_recurrent_inputs = list(set(provided_inputs) - set(close_loop.keys()) - set(model_states))
 
         ## Determine the Maximal number of samples that can be created
-        if sampled:
-            min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in non_recurrent_inputs])
-            max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in non_recurrent_inputs])
+        if non_recurrent_inputs:
+            if sampled:
+                min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in non_recurrent_inputs])
+                max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in non_recurrent_inputs])
+            else:
+                min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
+                max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         else:
-            min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
-            max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
+            min_dim_ind, min_dim  = argmin_min([close_loop_windows[key]+prediction_horizon-1 for key in provided_inputs])
+            max_dim_ind, max_dim = argmax_max([close_loop_windows[key]+prediction_horizon-1 for key in provided_inputs])
+
         window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
 
@@ -180,7 +185,7 @@ class Neu4mes:
                     if i >= close_loop_windows[close_in]-1:
                         dim = result[close_out].shape[1]  ## take the output time dimension
                         X[close_in] = torch.roll(X[close_in], shifts=-dim, dims=1) ## Roll the time window
-                        X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
+                        X[close_in][:, -dim:, :] = result[close_out].clone() ## substitute with the predicted value
 
                 ## Append the prediction of the current sample to the result dictionary
                 for key in self.model_def['Outputs'].keys():
