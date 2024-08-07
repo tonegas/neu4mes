@@ -58,7 +58,8 @@ class Model(nn.Module):
                 param_size = (sample_window, param_data['dim'])
             if 'values' in param_data:
                 self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32),
-                                                         requires_grad=True)
+                                                                 requires_grad=True)
+            # TODO clean code
             elif 'init_fun' in param_data:
                 exec(param_data['init_fun']['code'], globals())
                 function_to_call = globals()[param_data['init_fun']['name']]
@@ -161,9 +162,9 @@ class Model(nn.Module):
         result_dict = {}
         ## Initially i have only the inputs from the dataset, the parameters, and the constants
         available_keys = set(list(self.inputs.keys()) + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
-        ## Initialize the state variables
-        batch_size = list(kwargs.values())[0].shape[0] ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
 
+        batch_size = list(kwargs.values())[0].shape[0] if kwargs else 1 ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
+        
         ## Initialize State variables if necessary
         for state in self.state_model.keys():
             if state in kwargs.keys(): ## the state variable must be initialized with the dataset values

@@ -5,8 +5,6 @@ print(os.getcwd())
 sys.path.append(os.getcwd())
 
 from neu4mes import *
-import torch
-torch.manual_seed(0)
 
 # Create neu4mes structure
 vehicle = Neu4mes(visualizer=MPLVisulizer())

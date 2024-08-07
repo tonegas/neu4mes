@@ -190,36 +190,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',[fun1,fun2,fun15,fun25])
         test.neuralizeModel(0.01)
 
-        list_of_dimensions = [[1,1],[1,5],[3,1],[3,5]]
+        list_of_dimensions = [[3,1],[3,5],[1,1],[1,5]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Linear' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
-
-    '''
-    def test_network_building_discrete_input_and_local_model(self):
-        in1 = Input('in1', values=[2,3,4])
-        in2 = Input('in2')
-        rel = LocalModel(in2.tw(1), in1)
-        fun = Output(in2.z(-1),rel)
-
-        test = Neu4mes()
-        test.addModel('fun',fun)
-        test.neuralizeModel(0.5)
-
-        test_layer = Model(inputs=[test.inputs_for_model['in1']], outputs=test.inputs[('in1', 1)])
-        self.assertEqual([[1.,0.,0.]],test_layer.predict([[2]]).tolist())
-        self.assertEqual([[0.,1.,0.]],test_layer.predict([[3]]).tolist())
-        self.assertEqual([[0.,0.,1.]],test_layer.predict([[4]]).tolist())
-
-        test_layer = Model(inputs=[test.inputs_for_model['in2'],test.inputs_for_model['in1']], outputs=test.outputs['in2__-z1'])
-        weights = test_layer.get_weights()
-        self.assertEqual((2, 3),weights[0].shape) 
-        self.assertEqual([[weights[0][1][0]]],test_layer.predict([np.array([[0,1]]),np.array([[2]])]).tolist())
-        self.assertEqual([[weights[0][1][1]]],test_layer.predict([np.array([[0,1]]),np.array([[3]])]).tolist())
-        self.assertEqual([[weights[0][1][2]]],test_layer.predict([np.array([[0,1]]),np.array([[4]])]).tolist())
-        self.assertEqual([[weights[0][0][0]]],test_layer.predict([np.array([[1,0]]),np.array([[2]])]).tolist())
-        self.assertEqual([[weights[0][0][1]]],test_layer.predict([np.array([[1,0]]),np.array([[3]])]).tolist())
-        self.assertEqual([[weights[0][0][2]]],test_layer.predict([np.array([[1,0]]),np.array([[4]])]).tolist())
-    '''
 
 if __name__ == '__main__':
     unittest.main()
