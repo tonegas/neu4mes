@@ -84,7 +84,7 @@ class Neu4mes:
         self.prediction = {}
 
 
-    def __call__(self, inputs, sampled=False, close_loop={}, prediction_horizon=1):
+    def __call__(self, inputs={}, sampled=False, close_loop={}, prediction_horizon=1):
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
         close_loop_windows = {}
@@ -125,8 +125,11 @@ class Neu4mes:
                 min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         else:
-            min_dim_ind, min_dim  = argmin_min([close_loop_windows[key]+prediction_horizon-1 for key in provided_inputs])
-            max_dim_ind, max_dim = argmax_max([close_loop_windows[key]+prediction_horizon-1 for key in provided_inputs])
+            if provided_inputs:
+                min_dim_ind, min_dim  = argmin_min([close_loop_windows[key]+prediction_horizon-1 for key in provided_inputs])
+                max_dim_ind, max_dim = argmax_max([close_loop_windows[key]+prediction_horizon-1 for key in provided_inputs])
+            else:
+                min_dim = max_dim = prediction_horizon
 
         window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
@@ -240,7 +243,7 @@ class Neu4mes:
         #model_def_final = copy.deepcopy(self.model_def)
         self.visualizer.showModel()
 
-        check(self.model_def['Inputs'] != {}, RuntimeError, "No model is defined!")
+        check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
 
         for key,value in self.model_def['States'].items():

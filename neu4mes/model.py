@@ -146,8 +146,8 @@ class Model(nn.Module):
         result_dict = {}
         ## Initially i have only the inputs from the dataset, the parameters, and the constants
         available_keys = set(list(self.inputs.keys()) + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
-        ## Initialize the state variables
-        batch_size = list(kwargs.values())[0].shape[0] ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
+
+        batch_size = list(kwargs.values())[0].shape[0] if kwargs else 1 ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
         
         ## Initialize State variables if necessary
         for state in self.state_model.keys():

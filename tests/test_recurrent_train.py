@@ -124,14 +124,14 @@ class Neu4mesTrainingTest(unittest.TestCase):
         print('test after train: ', test(inputs={'x':[100,101,102,103,104], 'y':[200,202,204,206,208]}))
     
     def test_recurrent_train_one_state_variable(self):
-        
         x = Input('x')
         x_state = State('x_state')
-        rel_x = Fir(x_state.last())
+        p = Parameter('p', dimensions=1, sw=1, values=[[1.0]])
+        rel_x = Fir(parameter=p)(x_state.last())
         rel_x.update(x_state)
         out = Output('out', rel_x)
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel(out)
         test.minimizeError('pos_x', x.next(), out)
         test.neuralizeModel(0.01)
@@ -139,7 +139,23 @@ class Neu4mesTrainingTest(unittest.TestCase):
         result = test(inputs={'x': [2], 'x_state':[1]})
         self.assertEqual(test.model.states['x_state'], torch.tensor(result['out']))
         result = test(inputs={'x': [2]})
-        self.assertEqual(test.model.states['x_state'], torch.tensor(0.0))
+        self.assertEqual(test.model.states['x_state'], torch.tensor(1.0))
+
+    def test_recurrent_train_only_state_variables(self):
+        x_state = State('x_state')
+        p = Parameter('p', dimensions=1, tw=0.03, values=[[1.0], [1.0], [1.0]])
+        rel_x = Fir(parameter=p)(x_state.tw(0.03))
+        rel_x.update(x_state)
+        out = Output('out', rel_x)
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel(out)
+        test.neuralizeModel(0.01)
+
+        result = test(inputs={'x_state':[1, 2, 3]})
+        self.assertEqual(test.model.states['x_state'].numpy().tolist(), [[[2.],[3.],[6.]]])
+        result = test()
+        self.assertEqual(test.model.states['x_state'].numpy().tolist(), [[[3.],[6.],[11.]]])
     
 if __name__ == '__main__':
     unittest.main()

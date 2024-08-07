@@ -191,7 +191,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         list_of_dimensions = [[1,1],[1,5],[3,1],[3,5]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Linear' in k}.items()):
+        for ind, (key, value) in enumerate(sorted({k:v for k,v in test.model.relation_forward.items() if 'Linear' in k}.items())):
             self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 
 if __name__ == '__main__':
