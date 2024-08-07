@@ -32,6 +32,7 @@ model.loadData('dataset', dataset)
 # Faccio il training solo di b_model
 #model.trainModel()
 
+
 # Modello d
 c = Input('c')
 b_in = Input('b_in')
@@ -70,6 +71,7 @@ model.trainModel(connect={'b_in':'b'}, lr_gain = {'condiviso':0,'A':1,'B':1,'C':
 # Serve una funzione per rimuovere un modello e rimuovere una minimize
 model.removeModel('d_model')
 model.removeMinimize('d_min')
+# TODO evitare di ricreare i pesi ma utilizzare quelli già inizializzati
 model.neuralizeModel(0.1)
 
 
