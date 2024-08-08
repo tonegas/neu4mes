@@ -51,5 +51,10 @@ class Visualizer():
     def showTrainingTime(self, time):
         pass
 
-    def showResults(self, name_data):
+    def showResults(self):
+        for name_data in self.n4m.performance.keys():
+            self.showOneResult(name_data)
+
+    def showOneResult(self, name_data):
         pass
+

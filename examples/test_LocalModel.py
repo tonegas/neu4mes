@@ -176,7 +176,7 @@ example.addModel('all_out',[out_in_00,out_in_01,out_in_10,out_in_11,
                   out_mul00,out_mul01,out_mul10,out_mul11,
                   out_fir00,out_fir01,out_fir10,out_fir11,
                   out_sum])
-example.addModel(out)
+example.addModel('out', out)
 example.neuralizeModel(0.5)
 # Three semples with a dimensions 2
 pprint(example({'x':[0,1,-2,3],'F':[-2,2,1,5]}))

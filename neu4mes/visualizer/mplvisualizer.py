@@ -46,17 +46,17 @@ class MPLVisulizer(TextVisualizer):
             for key in self.n4m.minimize_dict.keys():
                 self.process_training[key].terminate()
 
-    def showResults(self, name_data):
-        super().showResults(name_data)
+    def showOneResult(self, name_data = None):
+        super().showOneResult(name_data)
         for key in self.n4m.minimize_dict.keys():
             # Start the data visualizer process
             self.process_results[key] = subprocess.Popen(['python', self.time_series_visualizer_script], stdin=subprocess.PIPE,
                                                 text=True)
             data = {"name_data": name_data,
                     "key": key,
-                    "performance": self.n4m.performance[key],
-                    "prediction_A": self.n4m.prediction[key]['A'],
-                    "prediction_B": self.n4m.prediction[key]['B'],
+                    "performance": self.n4m.performance[name_data][key],
+                    "prediction_A": self.n4m.prediction[name_data][key]['A'],
+                    "prediction_B": self.n4m.prediction[name_data][key]['B'],
                     "sample_time": self.n4m.model_def["SampleTime"]}
             try:
                 # Send data to the visualizer process
@@ -64,3 +64,5 @@ class MPLVisulizer(TextVisualizer):
                 self.process_results[key].stdin.flush()
             except BrokenPipeError:
                 print("The visualizer process has been closed.")
+
+

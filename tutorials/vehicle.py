@@ -7,7 +7,7 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 # Create neu4mes structure
-vehicle = Neu4mes(visualizer=MPLVisulizer())
+vehicle = Neu4mes(visualizer=MPLVisulizer(),seed=0)
 
 # Dimensions of the layers
 n  = 25
