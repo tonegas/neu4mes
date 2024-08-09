@@ -135,7 +135,7 @@ class Model(nn.Module):
                 self.relation_inputs[relation] = input_var
 
                 ## Add the shared layers
-                if rel_name in ['Fir',]:
+                if rel_name in ['Fir','Linear']:
                     if inputs[2] not in self.relation_parameters.keys():
                         self.relation_parameters[inputs[2]] = relation
             else:
@@ -143,7 +143,7 @@ class Model(nn.Module):
 
         ## Add the gradient to all the relations and parameters that requires it
         self.relation_forward = nn.ParameterDict(self.relation_forward)
-        self.all_parameters = nn.ParameterDict(self.all_parameters)
+        #self.all_parameters = nn.ParameterDict(self.all_parameters)
 
         ## list of network outputs
         self.network_output_predictions = set(self.outputs.values())
@@ -194,6 +194,8 @@ class Model(nn.Module):
                             layer_inputs.append(result_dict[key])
 
                     ## Execute the current relation
+                    #print('relation to execute: ', relation)
+                    #print('inputs: ', layer_inputs)
                     if 'ParamFun' in relation:
                         layer_parameters = []
                         func_parameters = self.functions[self.relations[relation][2]]['parameters']
@@ -205,6 +207,7 @@ class Model(nn.Module):
                             result_dict[relation] = self.relation_forward[relation](layer_inputs[0])
                         else:
                             result_dict[relation] = self.relation_forward[relation](layer_inputs)
+                    #print('result relation: ', result_dict[relation])
                     available_keys.add(relation)
 
                     ## Update the state if necessary

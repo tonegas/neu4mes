@@ -70,6 +70,7 @@ class Neu4mes:
         # Training Parameters
         self.learning_rate = 0.01
         self.num_of_epochs = 100
+        self.weight_decay = 0.0
         self.train_batch_size, self.val_batch_size, self.test_batch_size = 1, 1, 1
         self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
         self.optimizer = None
@@ -535,7 +536,13 @@ class Neu4mes:
 
         self.visualizer.showResults(name_data)
 
-    def trainModel(self, train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10], close_loop=None, step=1, prediction_samples=0, shuffle_data=True, training_params = {}):
+    def trainModel(self, models=None,
+                    train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
+                    close_loop=None, step=1, prediction_samples=0,
+                    shuffle_data=True, 
+                    lr_gain={}, connect={},
+                    training_params = {}):
+
         if not self.data_loaded:
             print('There is no data loaded! The Training will stop.')
             return
@@ -616,8 +623,30 @@ class Neu4mes:
         assert self.n_samples_train > 0, f'There are {self.n_samples_train} samples for training.'
         self.prediction_samples = prediction_samples if (recurrent_train and prediction_samples != 0) else 1
 
-        ## define optimizer and loss functions
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        ## define optimizer
+        freezed_model_parameters = set()
+        if models:
+            if isinstance(models, str):
+                models = [models]
+            for model_name, model_params in self.stream_dict.items():
+                if model_name not in models:
+                    freezed_model_parameters = freezed_model_parameters.union(set(model_params[0].json['Parameters'].keys()))
+        freezed_model_parameters = freezed_model_parameters - set(lr_gain.keys())
+        print('freezed model parameters: ', freezed_model_parameters)
+        learned_model_parameters = set(self.model_def['Parameters'].keys()) - freezed_model_parameters
+        print('learned model parameters: ', learned_model_parameters)
+        model_parameters = []
+        for param_name, param_value in self.model.all_parameters.items():
+            if param_name in lr_gain.keys():  ## if the parameter is specified it has top priority
+                model_parameters.append({'params':param_value, 'lr':self.learning_rate*lr_gain[param_name]})
+            elif param_name in freezed_model_parameters: ## if the parameter is not in the training model, it's freezed
+                model_parameters.append({'params':param_value, 'lr':0.0})
+            elif param_name in learned_model_parameters: ## if the parameter is in the training model, it's learned with the default learning rate
+                model_parameters.append({'params':param_value, 'lr':self.learning_rate})
+        print('model parameters: ', model_parameters)
+        self.optimizer = torch.optim.Adam(model_parameters, weight_decay=self.weight_decay)
+
+        ## Define the loss functions
         for name, values in self.minimize_dict.items():
             self.losses[name] = CustomLoss(values['loss'])
 
@@ -752,6 +781,11 @@ class Neu4mes:
                 loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
                 if train:
                     loss.backward(retain_graph=True)
+                    for param in self.model.parameters():
+                        if param.grad is None:
+                            print("No gradient for:", param)
+                        elif torch.all(param.grad == 0):
+                            print("Zero gradient for:", param)
                 aux_losses[ind][idx//batch_size]= loss.item()
             ## Gradient step
             if train:

@@ -99,8 +99,10 @@ class Linear_Layer(nn.Module):
         self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
         self.lin = nn.Linear(in_features=weights.size(1), out_features=weights.size(2), bias=biasbool)
         self.lin.weight = nn.Parameter(weights[0].t())
+        #self.lin.register_parameter('weight', nn.Parameter(weights[0]))
         if biasbool:
             self.lin.bias = nn.Parameter(bias)
+            #self.lin.register_parameter('bias', nn.Parameter(bias))
 
     def forward(self, x):
         if self.dropout is not None:
