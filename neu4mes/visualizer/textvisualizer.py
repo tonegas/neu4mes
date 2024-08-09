@@ -76,6 +76,7 @@ class TextVisualizer(Visualizer):
             self.__line()
 
     def showTraining(self, epoch, train_losses, val_losses):
+        eng = lambda val: np.format_float_scientific(val, precision=3)
         show_epoch = 1 if self.n4m.num_of_epochs <= 20 else 10
         dim = len(self.n4m.minimize_dict)
         if self.verbose >= 1:
@@ -114,32 +115,32 @@ class TextVisualizer(Visualizer):
                     train_loss.append(train_losses[key][epoch])
                     if val_losses:
                         val_loss.append(val_losses[key][epoch])
-                        print((f'{train_losses[key][epoch]:.4f}').center(9, ' ') + '|', end='')
-                        print((f'{val_losses[key][epoch]:.4f}').center(9, ' ') + '|', end='')
+                        print((f'{eng(train_losses[key][epoch])}').center(9, ' ') + '|', end='')
+                        print((f'{eng(val_losses[key][epoch])}').center(9, ' ') + '|', end='')
                     else:
-                        print((f'{train_losses[key][epoch]:.4f}').center(19, ' ') + '|', end='')
+                        print((f'{eng(train_losses[key][epoch])}').center(19, ' ') + '|', end='')
 
                 if val_losses:
-                    print((f'{np.mean(train_loss):.4f}').center(9, ' ') + '|', end='')
-                    print((f'{np.mean(val_loss):.4f}').center(9, ' ') + '|', end='')
+                    print((f'{eng(np.mean(train_loss))}').center(9, ' ') + '|', end='')
+                    print((f'{eng(np.mean(val_loss))}').center(9, ' ') + '|', end='')
                 else:
-                    print((f'{np.mean(train_loss):.4f}').center(19, ' ') + '|', end='')
+                    print((f'{eng(np.mean(train_loss))}').center(19, ' ') + '|', end='')
 
                 if (epoch + 1) % show_epoch == 0:
                     print('', end='\r')
                     print(color('|' + (f'{epoch + 1}/{self.n4m.num_of_epochs}').center(10, ' ') + '|'), end='')
                     for key in self.n4m.minimize_dict.keys():
                         if val_losses:
-                            print(color((f'{train_losses[key][epoch]:.4f}').center(9, ' ') + '|'), end='')
-                            print(color((f'{val_losses[key][epoch]:.4f}').center(9, ' ') + '|'), end='')
+                            print(color((f'{eng(train_losses[key][epoch])}').center(9, ' ') + '|'), end='')
+                            print(color((f'{eng(val_losses[key][epoch])}').center(9, ' ') + '|'), end='')
                         else:
-                            print(color((f'{train_losses[key][epoch]:.4f}').center(19, ' ') + '|'), end='')
+                            print(color((f'{eng(train_losses[key][epoch])}').center(19, ' ') + '|'), end='')
 
                     if val_losses:
-                        print(color((f'{np.mean(train_loss):.4f}').center(9, ' ') + '|'), end='')
-                        print(color((f'{np.mean(val_loss):.4f}').center(9, ' ') + '|'))
+                        print(color((f'{eng(np.mean(train_loss))}').center(9, ' ') + '|'), end='')
+                        print(color((f'{eng(np.mean(val_loss))}').center(9, ' ') + '|'))
                     else:
-                        print(color((f'{np.mean(train_loss):.4f}').center(19, ' ') + '|'))
+                        print(color((f'{eng(np.mean(train_loss))}').center(19, ' ') + '|'))
 
             if epoch+1 == self.n4m.num_of_epochs:
                 print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
@@ -163,15 +164,16 @@ class TextVisualizer(Visualizer):
                 self.__paramjson("prediction samples:", self.n4m.prediction_samples)
             self.__line()
 
-    def showResults(self, name_data):
+    def showOneResult(self, name_data = None):
+        eng = lambda val: np.format_float_scientific(val, precision=3)
         if self.verbose >= 1:
             loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.minimize_dict.items())])
             self.__title(f" Neu4mes Model Results for {name_data} ", 12 + (len(loss_type_list) + 2) * 20)
             print(color('|' + (f'Loss').center(10, ' ') + '|'), end='')
             for loss in loss_type_list:
-                print(color((f'{loss} ('+name_data+')').center(19, ' ') + '|'), end='')
-            print(color((f'FVU ('+name_data+')').center(19, ' ') + '|'), end='')
-            print(color((f'AIC ('+name_data+')').center(19, ' ') + '|'))
+                print(color((f'{loss}').center(19, ' ') + '|'), end='')
+            print(color((f'FVU').center(19, ' ') + '|'), end='')
+            print(color((f'AIC').center(19, ' ') + '|'))
 
             print(color('|' + (f'').center(10, ' ') + '|'), end='')
             for i in range(len(loss_type_list)):
@@ -184,17 +186,17 @@ class TextVisualizer(Visualizer):
                 print(color('|'+(f'{key}').center(10, ' ') + '|'), end='')
                 for loss in list(loss_type_list):
                     if value["loss"] == loss:
-                        print(color((f'{self.n4m.performance[key][value["loss"]][name_data]:.4f}').center(19, ' ') + '|'), end='')
+                        print(color((f'{eng(self.n4m.performance[name_data][key][value["loss"]])}').center(19, ' ') + '|'), end='')
                     else:
                         print(color((f' ').center(19, ' ') + '|'), end='')
-                print(color((f'{self.n4m.performance[key]["fvu"]["total"]:.4f}').center(19, ' ') + '|'), end='')
-                print(color((f'{self.n4m.performance[key]["aic"]["value"]:.4f}').center(19, ' ') + '|'))
+                print(color((f'{eng(self.n4m.performance[name_data][key]["fvu"]["total"])}').center(19, ' ') + '|'), end='')
+                print(color((f'{eng(self.n4m.performance[name_data][key]["aic"]["value"])}').center(19, ' ') + '|'))
 
             print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
             print(color('|'+(f'Total').center(10, ' ') + '|'), end='')
-            print(color((f'{self.n4m.performance["total"]["mean_error"][name_data]:.4f}').center(len(loss_type_list)*20-1, ' ') + '|'), end='')
-            print(color((f'{self.n4m.performance["total"]["fvu"]:.4f}').center(19, ' ') + '|'), end='')
-            print(color((f'{self.n4m.performance["total"]["aic"]:.4f}').center(19, ' ') + '|'))
+            print(color((f'{eng(self.n4m.performance[name_data]["total"]["mean_error"])}').center(len(loss_type_list)*20-1, ' ') + '|'), end='')
+            print(color((f'{eng(self.n4m.performance[name_data]["total"]["fvu"])}').center(19, ' ') + '|'), end='')
+            print(color((f'{eng(self.n4m.performance[name_data]["total"]["aic"])}').center(19, ' ') + '|'))
 
             print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
 

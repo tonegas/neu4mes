@@ -4,7 +4,24 @@ import os
 sys.path.append(os.getcwd())
 
 from neu4mes import *
-from neu4mes.visualizer import MPLVisulizer
+
+# Custom visualizer for results
+class FunctionVisualizer(TextVisualizer):
+    def showResults(self):
+        super().showResults()
+        import matplotlib.pyplot as plt
+        data_x = np.arange(-30,30,0.1)
+        plt.title('Function Data')
+        plt.plot(data_x, parametric_fun2(data_x, data_a, data_b, data_c), label=f'target')
+        for key in self.n4m.model_def['Outputs'].keys():
+            plt.plot(data_x, opt_fun({'x': data_x})[key],  '-.', label=key)
+
+        plt.grid(True)
+        plt.legend(loc='best')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.show()
+
 
 # Input of the function
 x = Input('x')
@@ -37,12 +54,12 @@ y4 = Output('y4', ParamFun(parametric_fun4)(x.last()))
 data_x = np.random.rand(250)*20-10
 data_a = 2
 data_b = -3
-#data_c = 2
-dataset = {'x': data_x, 'target_y': parametric_fun1(data_x,data_a,data_b)}
+data_c = 2
+dataset = {'x': data_x, 'target_y': parametric_fun2(data_x,data_a,data_b,data_c)}
 
 # Create the neu4mes object
-#opt_fun = Neu4mes(visualizer=MPLVisulizer())
-opt_fun = Neu4mes()
+opt_fun = Neu4mes(visualizer=FunctionVisualizer())
+opt_fun.addModel('all',[y1,y2,y3,y4])
 
 # Create objectives of the minimization
 opt_fun.addMinimize('x^1', target_y.last(), y1, 'mse')
@@ -58,4 +75,10 @@ opt_fun.loadData('dataset', dataset)
 
 # Train the models
 opt_fun.trainModel(splits=[60,10,30], training_params={'num_of_epochs':100,'learning_rate':0.001})
+
+
+
+
+
+
 

@@ -95,7 +95,7 @@ In the neu4mes framework we can build an estimator in this form:
 ```python
 x = Input('x')
 F = Input('F')
-x_z = Output('x_z_est', Fir(x.tw(1))+Fir(F.last()))
+x_z_est = Output('x_z_est', Fir(x.tw(1))+Fir(F.last()))
 ```
 
 The first thing we define the input variable of the system.
@@ -128,18 +128,18 @@ Let's now try to train our observer using the data we have.
 We perform:
 ```python
 mass_spring_damper = Neu4mes()
-mass_spring_damper.addModel(x_z_est)
-mass_spring_damper.minimizeError('next-pos', x.z(-1), x_z_est, 'mse')
+mass_spring_damper.addModel('x_z_est', x_z_est)
+mass_spring_damper.addMinimize('next-pos', x.z(-1), x_z_est, 'mse')
 mass_spring_damper.neuralizeModel(0.2)
 ```
-Let's create a **neu4mes** object, and add one output the network using the `addModel` function.
+Let's create a **neu4mes** object, and add one output to the network using the `addModel` function.
 This function is needed for create an output on the model. In this example it is not mandatory because the same output is added also to the `minimizeError` function.
-In order to train our model/estimator the function `minimizeError` is used to add a loss function to the list of losses.
+In order to train our model/estimator the function `addMinimize` is used to add a loss function to the list of losses.
 This function takes:
 1. The name of the error, it is presented in the results and during the training.
 2. The second and third inputs are the variable that will be minimized, the order is not important.
 3. The minimization function used, in  this case 'mse'.
-In the function `minimizeError` is used the `z(-1)` function. This function get from the dataset the future value of a variable 
+In the function `addMinimize` is used the `z(-1)` function. This function get from the dataset the future value of a variable 
 (in our case the position of the mass), the next instant, using the **Z-transform** notation, `z(-1)` is equivalent to `next()` function.
 The function `z(...)` method can be used on an `Input` variable to get a time shifted value.
 

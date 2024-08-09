@@ -20,11 +20,9 @@ x = Input('x') # Position of the mass
 dx = Input('dx') # Velocity of the mass
 F = Input('F') # Force
 
-##TODO: input name must be different from output name
-
 # List the output of the model
-xk1 = Output('x[k+1]', Fir(x.tw(0.2))+Fir(F.last()))
-dxk1 = Output('dx[k+1]', Fir(Fir(x.tw(0.2))+Fir(F.last())))
+xk1 = Output('x[k+1]', Fir(parameter_init=init_negexp)(x.tw(0.2))+Fir(parameter_init=init_constant,parameter_init_params={'value':1})(F.last()))
+dxk1 = Output('dx[k+1]', Fir(Fir(parameter_init=init_negexp)(x.tw(0.2))+Fir(parameter_init=init_constant,parameter_init_params={'value':1})(F.last())))
 
 # Add the neural models to the neu4mes structure
 mass_spring_damper = Neu4mes()
@@ -46,12 +44,22 @@ data_struct = ['time','x','dx','F']
 data_folder = './tutorials/datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(name='mass_spring_dataset', source=data_folder, format=data_struct, delimiter=';')
 
-#Neural network train
-params = {'num_of_epochs': 100, 
+#Neural network train not reccurent training
+params = {'num_of_epochs': 100,
           'train_batch_size': 128, 
           'val_batch_size':128, 
           'test_batch_size':1, 
           'learning_rate':0.001}
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 
+# Add visualizer and show the results on the loaded dataset
+vis = MPLVisulizer()
+vis.set_n4m(mass_spring_damper)
+vis.showOneResult("validation")
+
+#Neural network train not reccurent training
+mass_spring_damper.trainModel(splits=[70,20,10], training_params =  {'learning_rate':0.0001}, close_loop={'x':'x[k+1]'}, prediction_samples=10)
+
+# Add visualizer and show the results on the loaded dataset
+vis.showOneResult("validation")
 

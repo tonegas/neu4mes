@@ -6,7 +6,7 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 example = 5
-## TODO: sposta in test con assert e inizializzazione dei FIR e seed
+
 if example == 1:
     print('#### EXAMPLE 1 - NON Recurrent Training ####')
     x = Input('x') 

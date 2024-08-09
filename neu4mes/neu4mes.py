@@ -472,11 +472,12 @@ class Neu4mes:
                 self.val_batch_size = 1
             if self.test_batch_size > self.n_samples_test:
                 self.test_batch_size = 1
-            
-    
-    ## TODO: Adjust the Plotting function
-    def resultAnalysis(self, name_data, losses, XY_data):
+
+
+    def resultAnalysis(self, name_data, XY_data):
         with torch.inference_mode():
+            self.performance[name_data] = {}
+            self.prediction[name_data] = {}
 
             self.model.eval()
             A = {}
@@ -498,18 +499,18 @@ class Neu4mes:
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A_np = A[key].detach().numpy()
                 B_np = B[key].detach().numpy()
-                self.performance[key] = {}
-                self.performance[key][value['loss']] = {'epoch'+name_data: losses[key], name_data: np.mean(aux_losses[key]).item()}
-                self.performance[key]['fvu'] = {}
+                self.performance[name_data][key] = {}
+                self.performance[name_data][key][value['loss']] = np.mean(aux_losses[key]).item()
+                self.performance[name_data][key]['fvu'] = {}
                 # Compute FVU
                 residual = A_np - B_np
                 error_var = np.var(residual)
                 error_mean = np.mean(residual)
                 #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
                 #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
-                self.performance[key]['fvu']['A'] = (error_var / np.var(A_np)).item()
-                self.performance[key]['fvu']['B'] = (error_var / np.var(B_np)).item()
-                self.performance[key]['fvu']['total'] = np.mean([self.performance[key]['fvu']['A'],self.performance[key]['fvu']['B']]).item()
+                self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+                self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                self.performance[name_data][key]['fvu']['total'] = np.mean([self.performance[name_data][key]['fvu']['A'],self.performance[name_data][key]['fvu']['B']]).item()
                 # Compute AIC
                 #normal_dist = norm(0, error_var ** 0.5)
                 #probability_of_residual = normal_dist.pdf(residual)
@@ -523,18 +524,16 @@ class Neu4mes:
                 #print(f"{key} total_params:{total_params}")
                 aic = - 2 * log_likelihood + 2 * total_params
                 #print(f"{key} aic:{aic}")
-                self.performance[key]['aic'] = {'value':aic,'total_params':total_params,'log_likelihood':log_likelihood}
+                self.performance[name_data][key]['aic'] = {'value':aic,'total_params':total_params,'log_likelihood':log_likelihood}
                 # Prediction and target
-                self.prediction[key] = {}
-                self.prediction[key]['A'] = A_np.tolist()
-                self.prediction[key]['B'] = B_np.tolist()
+                self.prediction[name_data][key] = {}
+                self.prediction[name_data][key]['A'] = A_np.tolist()
+                self.prediction[name_data][key]['B'] = B_np.tolist()
 
-            self.performance['total'] = {}
-            self.performance['total']['mean_error'] = {name_data: np.mean([value for key,value in aux_losses.items()])}
-            self.performance['total']['fvu'] = np.mean([self.performance[key]['fvu']['total'] for key in self.minimize_dict.keys()])
-            self.performance['total']['aic'] = np.mean([self.performance[key]['aic']['value']for key in self.minimize_dict.keys()])
-
-        self.visualizer.showResults(name_data)
+            self.performance[name_data]['total'] = {}
+            self.performance[name_data]['total']['mean_error'] = np.mean([value for key,value in aux_losses.items()])
+            self.performance[name_data]['total']['fvu'] = np.mean([self.performance[name_data][key]['fvu']['total'] for key in self.minimize_dict.keys()])
+            self.performance[name_data]['total']['aic'] = np.mean([self.performance[name_data][key]['aic']['value']for key in self.minimize_dict.keys()])
 
     def trainModel(self, models=None,
                     train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
@@ -596,13 +595,18 @@ class Neu4mes:
                     XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
                     XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):-round(len(samples)*test_size)]).to(torch.float32)
                     XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
+
+            ## Set name for resultsAnalysis
+            train_dataset = "train"
+            validation_dataset = "validation"
+            test_dataset = "test"
         else: ## Multi-Dataset
             datasets = list(self.data.keys())
 
             check(train_dataset in datasets, KeyError, f'{train_dataset} Not Loaded!')
-            if validation_dataset not in datasets:
+            if validation_dataset is not None and validation_dataset not in datasets:
                 self.visualizer.warning(f'Validation Dataset [{validation_dataset}] Not Loaded. The training will continue without validation')
-            if test_dataset not in datasets:
+            if test_dataset is not None and test_dataset not in datasets:
                 self.visualizer.warning(f'Test Dataset [{test_dataset}] Not Loaded. The training will continue without test')
 
             ## Collect the number of samples for each dataset
@@ -703,12 +707,13 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        if self.n_samples_train > 0:
-            self.resultAnalysis('Training', train_losses, XY_train)
+        self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
-            self.resultAnalysis('Validation', val_losses, XY_val)
+            self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
-            self.resultAnalysis('Test', test_losses, XY_test)
+            self.resultAnalysis(test_dataset, XY_test)
+
+        self.visualizer.showResults()
 
     def __recurrentTrain(self, data, n_samples, batch_size, prediction_samples, close_loop, step, shuffle=True, train=True):
         ## Sample Shuffle
