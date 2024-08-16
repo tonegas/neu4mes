@@ -5,7 +5,7 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
-example = 5
+example = 1
 
 if example == 1:
     print('#### EXAMPLE 1 - NON Recurrent Training ####')
@@ -17,7 +17,7 @@ if example == 1:
     out = Output('out',x_out)
 
     mass_spring_damper = Neu4mes(seed=42)
-    mass_spring_damper.addModel(out)
+    mass_spring_damper.addModel('out', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)

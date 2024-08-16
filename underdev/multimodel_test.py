@@ -19,7 +19,7 @@ bias_c = np.arange(1,1001, dtype=np.float32)
 data_d = linear_function(data_c, 5, bias_c)
 
 dataset = {'a': data_a, 'bias_a':bias_a, 'b_t': data_b, 'c':data_c, 'bias_c':bias_c, 'd_t':data_d}
-'''
+
 a = Input('a')
 a_bias = Input('bias_a')
 b_t = Input('b_t')
@@ -48,11 +48,11 @@ params = {'num_of_epochs': 100,
           'learning_rate':0.01}
 
 print('### BEFORE TRAIN ###')
-print(model.model.relation_forward['Linear18'].lin.weight)
-print(model.model.relation_forward['Linear8'].lin.weight)
-print(model.model.relation_forward['Linear5'].lin.weight)
-print(model.model.relation_forward['Linear25'].lin.weight)
-print(model.model.relation_forward['Linear21'].lin.weight)
+print(model.model.relation_forward['Linear18'].weights)
+print(model.model.relation_forward['Linear8'].weights)
+print(model.model.relation_forward['Linear5'].weights)
+print(model.model.relation_forward['Linear25'].weights)
+print(model.model.relation_forward['Linear21'].weights)
 print('# PARAMETERS #')
 print(model.model.all_parameters['A'])
 print(model.model.all_parameters['C'])
@@ -62,11 +62,11 @@ print(model.model.all_parameters['condiviso'])
 model.trainModel(splits=[100,0,0], training_params=params)
 #model.trainModel(connect={'b_in':'b'}, lr_gain = {'condiviso':0,'A':0,'B':0,'C':1,'D':1})
 print('### AFTER TRAIN ###')
-print(model.model.relation_forward['Linear18'].lin.weight)
-print(model.model.relation_forward['Linear8'].lin.weight)
-print(model.model.relation_forward['Linear5'].lin.weight)
-print(model.model.relation_forward['Linear25'].lin.weight)
-print(model.model.relation_forward['Linear21'].lin.weight)
+print(model.model.relation_forward['Linear18'].weights)
+print(model.model.relation_forward['Linear8'].weights)
+print(model.model.relation_forward['Linear5'].weights)
+print(model.model.relation_forward['Linear25'].weights)
+print(model.model.relation_forward['Linear21'].weights)
 print('# PARAMETERS #')
 print(model.model.all_parameters['A'])
 print(model.model.all_parameters['C'])
@@ -135,3 +135,4 @@ for param in model.model.parameters():
     print(type(param), param.size())
 print('### NUMBER OF PARAMETERS ###')
 print(sum(p.numel() for p in model.model.parameters()))
+'''

@@ -389,9 +389,12 @@ class Neu4mes:
             self.file_count = 1
 
             ## Check if the inputs are correct
-            assert set(model_inputs).issubset(source.keys()), f'The dataset is missing some inputs. Inputs needed for the model: {model_inputs}'
+            #assert set(model_inputs).issubset(source.keys()), f'The dataset is missing some inputs. Inputs needed for the model: {model_inputs}'
 
             for key in model_inputs:
+                if key not in source.keys():
+                    continue
+
                 self.data[name][key] = []  ## Initialize the dataset
 
                 back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
@@ -401,6 +404,8 @@ class Neu4mes:
             ## Stack the files
             self.num_of_samples[name] = None
             for key in model_inputs:
+                if key not in source.keys():
+                    continue
                 self.data[name][key] = np.stack(self.data[name][key])
                 if self.data[name][key].ndim == 2: ## Add the sample dimension
                     self.data[name][key] = np.expand_dims(self.data[name][key], axis=-1)
@@ -474,7 +479,7 @@ class Neu4mes:
                 self.test_batch_size = 1
 
 
-    def resultAnalysis(self, name_data, XY_data):
+    def resultAnalysis(self, name_data, XY_data, connect):
         with torch.inference_mode():
             self.performance[name_data] = {}
             self.prediction[name_data] = {}
@@ -489,7 +494,7 @@ class Neu4mes:
                 B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
                 aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
-            _, minimize_out = self.model(XY_data)
+            _, minimize_out = self.model(XY_data, connect)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A[key] = minimize_out[value['A'].name]
                 B[key] = minimize_out[value['B'].name]
@@ -539,7 +544,7 @@ class Neu4mes:
                     train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
                     close_loop=None, step=1, prediction_samples=0,
                     shuffle_data=True, 
-                    lr_gain={}, connect={},
+                    lr_gain={}, minimize_gain={}, connect={},
                     training_params = {}):
 
         if not self.data_loaded:
@@ -636,9 +641,9 @@ class Neu4mes:
                 if model_name not in models:
                     freezed_model_parameters = freezed_model_parameters.union(set(model_params[0].json['Parameters'].keys()))
         freezed_model_parameters = freezed_model_parameters - set(lr_gain.keys())
-        print('freezed model parameters: ', freezed_model_parameters)
+        #print('freezed model parameters: ', freezed_model_parameters)
         learned_model_parameters = set(self.model_def['Parameters'].keys()) - freezed_model_parameters
-        print('learned model parameters: ', learned_model_parameters)
+        #print('learned model parameters: ', learned_model_parameters)
         model_parameters = []
         for param_name, param_value in self.model.all_parameters.items():
             if param_name in lr_gain.keys():  ## if the parameter is specified it has top priority
@@ -647,8 +652,9 @@ class Neu4mes:
                 model_parameters.append({'params':param_value, 'lr':0.0})
             elif param_name in learned_model_parameters: ## if the parameter is in the training model, it's learned with the default learning rate
                 model_parameters.append({'params':param_value, 'lr':self.learning_rate})
-        print('model parameters: ', model_parameters)
-        self.optimizer = torch.optim.Adam(model_parameters, weight_decay=self.weight_decay)
+        #print('model parameters: ', model_parameters)
+        self.optimizer = torch.optim.Adam(model_parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+        #self.optimizer = torch.optim.Adam(self.model.parameters(),lr=self.learning_rate, weight_decay=self.weight_decay)
 
         ## Define the loss functions
         for name, values in self.minimize_dict.items():
@@ -669,9 +675,9 @@ class Neu4mes:
             ## TRAIN
             self.model.train()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_train, self.n_samples_train, self.train_batch_size, self.prediction_samples, close_loop, step, shuffle=shuffle_data, train=True)
+                losses = self.__recurrentTrain(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, self.prediction_samples, close_loop, step, shuffle=shuffle_data, train=True)
             else:
-                losses = self.__Train(XY_train, self.n_samples_train, self.train_batch_size, shuffle_data, train=True)
+                losses = self.__Train(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, connect, shuffle_data, train=True)
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 train_losses[key].append(torch.mean(losses[ind]).tolist())
@@ -680,9 +686,9 @@ class Neu4mes:
                 ## VALIDATION
                 self.model.eval()
                 if recurrent_train:
-                    losses = self.__recurrentTrain(XY_val, self.n_samples_val, self.val_batch_size, self.prediction_samples, close_loop, step, shuffle=False, train=False)
+                    losses = self.__recurrentTrain(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, self.prediction_samples, close_loop, step, shuffle=False, train=False)
                 else:
-                    losses = self.__Train(XY_val, self.n_samples_val, self.val_batch_size, shuffle=False, train=False)
+                    losses = self.__Train(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, connect, shuffle=False, train=False)
                 ## save the losses
                 for ind, key in enumerate(self.minimize_dict.keys()):
                     val_losses[key].append(torch.mean(losses[ind]).tolist())
@@ -700,22 +706,22 @@ class Neu4mes:
             ## TEST
             self.model.eval()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_test, self.n_samples_test, self.test_batch_size, self.prediction_samples, close_loop, step, shuffle=False, train=False)
+                losses = self.__recurrentTrain(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, self.prediction_samples, close_loop, step, shuffle=False, train=False)
             else:
-                losses = self.__Train(XY_test, self.n_samples_test, self.test_batch_size, shuffle=False, train=False)
+                losses = self.__Train(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, connect, shuffle=False, train=False)
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        self.resultAnalysis(train_dataset, XY_train)
+        self.resultAnalysis(train_dataset, XY_train, connect)
         if self.n_samples_val > 0:
-            self.resultAnalysis(validation_dataset, XY_val)
+            self.resultAnalysis(validation_dataset, XY_val, connect)
         if self.n_samples_test > 0:
-            self.resultAnalysis(test_dataset, XY_test)
+            self.resultAnalysis(test_dataset, XY_test, connect)
 
         self.visualizer.showResults()
 
-    def __recurrentTrain(self, data, n_samples, batch_size, prediction_samples, close_loop, step, shuffle=True, train=True):
+    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step) if shuffle else 0
         ## Initialize the train losses vector
@@ -732,6 +738,7 @@ class Neu4mes:
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
+                    loss = loss * loss_gains[key] if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                     horizon_losses[ind].append(loss)
 
                 ## remove the states variables from the data
@@ -767,10 +774,16 @@ class Neu4mes:
         ## return the losses
         return aux_losses
     
-    def __Train(self, data, n_samples, batch_size, shuffle=True, train=True):
+    def __Train(self, data, n_samples, batch_size, loss_gains, connect, shuffle=True, train=True):
         if shuffle:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
+        #if connect: ## initialize with zero the connect variable at the beginning
+        #    for connect_in in connect:
+        #        window_size = round(max(abs(self.model_def['Inputs'][connect_in]['sw'][0]), abs(self.model_def['Inputs'][connect_in]['tw'][0]//self.sample_time))
+        #                             + max(self.model_def['Inputs'][connect_in]['sw'][1], self.model_def['Inputs'][connect_in]['tw'][1]//self.sample_time))
+        #        dim = self.model_def['Inputs'][connect_in]['dim']
+        #        data[connect_in] = torch.zeros(size=(batch_size, window_size, dim), dtype=torch.float32, requires_grad=True)
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
         for idx in range(0, (n_samples - batch_size + 1), batch_size):
@@ -780,17 +793,13 @@ class Neu4mes:
             if train:
                 self.optimizer.zero_grad()
             ## Model Forward
-            _, minimize_out = self.model(XY)  ## Forward pass
+            _, minimize_out = self.model(XY, connect)  ## Forward pass
             ## Loss Calculation
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
+                loss = loss * loss_gains[key] if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                 if train:
                     loss.backward(retain_graph=True)
-                    for param in self.model.parameters():
-                        if param.grad is None:
-                            print("No gradient for:", param)
-                        elif torch.all(param.grad == 0):
-                            print("Zero gradient for:", param)
                 aux_losses[ind][idx//batch_size]= loss.item()
             ## Gradient step
             if train:

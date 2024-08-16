@@ -22,6 +22,7 @@ class Model(nn.Module):
         self.relation_parameters = {}
         self.states = {}
         self.constants = set()
+        #self.connect_variables = {}
 
         ## Define the correct slicing
         json_inputs = self.inputs | self.state_model
@@ -110,7 +111,7 @@ class Model(nn.Module):
                 elif rel_name == 'Fir':  
                     self.relation_forward[relation] = func(self.all_parameters[inputs[2]],inputs[3])
                 elif rel_name == 'Linear':
-                    if inputs[3] is not None:
+                    if inputs[3]:
                         self.relation_forward[relation] = func(self.all_parameters[inputs[2]],self.all_parameters[inputs[3]], inputs[4])
                     else:
                         self.relation_forward[relation] = func(self.all_parameters[inputs[2]], None, inputs[4])
@@ -143,7 +144,8 @@ class Model(nn.Module):
 
         ## Add the gradient to all the relations and parameters that requires it
         self.relation_forward = nn.ParameterDict(self.relation_forward)
-        #self.all_parameters = nn.ParameterDict(self.all_parameters)
+        self.all_parameters = nn.ParameterDict(self.all_parameters)
+        ## TODO: add count number of parameters
 
         ## list of network outputs
         self.network_output_predictions = set(self.outputs.values())
@@ -158,13 +160,14 @@ class Model(nn.Module):
         ## list of all the network Outputs
         self.network_outputs = self.network_output_predictions.union(self.network_output_minimizers)
 
-    def forward(self, kwargs):
+    def forward(self, kwargs, connect={}):
         result_dict = {}
+
         ## Initially i have only the inputs from the dataset, the parameters, and the constants
-        available_keys = set(list(self.inputs.keys()) + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
+        available_inputs = [key for key in self.inputs.keys() if key not in connect.keys()]  ## remove the connected inputs
+        available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
 
         batch_size = list(kwargs.values())[0].shape[0] if kwargs else 1 ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
-        
         ## Initialize State variables if necessary
         for state in self.state_model.keys():
             if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
@@ -186,7 +189,7 @@ class Model(nn.Module):
                             layer_inputs.append(torch.tensor(key, dtype=torch.float32))
                         elif key in self.states.keys(): ## relation that takes a state
                             layer_inputs.append(self.states[key])
-                        elif key in self.inputs.keys():  ## relation that takes inputs
+                        elif key in available_inputs:  ## relation that takes inputs (self.inputs.keys())
                             layer_inputs.append(kwargs[key])
                         elif key in self.all_parameters.keys(): ## relation that takes parameters
                             layer_inputs.append(self.all_parameters[key])
@@ -209,6 +212,19 @@ class Model(nn.Module):
                             result_dict[relation] = self.relation_forward[relation](layer_inputs)
                     #print('result relation: ', result_dict[relation])
                     available_keys.add(relation)
+
+                    ## Update the connect variables if necessary
+                    for connect_in, connect_out in connect.items():
+                        if connect_in in available_keys:
+                            continue
+                        if relation == self.outputs[connect_out]:  ## we have to save the output
+                            window_size = round(max(abs(self.inputs[connect_in]['sw'][0]), abs(self.inputs[connect_in]['tw'][0]//self.sample_time) 
+                                                    + max(self.inputs[connect_in]['sw'][1], self.inputs[connect_in]['tw'][1]//self.sample_time)))
+                            if result_dict[relation].shape[1] > window_size:
+                                result_dict[connect_in] = result_dict[relation][:, window_size:, :]
+                            else:
+                                result_dict[connect_in] = result_dict[relation]
+                            available_keys.add(connect_in)
 
                     ## Update the state if necessary
                     if relation in self.states_updates.values():
@@ -242,4 +258,9 @@ class Model(nn.Module):
             for key, value in self.state_model.items():
                 window_size = round(max(abs(value['sw'][0]), abs(value['tw'][0]//self.sample_time)) + max(value['sw'][1], value['tw'][1]//self.sample_time))
                 self.states[key] = torch.zeros(size=(1, window_size, value['dim']), dtype=torch.float32, requires_grad=False)
-
+    '''
+    def initialize_connect_variables(self, batch_size, connect):
+        for key in connect.keys():
+            window_size = round(max(abs(self.inputs[key]['sw'][0]), abs(self.inputs[key]['tw'][0]//self.sample_time)) + max(self.inputs[key]['sw'][1], self.inputs[key]['tw'][1]//self.sample_time))
+            self.connect_variables[key] = torch.zeros(size=(batch_size, window_size, self.inputs[key]['dim']), dtype=torch.float32, requires_grad=True)
+    '''

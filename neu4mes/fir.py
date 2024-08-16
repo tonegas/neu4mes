@@ -2,6 +2,7 @@ import copy
 import inspect
 
 import torch.nn as nn
+import torch
 
 from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
 from neu4mes.utilis import check
@@ -74,7 +75,7 @@ class Fir(NeuObj, AutoToStream):
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.name, self.dropout]
         return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
-
+'''
 class Fir_Layer(nn.Module):
     def __init__(self, weights, dropout):
         super(Fir_Layer, self).__init__()
@@ -84,9 +85,34 @@ class Fir_Layer(nn.Module):
 
     def forward(self, x):
         x = x.permute(0, 2, 1)
+        print('x shape: ', x.shape)
+        print('weight shape: ', self.lin.weight.shape)
         if self.dropout is not None:
             x = self.dropout(x)
-        return self.lin(x)
+        x = self.lin(x)
+        print('result shape: ', x.shape)
+        return x
+'''
+class Fir_Layer(nn.Module):
+    def __init__(self, weights, dropout=0):
+        super(Fir_Layer, self).__init__()
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
+        self.weights = weights
+
+    def forward(self, x):
+        # x is expected to be of shape [batch, window, 1]
+        batch_size = x.size(0)
+        output_features = self.weights.size(1)
+        # Remove the last dimension (1) to make x shape [batch, window]
+        x = x.squeeze(-1)
+        # Perform the linear transformation: y = xW^T
+        x = torch.matmul(x, self.weights)
+        # Reshape y to be [batch, 1, output_features]
+        x = x.view(batch_size, 1, output_features)
+        # Add dropout if necessary
+        if self.dropout:
+            x = self.dropout(x)
+        return x
 
 def createFir(self, weights, dropout):
     return Fir_Layer(weights, dropout)

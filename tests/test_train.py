@@ -8,7 +8,6 @@ from neu4mes import *
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
 class Neu4mesTrainingTest(unittest.TestCase):
-    
     def test_network_mass_spring_damper(self):
         x = Input('x')  # Position
         F = Input('F')  # Force
@@ -267,7 +266,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(9,test.n_samples_test)
         self.assertEqual(5,test.num_of_epochs)
         self.assertEqual(0.1,test.learning_rate)
-
+    
     def test_train_vector_input(self):
         x = Input('x', dimensions=4)
         y = Input('y', dimensions=3)
