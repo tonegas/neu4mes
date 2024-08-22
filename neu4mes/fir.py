@@ -46,7 +46,7 @@ class Fir(NeuObj, AutoToStream):
               f"The type of {obj.name} is Input not a Stream create a Stream using the functions: tw, sw, z, last, next.")
         check(type(obj) is Stream, TypeError,
               f"The type of {obj} is {type(obj)} and is not supported for Fir operation.")
-        check('dim' in obj.dim and obj.dim['dim'] == 1, ValueError, 'Input dimension must be scalar')
+        check('dim' in obj.dim and obj.dim['dim'] == 1, ValueError, f"Input dimension is {obj.dim['dim']} and not scalar")
         window = 'tw' if 'tw' in obj.dim else ('sw' if 'sw' in obj.dim else None)
         if window:
             if type(self.parameter) is Parameter:
