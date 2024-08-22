@@ -5,6 +5,8 @@ sys.path.append(os.getcwd())
 
 import unittest
 from neu4mes import *
+relation.CHECK_NAMES = False
+
 import torch
 
 # This file test the model prediction in particular the output value
@@ -38,12 +40,11 @@ class MyTestCase(unittest.TestCase):
             self.assertAlmostEqual(data1, data2, places=precision)
 
     def test_single_in(self):
-        torch.manual_seed(1)
         in1 = Input('in1')
         in2 = Input('in2')
         out_fun = Fir(in1.tw(0.1)) + Fir(in2.last())
         out = Output('out', out_fun)
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed=1)
         test.addModel('out',out)
         test.neuralizeModel(0.01)
         results = test({'in1': [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],'in2': [[5]]})
@@ -58,7 +59,6 @@ class MyTestCase(unittest.TestCase):
     
     def test_single_in_window(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
-        torch.manual_seed(1)
         in1 = Input('in1')
 
         # Finestre nel tempo
@@ -81,7 +81,7 @@ class MyTestCase(unittest.TestCase):
         out14 = Output('x.sw([-3,-2])',  in1.sw([-3, -2]))
         out15 = Output('x.sw([0,1])',  in1.sw([0, 1]))
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed=1)
         #test.addModel('out',[out0,out1,out2,out3,out4,out5,out6,out7,out11,out12,out13,out14,out15])
         test.addModel('out',[out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15])
 
@@ -123,7 +123,6 @@ class MyTestCase(unittest.TestCase):
     
     def test_single_in_window_offset(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
-        torch.manual_seed(1)
         in1 = Input('in1')
 
         # Finestre nel tempo
@@ -139,7 +138,7 @@ class MyTestCase(unittest.TestCase):
         out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=2))
         out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',[out1,out2,out3,out4,out5,out6,out7,out8,out9])
 
         test.neuralizeModel(1)
@@ -168,7 +167,6 @@ class MyTestCase(unittest.TestCase):
     
     def test_multi_in_window_offset(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
-        torch.manual_seed(1)
         in1 = Input('in1',dimensions=3)
 
         # Finestre nel tempo
@@ -184,7 +182,7 @@ class MyTestCase(unittest.TestCase):
         out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=2))
         out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',[out1, out2, out3, out4, out5, out6, out7, out8, out9])
 
         test.neuralizeModel(1)
@@ -287,7 +285,6 @@ class MyTestCase(unittest.TestCase):
         # The input must be scalar and the time dimension is compress to 1,
         # Vector input not allowed, it could be done that a number of fir filters equal to the size of the vector are constructed
         # Should weights be shared or not?
-        torch.manual_seed(1)
         in1 = Input('in1')
         out1 = Output('Fir3', Fir(3)(in1.last()))
         out2 = Output('Fir5', Fir(5)(in1.tw(1)))#
@@ -297,7 +294,7 @@ class MyTestCase(unittest.TestCase):
         out6 = Output('Fir4', Fir(4)(in1.tw([2,3],offset=2)))#
         out7 = Output('Fir6', Fir(6)(in1.sw([-2,-1], offset=-2)))#
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',[out1,out2,out3,out4,out5,out6,out7])
         test.neuralizeModel(1)
         # Single input
@@ -376,11 +373,10 @@ class MyTestCase(unittest.TestCase):
     def test_single_in_window_offset_parametric_function(self):
         # An input dimension is temporal and does not remain unchanged unless redefined on output
         # If there are multiple inputs the function returns an error if the dimensions are not defined
-        torch.manual_seed(1)
         in1 = Input('in1')
         parfun = ParamFun(myfun)
         out = Output('out', parfun(in1.last()))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -388,15 +384,15 @@ class MyTestCase(unittest.TestCase):
         #self.TestAlmostEqual(results['out'], [0.7576315999031067])
         results = test({'in1': [[1]]})
         self.assertEqual((1,), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'],[0.524665892124176])
+        self.TestAlmostEqual(results['out'],[0.7576315999031067])
         results = test({'in1': [2]})
-        self.TestAlmostEqual(results['out'],[1.049331784248352])
+        self.TestAlmostEqual(results['out'],[1.5152631998062134])
         results = test({'in1': [1,2]})
         self.assertEqual((2,), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'],[0.524665892124176,1.049331784248352])
+        self.TestAlmostEqual(results['out'],[0.7576315999031067,1.5152631998062134])
 
         out = Output('out', ParamFun(myfun)(in1.tw(0.2)))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -406,19 +402,19 @@ class MyTestCase(unittest.TestCase):
             results = test({'in1': [2]})
         results = test({'in1': [1,2]})
         self.assertEqual((1,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134]])
         results = test({'in1': [[1,2]]}, sampled=True)
         self.assertEqual((1,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134]])
         results = test({'in1': [1, 2, 3, 4, 5]})# Qui vengono costruite gli input a due a due con shift di 1
         self.assertEqual((4,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085], [0.0809701681137085, 0.12145525217056274], [0.12145525217056274, 0.161940336227417], [0.161940336227417, 0.20242542028427124]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134], [1.5152631998062134, 2.272894859313965], [2.272894859313965, 3.0305263996124268], [3.0305263996124268, 3.7881579399108887]])
         results = test({'in1': [[1, 2], [2, 3], [3, 4], [4, 5]]}, sampled=True)
         self.assertEqual((4,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085], [0.0809701681137085, 0.12145525217056274], [0.12145525217056274, 0.161940336227417], [0.161940336227417, 0.20242542028427124]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134], [1.5152631998062134, 2.272894859313965], [2.272894859313965, 3.0305263996124268], [3.0305263996124268, 3.7881579399108887]])
 
         out = Output('out', ParamFun(myfun)(in1.last(),in1.last()))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -488,14 +484,13 @@ class MyTestCase(unittest.TestCase):
     
     def test_vectorial_input_parametric_function(self):
         # Vector input for parametric function
-        torch.manual_seed(1)
         in1 = Input('in1', dimensions=3)
         in2 = Input('in2', dimensions=2)
         p1 = Parameter('p1', dimensions=(3,2),values=[[[1,2],[3,4],[5,6]]])
         p2 = Parameter('p2', dimensions=3,values=[[1,2,3]])
         parfun = ParamFun(myfun3, parameters=[p1,p2])
         out = Output('out', parfun(in1.last(),in2.last()))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -512,7 +507,7 @@ class MyTestCase(unittest.TestCase):
         in1 = Input('in1')
         in2 = Input('in2')
         out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4))))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 

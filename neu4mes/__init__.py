@@ -20,7 +20,7 @@ LOG_LEVEL = logging.DEBUG
 
 from neu4mes.neu4mes import Neu4mes
 
-from neu4mes.relation import ToStream, Stream, NeuObj, merge
+from neu4mes.relation import ToStream, Stream, NeuObj, merge, MAIN_JSON
 from neu4mes.input import Input, State
 from neu4mes.output import Output
 

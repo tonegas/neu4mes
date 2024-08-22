@@ -6,6 +6,8 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
+relation.CHECK_NAMES = False
+
 logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
 
 # This file tests the dimensions and the of the element created in the pytorch environment
@@ -190,7 +192,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',[fun1,fun2,fun15,fun25])
         test.neuralizeModel(0.01)
 
-        list_of_dimensions = [[3,1],[3,5],[1,1],[1,5]]
+        list_of_dimensions = [[1,1],[1,5],[3,1],[3,5]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Linear' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
 

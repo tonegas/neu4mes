@@ -115,9 +115,19 @@ print("------------------------EXAMPLE 7------------------------")
 def myFun(in1,p1,p2):
     return p1*in1+p2
 
+p1_0 = Parameter('p1_0',values=[[1]])
+p1_1 = Parameter('p1_1',values=[[2]])
+p2_0 = Parameter('p2_0',values=[[2]])
+p2_1 = Parameter('p2_1',values=[[3]])
 def input_function_gen(idx_list):
-    p1 = Parameter('p1_'+str(idx_list[0]),values=1+idx_list[0])
-    p2 = Parameter('p2_'+str(idx_list[1]),values=2+idx_list[1])
+    if idx_list == [0,0]:
+        p1, p2 = p1_0, p2_0
+    if idx_list == [0,1]:
+        p1, p2 = p1_0, p2_1
+    if idx_list == [1,0]:
+        p1, p2 = p1_1, p2_0
+    if idx_list == [1, 1]:
+        p1, p2 = p1_1, p2_1
     return ParamFun(myFun,parameters=[p1,p2])
 def output_function_gen(idx_list):
     pfir = Parameter('pfir_'+str(idx_list),tw=1,dimensions=2,values=[[1+idx_list[0],2+idx_list[1]],[3+idx_list[0],4+idx_list[1]]])
@@ -125,10 +135,6 @@ def output_function_gen(idx_list):
 
 loc = LocalModel(input_function = input_function_gen, output_function = output_function_gen, pass_indexes = True)(x.tw(1),(activationA,activationB))
 #Example of the structure of the local model
-p1_0 = Parameter('N_p1_0',values=1)
-p1_1 = Parameter('N_p1_1',values=2)
-p2_0 = Parameter('N_p2_0',values=2)
-p2_1 = Parameter('N_p2_1',values=3)
 pfir00 = Parameter('N_pfir_[0, 0]',tw=1,dimensions=2,values=[[1,2],[3,4]])
 pfir01 = Parameter('N_pfir_[0, 1]',tw=1,dimensions=2,values=[[1,3],[3,5]])
 pfir10 = Parameter('N_pfir_[1, 0]',tw=1,dimensions=2,values=[[2,2],[4,4]])

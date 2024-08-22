@@ -12,7 +12,7 @@ from pprint import pformat
 import re
 import matplotlib.pyplot as plt
 
-from neu4mes.relation import NeuObj, merge
+from neu4mes.relation import merge, MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
@@ -48,7 +48,7 @@ class Neu4mes:
         # Inizialize the model definition
         self.stream_dict = {}
         self.minimize_dict = {}
-        self.model_def = NeuObj().json
+        #self.model_def = NeuObj().json
 
         # Network Parametrs
         self.input_tw_backward, self.input_tw_forward = {}, {}
@@ -264,7 +264,7 @@ class Neu4mes:
         self.visualizer.showaddMinimize(name)
 
     def __update_model(self):
-        self.model_def = copy.deepcopy(NeuObj().json)
+        self.model_def = copy.deepcopy(MAIN_JSON)
         for key, stream_list in self.stream_dict.items():
             for stream in stream_list:
                 self.model_def = merge(self.model_def, stream.json)

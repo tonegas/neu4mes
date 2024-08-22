@@ -17,6 +17,9 @@ MAIN_JSON = {
                 'Relations': {},
             }
 
+CHECK_NAMES = True
+NeuObj_names = []
+
 def merge(source, destination, main = True):
     if main:
         log.debug("Merge Source")
@@ -57,8 +60,11 @@ class NeuObj():
     @classmethod
     def reset_count(self):
         NeuObj.count = 0
-    def __init__(self, name = '', json = {}, dim = 0):
+    def __init__(self, name, json = {}, dim = 0):
         NeuObj.count += 1
+        if CHECK_NAMES == True:
+            check(name not in NeuObj_names, NameError, f"The name {name} is already used change the name of NeuObj.")
+            NeuObj_names.append(name)
         self.name = name
         self.dim = dim
         if json:

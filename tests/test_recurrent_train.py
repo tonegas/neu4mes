@@ -5,6 +5,7 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
+relation.CHECK_NAMES = False
 
 import torch
 
@@ -25,7 +26,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel1 = Fir(input1.tw(0.05))
         y = Output('y', rel1)
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('y',y)
         test.addMinimize('pos', out.next(), y)
         test.neuralizeModel(0.01)

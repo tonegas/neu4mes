@@ -7,6 +7,8 @@ sys.path.append(os.getcwd())
 import unittest
 import numpy as np
 from neu4mes import *
+relation.CHECK_NAMES = False
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.CRITICAL)
