@@ -104,9 +104,12 @@ class Stream(Relation):
         self.dim = dim
 
     def update(self, obj):
-        from neu4mes.input import State
+        from neu4mes.input import State, Input
+        from neu4mes.output import Output
         check(type(obj) is State, TypeError,
               f"The {obj} must be a State and not a {type(obj)}.")
+        check(not isinstance(self, (Input,Output)), TypeError,
+              f"The {self.name} is a {type(self)} but must be a type of Stream.")
         self.json['States'][obj.name]['update'] = self.name
 
 
