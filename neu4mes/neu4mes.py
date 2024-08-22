@@ -474,6 +474,7 @@ class Neu4mes:
 
 
     def resultAnalysis(self, name_data, XY_data):
+        import warnings
         with torch.inference_mode():
             self.performance[name_data] = {}
             self.prediction[name_data] = {}
@@ -507,16 +508,23 @@ class Neu4mes:
                 error_mean = np.mean(residual)
                 #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
                 #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
-                self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
-                self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                with warnings.catch_warnings(record=True) as w:
+                    self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+                    self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                    if w and np.var(A_np) == 0.0 and  np.var(B_np) == 0.0:
+                        self.performance[name_data][key]['fvu']['A'] = np.nan
+                        self.performance[name_data][key]['fvu']['B'] = np.nan
                 self.performance[name_data][key]['fvu']['total'] = np.mean([self.performance[name_data][key]['fvu']['A'],self.performance[name_data][key]['fvu']['B']]).item()
                 # Compute AIC
                 #normal_dist = norm(0, error_var ** 0.5)
                 #probability_of_residual = normal_dist.pdf(residual)
                 #log_likelihood_first = sum(np.log(probability_of_residual))
                 p1 = -len(residual)/2.0*np.log(2*np.pi)
-                p2 = -len(residual)/2.0*np.log(error_var)
-                p3 = -1/(2.0*error_var)*np.sum(residual**2)
+                with warnings.catch_warnings(record=True) as w:
+                    p2 = -len(residual)/2.0*np.log(error_var)
+                    p3 = -1 / (2.0 * error_var) * np.sum(residual ** 2)
+                    if w and p2 == np.float32(np.inf) and p3 == np.float32(-np.inf):
+                        p2 = p3 = 0.0
                 log_likelihood = p1+p2+p3
                 #print(f"{key} log likelihood second mode:{log_likelihood} = {p1}+{p2}+{p3} first mode: {log_likelihood_first}")
                 total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad) #TODO to be check the number is doubled
