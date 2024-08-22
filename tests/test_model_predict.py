@@ -593,9 +593,9 @@ class MyTestCase(unittest.TestCase):
     def test_trigonometri_parameter_and_numeric_constant(self):
         torch.manual_seed(1)
         in1 = Input('in1').last()
-        par = Parameter('par', sw=1, values=5)
+        par = Parameter('par', values=[[5]])
         in4 = Input('in4', dimensions=4).last()
-        par4 = Parameter('par4', dimensions=4, sw=1, values=[1,2,3,4])
+        par4 = Parameter('par4', values=[[1,2,3,4]])
         add = in1 + par + 5.2
         sub = in1 - par - 5.2
         mul = in1 * par * 5.2
@@ -695,7 +695,53 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([[[-13.0, 32.0, 45.0, 60.0, 79.0], [-11.0, 36.0, 51., 68., 89.]]], results['outW'])
         self.assertEqual((1, 2, 5), np.array(results['outWb']).shape)
         self.TestAlmostEqual([[[-7, 36, 51, 68, 89], [-5, 40, 57, 76, 99]]], results['outWb'])
-    
+
+    def test_initialization(self):
+        torch.manual_seed(1)
+        input = Input('in')
+        W = Parameter('W', dimensions=(1,1), init=init_constant)
+        b = Parameter('b', dimensions=1, init=init_constant)
+        o = Output('out', Linear(W=W,b=b)(input.last()))
+
+        W5 = Parameter('W5', dimensions=(1,1), init=init_constant, init_params={'value':5})
+        b2 = Parameter('b2', dimensions=1, init=init_constant, init_params={'value':2})
+        o52 = Output('out52', Linear(W=W5,b=b2)(input.last()))
+
+        par = Parameter('par', dimensions=3, sw=2, init=init_constant)
+        opar = Output('outpar', Fir(parameter=par)(input.sw(2)))
+
+        par2 = Parameter('par2', dimensions=3, sw=2, init=init_constant, init_params={'value':2})
+        opar2 = Output('outpar2', Fir(parameter=par2)(input.sw(2)))
+
+        ol = Output('outl', Linear(output_dimension=1,b=True,W_init=init_constant,b_init=init_constant)(input.last()))
+        ol52 = Output('outl52', Linear(output_dimension=1,b=True,W_init=init_constant,b_init=init_constant,W_init_params={'value':5},b_init_params={'value':2})(input.last()))
+        ofpar = Output('outfpar', Fir(output_dimension=3,parameter_init=init_constant)(input.sw(2)))
+        ofpar2 = Output('outfpar2', Fir(output_dimension=3,parameter_init=init_constant,parameter_init_params={'value':2})(input.sw(2)))
+
+        n = Neu4mes(visualizer=None)
+        n.addModel('model',[o,o52,opar,opar2,ol,ol52,ofpar,ofpar2])
+        n.neuralizeModel()
+        results = n({'in': [1, 1, 2]})
+        self.assertEqual((2,), np.array(results['out']).shape)
+        self.TestAlmostEqual([2,3], results['out'])
+        self.assertEqual((2,), np.array(results['out52']).shape)
+        self.TestAlmostEqual([7,12], results['out52'])
+
+        self.assertEqual((2,1,3), np.array(results['outpar']).shape)
+        self.TestAlmostEqual([[[2,2,2]],[[3,3,3]]], results['outpar'])
+        self.assertEqual((2,1,3), np.array(results['outpar2']).shape)
+        self.TestAlmostEqual([[[4,4,4]],[[6,6,6]]], results['outpar2'])
+
+        self.assertEqual((2,), np.array(results['outl']).shape)
+        self.TestAlmostEqual([2,3], results['outl'])
+        self.assertEqual((2,), np.array(results['outl52']).shape)
+        self.TestAlmostEqual([7.0,12.0], results['outl52'])
+
+        self.assertEqual((2,1,3), np.array(results['outfpar']).shape)
+        self.TestAlmostEqual([[[2,2,2]],[[3,3,3]]], results['outfpar'])
+        self.assertEqual((2,1,3), np.array(results['outfpar2']).shape)
+        self.TestAlmostEqual([[[4,4,4]],[[6,6,6]]], results['outfpar2'])
+
     def test_sample_part_and_select(self):
         in1 = Input('in1')
         # Offset before the sample window
