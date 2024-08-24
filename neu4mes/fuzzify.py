@@ -16,7 +16,7 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 fuzzify_relation_name = 'Fuzzify'
 
 class Fuzzify(NeuObj):
-    def __init__(self, output_dimension:int|None = None, range:list|None = None, centers:list|None = None, functions:str = 'Triangular'):
+    def __init__(self, output_dimension:int|None = None, range:list|None = None, centers:list|None = None, functions = 'Triangular'):
         self.relation_name = fuzzify_relation_name
         super().__init__('F' + fuzzify_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {}

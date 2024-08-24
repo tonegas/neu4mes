@@ -1,6 +1,7 @@
 import copy
 
 import torch
+from torch.export import export
 
 import numpy as np
 import pandas as pd
@@ -83,7 +84,7 @@ class Neu4mes:
         self.prediction = {}
 
 
-    def __call__(self, inputs={}, sampled=False, close_loop={}, prediction_samples=1):
+    def __call__(self, inputs={}, sampled=False, close_loop={}, connect={}, prediction_samples=1):
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
         close_loop_windows = {}
@@ -98,7 +99,7 @@ class Neu4mes:
         model_inputs = list(self.model_def['Inputs'].keys())
         model_states = list(self.model_def['States'].keys())
         provided_inputs = list(inputs.keys())
-        missing_inputs = list(set(model_inputs) - set(provided_inputs))
+        missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
         extra_inputs = list(set(provided_inputs) - set(model_inputs))
 
         for key in model_states:
@@ -113,7 +114,7 @@ class Neu4mes:
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
-        non_recurrent_inputs = list(set(provided_inputs) - set(close_loop.keys()) - set(model_states))
+        non_recurrent_inputs = list(set(provided_inputs) - set(close_loop.keys()) - set(model_states) - set(connect.keys()))
 
         ## Determine the Maximal number of samples that can be created
         if non_recurrent_inputs:
@@ -180,7 +181,10 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(0)
 
                 ## Model Predict
-                result, _ = self.model(X)
+                if connect:
+                    if i==0 or i%prediction_samples == 0:
+                        self.model.clear_connect_variables()
+                result, _ = self.model(X, connect)
 
                 ## Update the recurrent variable
                 for close_in, close_out in close_loop.items():
@@ -312,7 +316,7 @@ class Neu4mes:
 
         #self.visualizer.showModel()
         ## Build the network
-        self.model = Model(copy.deepcopy(self.model_def), self.minimize_dict, self.input_ns_backward)
+        self.model = Model(copy.deepcopy(self.model_def), self.minimize_dict, self.input_ns_backward, self.input_n_samples)
         self.visualizer.showBuiltModel()
         self.neuralized = True
 
@@ -543,7 +547,7 @@ class Neu4mes:
     def trainModel(self, models=None,
                     train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
                     close_loop=None, step=1, prediction_samples=0,
-                    shuffle_data=True, 
+                    shuffle_data=True, early_stopping=None,
                     lr_gain={}, minimize_gain={}, connect={},
                     training_params = {}):
 
@@ -564,6 +568,12 @@ class Neu4mes:
             recurrent_train = True
         elif self.model_def['States']: ## if we have state variables we have to do the recurrent train
             self.visualizer.warning(f'Recurrent train: Update States variables for {prediction_samples} time steps')
+            recurrent_train = True
+        elif connect:
+            for connect_in, connect_out in connect.items():
+                check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
+                check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
+            self.visualizer.warning(f'Recurrent train: closing the loop for {prediction_samples} samples')
             recurrent_train = True
         else:
             recurrent_train = False
@@ -675,9 +685,9 @@ class Neu4mes:
             ## TRAIN
             self.model.train()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, self.prediction_samples, close_loop, step, shuffle=shuffle_data, train=True)
+                losses = self.__recurrentTrain(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, self.prediction_samples, close_loop, step, connect, shuffle=shuffle_data, train=True)
             else:
-                losses = self.__Train(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, connect, shuffle_data, train=True)
+                losses = self.__Train(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, shuffle_data, train=True)
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 train_losses[key].append(torch.mean(losses[ind]).tolist())
@@ -686,12 +696,18 @@ class Neu4mes:
                 ## VALIDATION
                 self.model.eval()
                 if recurrent_train:
-                    losses = self.__recurrentTrain(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, self.prediction_samples, close_loop, step, shuffle=False, train=False)
+                    losses = self.__recurrentTrain(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, self.prediction_samples, close_loop, step, connect, shuffle=False, train=False)
                 else:
-                    losses = self.__Train(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, connect, shuffle=False, train=False)
+                    losses = self.__Train(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, shuffle=False, train=False)
                 ## save the losses
                 for ind, key in enumerate(self.minimize_dict.keys()):
                     val_losses[key].append(torch.mean(losses[ind]).tolist())
+
+            ## Early-stopping
+            if early_stopping:
+                if early_stopping(train_losses, val_losses):
+                    self.visualizer.warning('Stopping the training..')
+                    break
 
             ## visualize the training...
             self.visualizer.showTraining(epoch, train_losses, val_losses)
@@ -706,22 +722,27 @@ class Neu4mes:
             ## TEST
             self.model.eval()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, self.prediction_samples, close_loop, step, shuffle=False, train=False)
+                losses = self.__recurrentTrain(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, self.prediction_samples, close_loop, step, connect, shuffle=False, train=False)
             else:
-                losses = self.__Train(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, connect, shuffle=False, train=False)
+                losses = self.__Train(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, shuffle=False, train=False)
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
+        '''
+        # TODO: adjust the result analysis with states variables
         self.resultAnalysis(train_dataset, XY_train, connect)
         if self.n_samples_val > 0:
             self.resultAnalysis(validation_dataset, XY_val, connect)
         if self.n_samples_test > 0:
             self.resultAnalysis(test_dataset, XY_test, connect)
+        '''
 
         self.visualizer.showResults()
+        return train_losses, val_losses, test_losses
+        
 
-    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, shuffle=True, train=True):
+    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step) if shuffle else 0
         ## Initialize the train losses vector
@@ -734,7 +755,9 @@ class Neu4mes:
             horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
             for horizon_idx in range(prediction_samples):
                 ## Model Forward
-                out, minimize_out = self.model(XY)  ## Forward pass
+                if connect and horizon_idx==0:
+                    self.model.clear_connect_variables()
+                out, minimize_out = self.model(XY, connect)  ## Forward pass
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
@@ -747,15 +770,19 @@ class Neu4mes:
                         if state_key in XY.keys():
                             del XY[state_key]
 
-                if close_loop:
+                if close_loop or connect:
                     ## Update the input with the recurrent prediction
                     if horizon_idx != prediction_samples-1:
                         for key in XY.keys():
-                            if key in close_loop.keys(): ## the variable is recurrent
-                                dim = out[close_loop[key]].shape[1]  ## take the output time dimension
-                                XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
-                                XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
-                                XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                            if close_loop:
+                                if key in close_loop.keys(): ## the variable is recurrent
+                                    dim = out[close_loop[key]].shape[1]  ## take the output time dimension
+                                    XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
+                                    XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
+                                    XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                                else: ## the variable is not recurrent
+                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
+                                    XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
                             else: ## the variable is not recurrent
                                 XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
                                 XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
@@ -770,20 +797,13 @@ class Neu4mes:
             ## Gradient Step
             if train:
                 self.optimizer.step()
-
         ## return the losses
         return aux_losses
     
-    def __Train(self, data, n_samples, batch_size, loss_gains, connect, shuffle=True, train=True):
+    def __Train(self, data, n_samples, batch_size, loss_gains, shuffle=True, train=True):
         if shuffle:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
-        #if connect: ## initialize with zero the connect variable at the beginning
-        #    for connect_in in connect:
-        #        window_size = round(max(abs(self.model_def['Inputs'][connect_in]['sw'][0]), abs(self.model_def['Inputs'][connect_in]['tw'][0]//self.sample_time))
-        #                             + max(self.model_def['Inputs'][connect_in]['sw'][1], self.model_def['Inputs'][connect_in]['tw'][1]//self.sample_time))
-        #        dim = self.model_def['Inputs'][connect_in]['dim']
-        #        data[connect_in] = torch.zeros(size=(batch_size, window_size, dim), dtype=torch.float32, requires_grad=True)
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
         for idx in range(0, (n_samples - batch_size + 1), batch_size):
@@ -793,7 +813,7 @@ class Neu4mes:
             if train:
                 self.optimizer.zero_grad()
             ## Model Forward
-            _, minimize_out = self.model(XY, connect)  ## Forward pass
+            _, minimize_out = self.model(XY)  ## Forward pass
             ## Loss Calculation
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])

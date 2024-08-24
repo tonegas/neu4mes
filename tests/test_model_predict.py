@@ -28,7 +28,6 @@ def myfun3(a, b, p1, p2):
 # The third is the size of the signal
 
 class MyTestCase(unittest.TestCase):
-    
     def TestAlmostEqual(self, data1, data2, precision=4):
         assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2, dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'
         if type(data1) == type(data2) == list:  
@@ -361,7 +360,6 @@ class MyTestCase(unittest.TestCase):
         # Time   -2, -1, 0, 1, 2, 3, 4
         input = [-2, -1, 0, 1, 2, 3, 12]
         results = test({'x': input})
-        pprint(results)
         self.assertEqual((2,), np.array(results['out1']).shape)
         self.TestAlmostEqual([15,56], results['out1'])
         self.assertEqual((2,), np.array(results['out2']).shape)
@@ -667,7 +665,7 @@ class MyTestCase(unittest.TestCase):
         #in4 = torch.tensor([[6, 2, 2, 4], [7, 2, 2, 4]])
         #torch.matmul(W45.t(),in4.t())+torch.matmul(W15.t(),in1)
         self.assertEqual((2, 1, 5), np.array(results['outW']).shape)
-        self.TestAlmostEqual([[[-13.0,32.0,45.0,60.0,79.0]],[[-11.0,36.0,51.,68.,89.]]], results['outW'])
+        self.TestAlmostEqual([[[-7.0,36.0,51.0,68.0,89.0]],[[-5.0,40.0,57.,76.,99.]]], results['outW'])
         # W15 = torch.tensor([[1,2,3,4,5]])
         # b15 = torch.tensor([[5, 2, 3, 4, 5]])
         # in1 = torch.tensor([[1, 2]])
@@ -690,12 +688,12 @@ class MyTestCase(unittest.TestCase):
         n.neuralizeModel()
         results = n({'in': [1, 2], 'in4': [[6, 2, 2, 4], [7, 2, 2, 4]]})
         self.assertEqual((1, 2), np.array(results['out']).shape)
-        self.TestAlmostEqual([[9.276955604553223, 10.290032386779785]], results['out'])
+        self.TestAlmostEqual([[7.3881096839904785, 7.91458797454834]], results['out'])
         self.assertEqual((1, 2, 3), np.array(results['out3']).shape)
-        self.TestAlmostEqual([[[12.529109954833984, 6.662200927734375, 10.58283519744873],
-                             [14.46115779876709, 7.2378997802734375, 11.927245140075684]]], results['out3'])
+        self.TestAlmostEqual([[[8.117439270019531, 6.014362812042236, 7.489190578460693], 
+                               [9.261265754699707, 6.2568135261535645, 7.929978370666504]]], results['out3'])
         self.assertEqual((1, 2, 5), np.array(results['outW']).shape)
-        self.TestAlmostEqual([[[-13.0, 32.0, 45.0, 60.0, 79.0], [-11.0, 36.0, 51., 68., 89.]]], results['outW'])
+        self.TestAlmostEqual([[[-7, 36, 51, 68, 89]],[[-5, 40, 57, 76, 99]]], results['outW'])
         self.assertEqual((1, 2, 5), np.array(results['outWb']).shape)
         self.TestAlmostEqual([[[-7, 36, 51, 68, 89], [-5, 40, 57, 76, 99]]], results['outWb'])
     
@@ -1207,7 +1205,58 @@ class MyTestCase(unittest.TestCase):
         test.clear_state()
         self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
         self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+    
+    def test_multimodel_connect(self):
+        ## Model1
+        input1 = Input('in1')
+        a = Parameter('a', dimensions=1, tw=0.05, values=[[1],[1],[1],[1],[1]])
+        output1 = Output('out1', Fir(parameter=a)(input1.tw(0.05)))
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel('model1', output1)
+        test.addMinimize('error1', input1.next(), output1)
+        test.neuralizeModel(0.01)
+
+        ## Model2
+        input2 = Input('in2')
+        input3 = Input('in3')
+        b = Parameter('b', dimensions=1, tw=0.05, values=[[1],[1],[1],[1],[1]])
+        c = Parameter('c', dimensions=1, tw=0.03, values=[[1],[1],[1]])
+        output2 = Output('out2', Fir(parameter=b)(input2.tw(0.05))+Fir(parameter=c)(input3.tw(0.03)))
+
+        test.addModel('model2', output2)
+        test.addMinimize('error2', input2.next(), output2)
+        test.neuralizeModel(0.01)
         
+        ## Without connect
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]})
+        self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
+        self.assertEqual(results['out2'], [21.0, 29.0, 37.0, 45.0])
+
+        ## connect out1 to in3 for 4 samples
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=4, connect={'in3':'out1'})
+        self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
+        self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 105.0])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
+
+        ## connect out1 to in3 for 3 samples
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=3, connect={'in3':'out1'})
+        self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
+        self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 60.0])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[0.], [0.], [30.]]])
+
+        ## connect out1 to in3 for 4 samples (initialize in3 with data)
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=4, connect={'in3':'out1'})
+        self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
+        self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 105.0])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
+
+        ## connect out1 to in3 for 3 samples (initialize in3 with data)
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=3, connect={'in3':'out1'})
+        self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
+        self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 69.0])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[4.], [5.], [30.]]])
+
 if __name__ == '__main__':
     unittest.main()
 

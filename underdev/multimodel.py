@@ -39,16 +39,16 @@ model.neuralizeModel(0.1)
 c = Input('c')
 b_in = Input('b_in')
 d_t = Input('d_t')
-d = Output('d',Linear(W='condiviso')(c.last())+Fir(parameter='C')(c.tw(0.5))+Fir(parameter='D')(b_in.last()))
+d = Output('d',Linear(W='condiviso')(c.last())+Fir(parameter='C')(c.tw(0.5))+Fir(parameter='D')(b_in.tw(0.3)))
 
 model.addModel('d_model', d)
 model.addMinimize('d_min',d,d_t.last())
 model.neuralizeModel(0.1)
 model.loadData('dataset', dataset)
 
-params = {'num_of_epochs': 20, 
+params = {'num_of_epochs': 15, 
           'train_batch_size': 32, 
-          'val_batch_size':32, 
+          'val_batch_size': 32, 
           'test_batch_size':1, 
           'learning_rate':0.1}
 
@@ -85,10 +85,16 @@ print('#### TRAINING 6 ####')
 model.trainModel(models = 'b_model', training_params=params, minimize_gain={'d_min':0.5, 'b_min':2.0})
 
 print('#### TRAINING 7 ####')
+## training dei parametri del modello d_model con connect tra ouput b e input b_in for 4 sample horizon
+model.loadData('dataset', dataset)   ## b_in is initialized with the dataset since it has a bigger window dimension
+model.trainModel(models='d_model', training_params=params, prediction_samples=4, connect={'b_in':'b'})
+
+print('#### TRAINING 8 ####')
 ## training dei parametri del modello d_model con connect tra ouput b e input b_in (b and b_in have the same time window)
 dataset = {'a': data_a, 'b_t': data_b_t, 'c':data_c, 'd_t':data_d_t } ## remove b_in from dataset we don't need it anymore
-model.loadData('dataset', dataset)
-model.trainModel(models='d_model', training_params=params, connect={'b_in':'b'})
+model.loadData('dataset', dataset)  ## b_in is initialized with zeros for the first b_in.tw samples
+model.trainModel(models='d_model', training_params=params, prediction_samples=4, connect={'b_in':'b'})
+
 
 '''
 # Serve una funzione per rimuovere un modello e rimuovere una minimize

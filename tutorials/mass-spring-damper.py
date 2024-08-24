@@ -50,7 +50,14 @@ params = {'num_of_epochs': 100,
           'val_batch_size':128, 
           'test_batch_size':1, 
           'learning_rate':0.001}
-mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
+
+def early_stop(train_losses, val_losses):
+    for loss_name, loss_value in train_losses.items():
+        if sum(loss_value[-10:]) > 0.08:
+            return False
+    return True
+
+mass_spring_damper.trainModel(splits=[70,20,10], early_stopping=early_stop, training_params = params)
 
 # Add visualizer and show the results on the loaded dataset
 vis = MPLVisulizer()

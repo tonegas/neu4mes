@@ -76,10 +76,10 @@ def custom_function(func, x, idx_channel, chan_centers):
 # -------------------------------------------------------
 
 # Array of the independent variable
-x_test = np.linspace(-15.0,15.0,num=1000) 
+x_test = np.linspace(-10.0,10.0,num=1000) 
 
 # Array of the channel centers
-chan_centers = np.array([-5,-2,1,4])
+chan_centers = np.array([-6,-3,0,3,6])
 
 def fun1(x):
   return np.cos(x)
@@ -103,8 +103,8 @@ for i in range(len(chan_centers)):
   #   activ_fun = custom_function(fun1, x_test, i, chan_centers)
   # else:
   #   activ_fun = custom_function(fun2, x_test, i, chan_centers)
-  #activ_fun = triangular(x_test, i, chan_centers)
-  activ_fun = custom_function(fun3,x_test, i, chan_centers)
+  activ_fun = rectangular(x_test, i, chan_centers)
+  #activ_fun = custom_function(fun3,x_test, i, chan_centers)
   ax.plot(x_test,activ_fun,linewidth=3,label='Channel '+str(i+1))
 ax.legend()
 
