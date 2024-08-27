@@ -103,11 +103,17 @@ class Stream(Relation):
         self.json = copy.deepcopy(json)
         self.dim = dim
 
-    def update(self, obj):
+    def connect(self, obj):
         from neu4mes.input import State
         check(type(obj) is State, TypeError,
               f"The {obj} must be a State and not a {type(obj)}.")
-        self.json['States'][obj.name]['update'] = self.name
+        self.json['States'][obj.name]['connect'] = self.name
+
+    def closedLoop(self, obj):
+        from neu4mes.input import State
+        check(type(obj) is State, TypeError,
+              f"The {obj} must be a State and not a {type(obj)}.")
+        self.json['States'][obj.name]['closedLoop'] = self.name
 
 
 class ToStream():

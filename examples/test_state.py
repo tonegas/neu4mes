@@ -5,7 +5,7 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
-example = 5
+example = 1
 
 if example == 1:
     print('#### EXAMPLE 1 - NON Recurrent Training ####')
@@ -13,7 +13,7 @@ if example == 1:
     F = Input('F')
     x_state = State('x_state')
     x_out = Fir(x_state.tw(0.5))+F.last()
-    x_out.update(x_state)
+    x_out.closedLoop(x_state)
     out = Output('out',x_out)
 
     mass_spring_damper = Neu4mes(seed=42)
@@ -47,7 +47,7 @@ elif example == 2:
     F = Input('F')
     x_state = State('x_state')
     x_out = Fir(x_state.tw(0.5))+F.last()
-    x_out.update(x_state)
+    x_out.closedLoop(x_state)
     out = Output('out',x_out)
 
     mass_spring_damper = Neu4mes()
@@ -86,8 +86,8 @@ elif example == 3:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.5))
     y_out = Fir(y_state.tw(0.5))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out)
 
     mass_spring_damper = Neu4mes(seed=42)
@@ -121,8 +121,8 @@ elif example == 4:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.5))
     y_out = Fir(y_state.tw(0.5))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out)
 
     mass_spring_damper = Neu4mes(seed=42)
@@ -156,8 +156,8 @@ elif example == 5:
     y_state = State('y_state', dimensions=3)
     x_out = Linear(output_dimension=3)(x_state.tw(0.5))
     y_out = Linear(output_dimension=3)(y_state.tw(0.5))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out)
 
     mass_spring_damper = Neu4mes()
@@ -192,8 +192,8 @@ elif example == 6:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.3))
     y_out = Fir(y_state.tw(0.3))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out+F.last())
 
     mass_spring_damper = Neu4mes()

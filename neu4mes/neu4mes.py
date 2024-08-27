@@ -289,7 +289,7 @@ class Neu4mes:
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
 
         for key,value in self.model_def['States'].items():
-            check('update' in self.model_def['States'][key], RuntimeError, f'Update function is missing for state {key}. Call X.update({key}) on a Stream X.')
+            check('closedLoop' in self.model_def['States'][key], RuntimeError, f'Update function is missing for state {key}. Call X.update({key}) on a Stream X.')
 
         for key, value in json_inputs.items():
             self.input_tw_backward[key] = -value['tw'][0]
