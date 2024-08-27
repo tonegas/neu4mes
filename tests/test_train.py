@@ -326,7 +326,6 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model1', output1)
         test.addMinimize('error1', input1.next(), output1)
-        test.neuralizeModel(0.01)
 
         ## Model2
         input2 = Input('in2')
@@ -337,19 +336,27 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.addMinimize('error2', input2.next(), output2)
         test.neuralizeModel(0.01)
 
-        data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
-        test.loadData(name='dataset', source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
+        data_in1 = np.linspace(0,5,6)
+        data_in2 = np.linspace(10,15,6)
+        data_out1 = 2
+        data_out2 = -3
+        dataset = {'in1': data_in1, 'in2': data_in2, 'out1': data_in1*data_out1, 'out2': data_in2*data_out2}
 
-        params = {'num_of_epochs': 20, 
-          'train_batch_size': 3, 
-          'val_batch_size': 1, 
-          'test_batch_size':1, 
-          'learning_rate':0.1}
+        test.loadData(name='dataset', source=dataset)
+
+        params = {
+            'num_of_epochs': 1,
+            'train_batch_size': 1
+        }
+
+        optimizer_params = {
+            'lr': 0.1
+        }
         
         ## Train only model1
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        test.trainModel(models='model1', splits=[100,0,0], training_params=params)
+        test.trainModel(models='model1', splits=[100,0,0], optimizer=torch.optim.SGD, training_params=params, optimizer_params=optimizer_params)
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[0.20872743427753448],[0.20891857147216797],[0.20914430916309357],[0.20934967696666718],[0.20958690345287323]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
 

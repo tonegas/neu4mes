@@ -69,15 +69,21 @@ class Neu4mes:
         self.datasets_loaded = set()
 
         # Training Parameters
-        self.learning_rate = 0.01
+        self.training_params_list = {'num_of_epochs', 'train_batch_size', 'val_batch_size', 'test_batch_size' }
         self.num_of_epochs = 100
-        self.weight_decay = 0.0
         self.train_batch_size, self.val_batch_size, self.test_batch_size = 1, 1, 1
         self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
-        self.optimizer = None
-        self.losses = {}
         self.close_loop = None
         self.prediction_samples = 1
+
+        # Optimizer Parameters
+        self.optimizer = None
+        self.optimizer_params = {}
+        #self.learning_rate = 0.01
+        #self.weight_decay = 0.0
+
+        # Training Losses
+        self.losses = {}
 
         # Validation Parameters
         self.performance = {}
@@ -410,6 +416,7 @@ class Neu4mes:
             for key in model_inputs:
                 if key not in source.keys():
                     continue
+                #check(key in self.data[name].keys(), KeyError, f"The input {key} is missing in the dataset {name}.")
                 self.data[name][key] = np.stack(self.data[name][key])
                 if self.data[name][key].ndim == 2: ## Add the sample dimension
                     self.data[name][key] = np.expand_dims(self.data[name][key], axis=-1)
@@ -465,22 +472,23 @@ class Neu4mes:
                 self.num_of_samples[dataset_name] = self.data[dataset_name][key].shape[0]
             self.visualizer.showDataset(name=dataset_name)
 
-    def __getTrainParams(self, training_params):
+    def __getTrainingParams(self, params):
         # Set all parameters in training_params
-        for key,value in training_params.items():
+        for key,value in params.items():
             try:
-                getattr(self, key)
-                setattr(self, key, value)
+                if key in self.training_params_list:
+                    getattr(self, key)
+                    setattr(self, key, value)
             except:
                 raise KeyError(f"The training_params contains a wrong key: {key}.")
-
-            ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to 1
-            if self.train_batch_size > self.n_samples_train:
-                self.train_batch_size = 1
-            if self.val_batch_size > self.n_samples_val:
-                self.val_batch_size = 1
-            if self.test_batch_size > self.n_samples_test:
-                self.test_batch_size = 1
+    def __getBatchSizes(self):
+        ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to 1
+        if self.train_batch_size > self.n_samples_train:
+            self.train_batch_size = self.n_samples_train
+        if self.val_batch_size > self.n_samples_val:
+            self.val_batch_size = self.n_samples_val
+        if self.test_batch_size > self.n_samples_test:
+            self.test_batch_size = self.n_samples_test
 
 
     def resultAnalysis(self, name_data, XY_data, connect):
@@ -546,10 +554,14 @@ class Neu4mes:
 
     def trainModel(self, models=None,
                     train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
-                    close_loop=None, step=1, prediction_samples=0,
+                    close_loop={}, connect={}, step=1, prediction_samples=0,
                     shuffle_data=True, early_stopping=None,
-                    lr_gain={}, minimize_gain={}, connect={},
-                    training_params = {}):
+                    minimize_gain={},
+                    training_params={},
+                    optimizer=torch.optim.Adam,
+                    lr_gain={},
+                    optimizer_params={}
+                   ):
 
         if not self.data_loaded:
             print('There is no data loaded! The Training will stop.')
@@ -638,7 +650,8 @@ class Neu4mes:
 
         ## TRAIN MODEL
         ## Check parameters
-        self.__getTrainParams(training_params)
+        self.__getTrainingParams(training_params)
+        self.__getBatchSizes()
         assert self.n_samples_train > 0, f'There are {self.n_samples_train} samples for training.'
         self.prediction_samples = prediction_samples if (recurrent_train and prediction_samples != 0) else 1
 
@@ -663,7 +676,7 @@ class Neu4mes:
             elif param_name in learned_model_parameters: ## if the parameter is in the training model, it's learned with the default learning rate
                 model_parameters.append({'params':param_value, 'lr':self.learning_rate})
         #print('model parameters: ', model_parameters)
-        self.optimizer = torch.optim.Adam(model_parameters, weight_decay=self.weight_decay, lr=self.learning_rate)
+        self.optimizer = optimizer(model_parameters, **optimizer_params)
         #self.optimizer = torch.optim.Adam(self.model.parameters(),lr=self.learning_rate, weight_decay=self.weight_decay)
 
         ## Define the loss functions

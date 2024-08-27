@@ -106,7 +106,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
+        list_of_dimensions = [[6,1], [6,1], [6,1], [5,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
