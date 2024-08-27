@@ -1,8 +1,7 @@
 import copy
 
 import torch
-from torch.export import export
-
+from datetime import datetime
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
@@ -12,6 +11,8 @@ from pprint import pprint
 from pprint import pformat
 import re
 import matplotlib.pyplot as plt
+import json
+from torch.fx import symbolic_trace
 
 from neu4mes.relation import NeuObj, merge
 from neu4mes.visualizer import TextVisualizer, Visualizer
@@ -29,7 +30,7 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
 class Neu4mes:
     name = None
-    def __init__(self, visualizer = 'Standard', seed=None):
+    def __init__(self, visualizer = 'Standard', seed=None, folder=None):
 
         # Visualizer
         if visualizer == 'Standard':
@@ -83,6 +84,9 @@ class Neu4mes:
         self.performance = {}
         self.prediction = {}
 
+        # Export parameters
+        self.folder = folder
+                
 
     def __call__(self, inputs={}, sampled=False, close_loop={}, connect={}, prediction_samples=1):
         check(self.neuralized, ValueError, "The network is not neuralized.")
@@ -124,7 +128,7 @@ class Neu4mes:
             else:
                 min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
-        else:
+        else: ## TODO: set prediction samples to max_dim
             if provided_inputs:
                 min_dim_ind, min_dim  = argmin_min([close_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
                 max_dim_ind, max_dim = argmax_max([close_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
@@ -149,6 +153,7 @@ class Neu4mes:
             result_dict[key] = []
 
         ## Cycle through all the samples provided
+        self.model.batch_size = 1
         with torch.inference_mode():
             X = {}
             for i in range(window_dim):
@@ -182,9 +187,10 @@ class Neu4mes:
 
                 ## Model Predict
                 if connect:
+                    self.model.connect = connect
                     if i==0 or i%prediction_samples == 0:
                         self.model.clear_connect_variables()
-                result, _ = self.model(X, connect)
+                result, _ = self.model(X)
 
                 ## Update the recurrent variable
                 for close_in, close_out in close_loop.items():
@@ -684,6 +690,7 @@ class Neu4mes:
         for epoch in range(self.num_of_epochs):
             ## TRAIN
             self.model.train()
+
             if recurrent_train:
                 losses = self.__recurrentTrain(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, self.prediction_samples, close_loop, step, connect, shuffle=shuffle_data, train=True)
             else:
@@ -729,8 +736,9 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        '''
+        
         # TODO: adjust the result analysis with states variables
+        '''
         self.resultAnalysis(train_dataset, XY_train, connect)
         if self.n_samples_val > 0:
             self.resultAnalysis(validation_dataset, XY_val, connect)
@@ -747,6 +755,9 @@ class Neu4mes:
         initial_value = random.randint(0, step) if shuffle else 0
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
+        if connect:
+            self.model.connect = connect
+        self.model.batch_size = batch_size
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             ## Build the input tensor
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
@@ -757,7 +768,7 @@ class Neu4mes:
                 ## Model Forward
                 if connect and horizon_idx==0:
                     self.model.clear_connect_variables()
-                out, minimize_out = self.model(XY, connect)  ## Forward pass
+                out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
@@ -806,6 +817,7 @@ class Neu4mes:
             data = {key: val[randomize] for key, val in data.items()}
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
+        self.model.batch_size = batch_size
         for idx in range(0, (n_samples - batch_size + 1), batch_size):
             ## Build the input tensor
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
@@ -835,4 +847,101 @@ class Neu4mes:
                 self.model.clear_state()
         else:
             self.visualizer.warning('The model does not have state variables!')
+
+    '''
+    def exportModel(self):
+        import io
+        import onnx
+        from onnx import reference as onnxreference
+
+        features = {}
+        for name, value in self.model_def['Inputs'].items():
+            window_size = self.input_n_samples[name]
+            features[name] = torch.randn(size=(1, window_size, value['dim']))
+        print('features: ', features)
+        torch_out, torch_min = self.model(features)
+        print("torch_out:", torch_out)
+        print("torch_min:", torch_min)
+
+        f = io.BytesIO()
+        #torch.onnx.export(self.model, {"x": features}, f)
+        torch.onnx.export(self.model, features, f)
+        onnx_model = onnx.load_model_from_string(f.getvalue())
+
+        sess = onnxreference.ReferenceEvaluator(onnx_model)
+        model_input_names = [i.name for i in onnx_model.graph.input]
+        input_dict = dict(zip(model_input_names, features.values()))
+        onnx_out = sess.run(None, input_dict)
+        print("onnx_out:", onnx_out)
+    '''
+
+    def save_model(self, path):
+        torch.save(self.model.state_dict(), path)
+
+    def load_model(self, path):
+        if not self.neuralized:
+            print('The model is not neuralized yet!')
+            return
+        self.model.load_state_dict(torch.load(path))
+
+    def exportJSON(self,):
+        # Specify the JSON file name
+        file_name = datetime.now().strftime("%Y-%m-%d-%H-%M") + ".json"
+        # Combine the folder path and file name to form the complete file path
+        file_path = os.path.join(self.folder, file_name)
+        # Ensure the directory exists, if not, create it
+        os.makedirs(self.folder, exist_ok=True)
+        # Export the dictionary as a JSON file
+        with open(file_path, 'w') as json_file:
+            pformat(self.model_def, width=80).strip().splitlines()
+            json_file.write(pformat(self.model_def, width=80).strip().replace('\'', '\"'))
+            #json.dump(self.model_def, json_file, indent=4)  # 'indent=4' is optional, it makes the file more readable
+        print(f"The model definition has been exported to {file_path} as a JSON file.")
+
+    def exportTracer(self,):
+        if not self.neuralized:
+            self.visualizer.warning('Export Error: the model is not neuralized yet.')
+            return
+        file_name = datetime.now().strftime("%Y-%m-%d-%H-%M") + ".txt"
+        # Combine the folder path and file name to form the complete file path
+        file_path = os.path.join(self.folder, file_name)
+        # Ensure the directory exists, if not, create it
+        os.makedirs(self.folder, exist_ok=True)
+        # Get the symbolic tracer
+        trace = symbolic_trace(self.model)
+
+        with open(file_path, 'w') as file:
+            file.write("import torch.nn as nn\n")
+            file.write("import torch\n\n")
+            file.write("class TracerModel(torch.nn.Module):\n")
+            file.write("    def __init__(self):\n")
+            file.write("        super().__init__()\n")
+            file.write("        self.relation_forward = {}\n")
+            for key, value in self.model.relation_forward.items():
+                if hasattr(value, 'weights'):
+                    file.write(f"        self.relation_forward[\"{key}\"] = torch.nn.Parameter(torch.{value.weights.data}, requires_grad=True)\n")
+            file.write("        self.relation_forward = torch.nn.ParameterDict(self.relation_forward)")
+            #file.write(f"\t{trace.code}")
+            for line in trace.code.split("\n"):
+                file.write(f"    {line}\n")
+        print(f"The pytorch model has been exported to {file_path} as a TXT file.")
+        return file_name
+
+
+    def importTracer(self, file_name):
+        # Define the file path for the Python code
+        file_path = os.path.join(self.folder, file_name)
+        # Read the Python code from the file
+        with open(file_path, 'r') as file:
+            code = file.read()
+        # Execute the code (not safe but who cares)
+        code += "self.model = TracerModel()"
+        print('before exec: ', self.model)
+        try:
+            exec(code)
+        except:
+            raise KeyError
+        print('after exec: ', self.model)
+        
+        
 

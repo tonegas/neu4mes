@@ -396,8 +396,8 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model1', output1)
-        test.addMinimize('error1', input1.next(), output1)
-        test.neuralizeModel(0.01)
+        #test.addMinimize('error1', input1.next(), output1)
+        #test.neuralizeModel(0.01)
 
         ## Model2
         input2 = Input('in2')
@@ -419,8 +419,24 @@ class Neu4mesTrainingTest(unittest.TestCase):
           'test_batch_size':1, 
           'learning_rate':0.1}
         
-        test.trainModel(splits=[100,0,0], training_params=params, lr_gain={'a':0, 'b':0, 'c':0}, prediction_samples=3, connect={'in3':'out1'}, shuffle_data=False)
+        self.assertListEqual([[1],[1],[1],[1],[1]], test.model.all_parameters['a'].data.numpy().tolist())
+        self.assertListEqual([[1],[1],[1],[1],[1]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[1],[1],[1]], test.model.all_parameters['c'].data.numpy().tolist())
+        test.trainModel(splits=[100,0,0], training_params=params, prediction_samples=3, connect={'in3':'out1'})
+        self.assertListEqual([[0.8015178442001343],[0.8015390634536743],[0.8015637993812561],[0.8015859127044678],[0.8016122579574585]], test.model.all_parameters['a'].data.numpy().tolist())
+        self.assertListEqual([[0.8006400465965271],[0.8006381392478943],[0.8006362318992615],[0.8006342053413391],[0.8006324172019958]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[0.8015742301940918], [0.8015661239624023], [0.8015576004981995]], test.model.all_parameters['c'].data.numpy().tolist())
+
+        ## train only model2
+        test.neuralizeModel(0.01)
+        self.assertListEqual([[1],[1],[1],[1],[1]], test.model.all_parameters['a'].data.numpy().tolist())
+        self.assertListEqual([[1],[1],[1],[1],[1]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[1],[1],[1]], test.model.all_parameters['c'].data.numpy().tolist())
+        test.trainModel(models='model1', splits=[100,0,0], training_params=params, prediction_samples=3, connect={'in3':'out1'})
+        self.assertListEqual([[0.80008465051651],[0.8000926971435547],[0.8001022338867188],[0.8001108765602112],[0.8001214265823364]], test.model.all_parameters['a'].data.numpy().tolist())
+        self.assertListEqual([[1],[1],[1],[1],[1]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[1],[1],[1]], test.model.all_parameters['c'].data.numpy().tolist())
     
-    
+        
 if __name__ == '__main__':
     unittest.main()

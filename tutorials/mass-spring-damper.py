@@ -20,21 +20,27 @@ x = Input('x') # Position of the mass
 dx = Input('dx') # Velocity of the mass
 F = Input('F') # Force
 
-# List the output of the model
-xk1 = Output('x[k+1]', Fir(parameter_init=init_negexp)(x.tw(0.2))+Fir(parameter_init=init_constant,parameter_init_params={'value':1})(F.last()))
-dxk1 = Output('dx[k+1]', Fir(Fir(parameter_init=init_negexp)(x.tw(0.2))+Fir(parameter_init=init_constant,parameter_init_params={'value':1})(F.last())))
+# List the relations of the model
+displacement_x = Fir(parameter_init=init_negexp)
+force_x = Fir(parameter_init=init_constant,parameter_init_params={'value':1})
+displacement_dx = Fir(parameter_init=init_negexp)
+force_dx = Fir(parameter_init=init_constant,parameter_init_params={'value':1})
+
+# List the outputs of the model
+next_x = Output('next_x', displacement_x(x.tw(0.2))+force_x(F.last()))
+next_dx = Output('next_dx', displacement_dx(x.tw(0.2))+force_dx(F.last()))
 
 # Add the neural models to the neu4mes structure
-mass_spring_damper = Neu4mes()
-mass_spring_damper.addModel('xk1',xk1)
-mass_spring_damper.addModel('dxk1',dxk1)
+mass_spring_damper = Neu4mes(visualizer=MPLVisulizer())
+mass_spring_damper.addModel('position_model',next_x)
+mass_spring_damper.addModel('velocity_model',next_dx)
 
 # These functions are used to impose the minimization objectives.
 # Here it is minimized the error between the future position of x get from the dataset x.z(-1)
 # and the estimator designed useing the neural network. The miniminzation is imposed via MSE error.
-mass_spring_damper.addMinimize('next-pos', x.next(), xk1, 'mse')
+mass_spring_damper.addMinimize('position', x.next(), next_x, 'mse')
 # The second minimization is between the velocity get from the dataset and the velocity estimator.
-mass_spring_damper.addMinimize('next-vel', dx.next(), dxk1, 'mse')
+mass_spring_damper.addMinimize('velocity', dx.next(), next_dx, 'mse')
 
 # Nauralize the model and gatting the neural network. The sampling time depends on the datasets.
 mass_spring_damper.neuralizeModel(sample_time = 0.05) # The sampling time depends on the dataset
@@ -51,22 +57,24 @@ params = {'num_of_epochs': 100,
           'test_batch_size':1, 
           'learning_rate':0.001}
 
+'''
 def early_stop(train_losses, val_losses):
     for loss_name, loss_value in train_losses.items():
         if sum(loss_value[-10:]) > 0.08:
             return False
     return True
+'''
 
-mass_spring_damper.trainModel(splits=[70,20,10], early_stopping=early_stop, training_params = params)
+mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 
 # Add visualizer and show the results on the loaded dataset
-vis = MPLVisulizer()
-vis.set_n4m(mass_spring_damper)
-vis.showOneResult("validation")
+#vis = MPLVisulizer()
+#vis.set_n4m(mass_spring_damper)
+#vis.showOneResult("validation")
 
 #Neural network train not reccurent training
-mass_spring_damper.trainModel(splits=[70,20,10], training_params =  {'learning_rate':0.0001}, close_loop={'x':'x[k+1]'}, prediction_samples=10)
+#mass_spring_damper.trainModel(splits=[70,20,10], training_params =  {'learning_rate':0.0001}, close_loop={'x':'x[k+1]'}, prediction_samples=10)
 
 # Add visualizer and show the results on the loaded dataset
-vis.showOneResult("validation")
+#vis.showOneResult("validation")
 

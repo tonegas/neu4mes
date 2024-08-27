@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch
 
+import copy
+
 class Model(nn.Module):
     def __init__(self, model_def,  minimize_dict, input_ns_backward, input_n_samples):
         super(Model, self).__init__()
@@ -15,6 +17,9 @@ class Model(nn.Module):
         self.input_ns_backward = input_ns_backward
         self.input_n_samples = input_n_samples ## TODO: use this for all the windows
         self.minimizers_keys = [minimize_dict[key]['A'].name for key in minimize_dict] + [minimize_dict[key]['B'].name for key in minimize_dict]
+        
+        self.connect = {}
+        self.batch_size = 1
 
         ## Build the network
         self.all_parameters = {}
@@ -161,21 +166,21 @@ class Model(nn.Module):
         ## list of all the network Outputs
         self.network_outputs = self.network_output_predictions.union(self.network_output_minimizers)
 
-    def forward(self, kwargs, connect={}):
+    def forward(self, kwargs):
         result_dict = {}
 
         ## Initially i have only the inputs from the dataset, the parameters, and the constants
-        available_inputs = [key for key in self.inputs.keys() if key not in connect.keys()]  ## remove the connected inputs
+        available_inputs = [key for key in self.inputs.keys() if key not in self.connect.keys()]  ## remove the connected inputs
         available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.constants) + list(self.state_model.keys()))
         
-        batch_size = list(kwargs.values())[0].shape[0] if kwargs else 1 ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
+        #batch_size = list(kwargs.values())[0].shape[0] if kwargs else 1 ## TODO: define the batch inside the init as a model variables so that the forward can work even with only states variables
         ## Initialize State variables if necessary
         for state in self.state_model.keys():
             if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
                 self.states[state] = kwargs[state].clone()
                 self.states[state].requires_grad = False
-            elif batch_size > self.states[state].shape[0]:
-                self.states[state] = self.states[state].repeat(batch_size, 1, 1)
+            elif self.batch_size > self.states[state].shape[0]:
+                self.states[state] = self.states[state].repeat(self.batch_size, 1, 1)
                 self.states[state].requires_grad = False
 
         ## Forward pass through the relations
@@ -215,7 +220,7 @@ class Model(nn.Module):
                     available_keys.add(relation)
 
                     ## Update the connect variables if necessary
-                    for connect_in, connect_out in connect.items():
+                    for connect_in, connect_out in self.connect.items():
                         if connect_in in available_keys:
                             continue
                         if relation == self.outputs[connect_out]:  ## we have to save the output
@@ -230,7 +235,7 @@ class Model(nn.Module):
                                     if connect_in in kwargs.keys(): ## initialize with dataset
                                         self.connect_variables[connect_in] = kwargs[connect_in]
                                     else: ## initialize with zeros
-                                        self.connect_variables[connect_in] = torch.zeros(size=(batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=True)
+                                        self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=True)
                                     result_dict[connect_in] = self.connect_variables[connect_in].clone()
                                 else: ## update connect variable
                                     result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-relation_size, dims=1)
@@ -259,7 +264,7 @@ class Model(nn.Module):
                 minimize_dict[key] = result_dict[key]
                 
         return output_dict, minimize_dict
-
+        
     def clear_state(self, state=None):
         if state: ## Clear a specific state variable
             if state in self.states.keys():
