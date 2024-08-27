@@ -737,13 +737,13 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        '''
-        self.resultAnalysis(train_dataset, XY_train)
+
+        self.resultAnalysis(train_dataset, XY_train, connect)
         if self.n_samples_val > 0:
-            self.resultAnalysis(validation_dataset, XY_val)
+            self.resultAnalysis(validation_dataset, XY_val, connect)
         if self.n_samples_test > 0:
-            self.resultAnalysis(test_dataset, XY_test)
-        '''
+            self.resultAnalysis(test_dataset, XY_test, connect)
+
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
