@@ -84,7 +84,7 @@ class Model(nn.Module):
         ## save the states updates
         self.states_updates = {}
         for state, param in self.state_model.items():
-            self.states_updates[state] = param['update']
+            self.states_updates[state] = param['closedLoop']
 
         ## Create all the relations
         for relation, inputs in self.relations.items():
@@ -95,13 +95,6 @@ class Model(nn.Module):
             ## collect the constants of the model
             self.constants.update([item for item in inputs[1] if not isinstance(item, str)])
             
-            ## Check shared layers
-            if rel_name in ['Fir','Linear',]:
-                if inputs[2] in self.relation_parameters.keys(): ## we have a shared layer
-                    self.relation_forward[relation] = self.relation_forward[self.relation_parameters[inputs[2]]]
-                    self.relation_inputs[relation] = input_var
-                    continue
-
             ## Create All the Relations
             func = getattr(self,rel_name)
             if func:
@@ -113,7 +106,7 @@ class Model(nn.Module):
                     self.relation_forward[relation] = func(self.all_parameters[inputs[2]],inputs[3])
                 elif rel_name == 'Linear':
                     if inputs[3]:
-                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]],self.all_parameters[inputs[3]], inputs[4])
+                        self.relation_forward[relation] = func(self.all_parameters[inputs[2]], self.all_parameters[inputs[3]], inputs[4])
                     else:
                         self.relation_forward[relation] = func(self.all_parameters[inputs[2]], None, inputs[4])
                 elif rel_name == 'TimePart':
@@ -136,10 +129,6 @@ class Model(nn.Module):
                 ## Save the inputs needed for the relative relation
                 self.relation_inputs[relation] = input_var
 
-                ## Add the shared layers
-                if rel_name in ['Fir','Linear']:
-                    if inputs[2] not in self.relation_parameters.keys():
-                        self.relation_parameters[inputs[2]] = relation
             else:
                 print(f"Key Error: [{rel_name}] Relation not defined")
 

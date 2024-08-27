@@ -17,6 +17,9 @@ MAIN_JSON = {
                 'Relations': {},
             }
 
+CHECK_NAMES = True
+NeuObj_names = []
+
 def merge(source, destination, main = True):
     if main:
         log.debug("Merge Source")
@@ -57,8 +60,11 @@ class NeuObj():
     @classmethod
     def reset_count(self):
         NeuObj.count = 0
-    def __init__(self, name = '', json = {}, dim = 0):
+    def __init__(self, name, json = {}, dim = 0):
         NeuObj.count += 1
+        if CHECK_NAMES == True:
+            check(name not in NeuObj_names, NameError, f"The name {name} is already used change the name of NeuObj.")
+            NeuObj_names.append(name)
         self.name = name
         self.dim = dim
         if json:
@@ -103,11 +109,27 @@ class Stream(Relation):
         self.json = copy.deepcopy(json)
         self.dim = dim
 
-    def update(self, obj):
-        from neu4mes.input import State
+    def connect(self, obj):
+        from neu4mes.input import State, Input
+        from neu4mes.output import Output
         check(type(obj) is State, TypeError,
               f"The {obj} must be a State and not a {type(obj)}.")
-        self.json['States'][obj.name]['update'] = self.name
+        check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
+              f"The state variable {obj.name} is already connected.")
+        check(not isinstance(self, (Input,Output)), TypeError,
+              f"The {self.name} is a {type(self)} but must be a type of Stream.")
+        self.json['States'][obj.name]['connect'] = self.name
+
+    def closedLoop(self, obj):
+        from neu4mes.input import State, Input
+        from neu4mes.output import Output
+        check(type(obj) is State, TypeError,
+              f"The {obj} must be a State and not a {type(obj)}.")
+        check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
+              f"The state variable {obj.name} is already connected.")
+        check(not isinstance(self, (Input,Output)), TypeError,
+              f"The {self.name} is a {type(self)} but must be a type of Stream.")
+        self.json['States'][obj.name]['closedLoop'] = self.name
 
 
 class ToStream():

@@ -14,7 +14,7 @@ from neu4mes.visualizer import Visualizer
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
     def __init__(self, output_dimension:int|None = None, W_init:None = None, W_init_params:None = None, b_init:None = None, b_init_params:None = None,
-                 W:Parameter|None = None, b:bool|Parameter|None = None, dropout:int = 0):
+                 W:Parameter|None|str = None, b:bool|str|Parameter|None = None, dropout:int = 0):
         self.relation_name = linear_relation_name
         self.W_init = W_init
         self.W_init_params = W_init_params
@@ -36,7 +36,7 @@ class Linear(NeuObj, AutoToStream):
         else:
             check(type(W) is Parameter or type(W) is str, TypeError, 'The "W" must be of type Parameter or str.')
             window = 'tw' if 'tw' in W.dim else ('sw' if 'sw' in W.dim else None)
-            check(window == None, ValueError, 'The "W" must not have window dimension.')
+            check(window == None or W.dim['sw'] == 1, ValueError, 'The "W" must not have window dimension.')
             check(len(W.dim['dim']) == 2, ValueError,'The "W" dimensions must be a tuple of 2.')
             self.output_dimension = W.dim['dim'][1]
             if output_dimension is not None:
@@ -81,12 +81,13 @@ class Linear(NeuObj, AutoToStream):
                 self.json['Parameters'][self.Wname]['init_fun']['params'] = self.W_init_params
 
         if self.b_init is not None:
+            check(self.bname is not None, ValueError,f"The bias is missing.")
             check('values' not in self.json['Parameters'][self.bname], ValueError, f"The parameter {self.bname} is already initialized.")
             check(inspect.isfunction(self.b_init), ValueError,
                   f"The b_init parameter must be a function.")
             self.json['Parameters'][self.bname]['init_fun'] = { 'code' : inspect.getsource(self.b_init), 'name' : self.b_init.__name__ }
             if self.b_init_params is not None:
-                self.json['Parameters'][self.Wname]['init_fun']['params'] = self.b_init_params
+                self.json['Parameters'][self.bname]['init_fun']['params'] = self.b_init_params
 
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname, self.dropout]
