@@ -26,8 +26,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[1, 1], [1, 1]]
         for ind, (key, value) in enumerate({k: v for k, v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
-            
+            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
+      
     def test_network_building_simple(self):
         input1 = Input('in1')
         rel1 = Fir(input1.tw(0.05))
@@ -40,9 +40,10 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         
         list_of_dimensions = [[5,1], [1,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
     def test_network_building_tw(self):
+        Stream.reset_count()
         input1 = Input('in1')
         input2 = Input('in2')
         rel1 = Fir(input1.tw(0.05))
@@ -51,15 +52,16 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel4 = Fir(input2.tw([-0.02,0.02]))
         fun = Output('out',rel1+rel2+rel3+rel4)
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes()
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
         
-        list_of_dimensions = [[5,1], [1,1], [5,1], [4,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
-
+        list_of_dimensions = {'Fir4':[5,1], 'Fir7':[1,1], 'Fir10':[5,1], 'Fir13':[4,1]}
+        for key, value in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
+            self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
+    
     def test_network_building_tw2(self):
+        Stream.reset_count()
         input2 = Input('in2')
         rel3 = Fir(input2.tw(0.05))
         rel4 = Fir(input2.tw([-0.02,0.02]))
@@ -75,9 +77,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual(test.max_n_samples, 8) # 5 samples + 3 samples of the horizon
         self.assertEqual({'in2': 8} , test.input_n_samples)
         
-        list_of_dimensions = [[5,1], [4,1], [6,1], [3,1], [3,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual( list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+        list_of_dimensions = {'Fir3':[5,1], 'Fir6':[4,1], 'Fir9':[6,1], 'Fir12':[3,1], 'Fir15':[3,1]}
+        for  (key, value) in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
+            self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
 
 
     def test_network_building_tw3(self):
@@ -93,10 +95,11 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[5,1], [4,1], [5,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
 
     def test_network_building_tw_with_offest(self):
+        Stream.reset_count()
         input2 = Input('in2')
         rel3 = Fir(input2.tw(0.05))
         rel4 = Fir(input2.tw([-0.04,0.02]))
@@ -108,9 +111,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
+        list_of_dimensions = {'Fir3':[5,1], 'Fir6':[6,1], 'Fir9':[6,1], 'Fir12':[6,1]}
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
 
     def test_network_building_tw_negative(self):
         input2 = Input('in2')
@@ -124,7 +127,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[3,1], [3,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
     def test_network_building_tw_positive(self):
         input2 = Input('in2')
@@ -138,10 +141,11 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[3,1], [3,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
 
     def test_network_building_sw_with_offset(self):
+        Stream.reset_count()
         input2 = Input('in2')
         rel3 = Fir(input2.sw(5))
         rel4 = Fir(input2.sw([-4,2]))
@@ -149,13 +153,13 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel6 = Fir(input2.sw([-4,2],offset=1))
         fun = Output('out',rel3+rel4+rel5+rel6)
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes( seed=1)
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        list_of_dimensions = [[5,1], [6,1], [6,1], [6,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+        list_of_dimensions = {'Fir3':[5,1], 'Fir6':[6,1], 'Fir9':[6,1], 'Fir12':[6,1]}
+        for key, value in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
+            self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
 
 
     def test_network_building_sw_and_tw(self):
@@ -172,7 +176,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[6,1], [1,1]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
     def test_network_linear(self):
         torch.manual_seed(1)
@@ -194,7 +198,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
         list_of_dimensions = [[1,1],[1,5],[3,1],[3,5]]
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Linear' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],[value.lin.in_features, value.lin.out_features])
+            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
 if __name__ == '__main__':
     unittest.main()

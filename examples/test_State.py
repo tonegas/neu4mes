@@ -5,7 +5,7 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
-example = 5
+example = 1
 
 if example == 1:
     print('#### EXAMPLE 1 - NON Recurrent Training ####')
@@ -13,11 +13,11 @@ if example == 1:
     F = Input('F')
     x_state = State('x_state')
     x_out = Fir(x_state.tw(0.5))+F.last()
-    x_out.update(x_state)
+    x_out.closedLoop(x_state)
     out = Output('out',x_out)
 
     mass_spring_damper = Neu4mes(seed=42)
-    mass_spring_damper.addModel(out)
+    mass_spring_damper.addModel('out', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
@@ -47,11 +47,11 @@ elif example == 2:
     F = Input('F')
     x_state = State('x_state')
     x_out = Fir(x_state.tw(0.5))+F.last()
-    x_out.update(x_state)
+    x_out.closedLoop(x_state)
     out = Output('out',x_out)
 
     mass_spring_damper = Neu4mes()
-    mass_spring_damper.addModel(out)
+    mass_spring_damper.addModel('model', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
@@ -73,7 +73,7 @@ elif example == 2:
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.001}
-    mass_spring_damper.trainModel(splits=[70,20,10], prediction_horizon=0.2, shuffle_data=False, training_params=params)
+    mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=2, shuffle_data=False, training_params=params)
 
     print('finale state: ', mass_spring_damper.model.states)
     mass_spring_damper.clear_state()
@@ -86,12 +86,12 @@ elif example == 3:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.5))
     y_out = Fir(y_state.tw(0.5))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out)
 
     mass_spring_damper = Neu4mes(seed=42)
-    mass_spring_damper.addModel(out)
+    mass_spring_damper.addModel('model', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
@@ -121,12 +121,12 @@ elif example == 4:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.5))
     y_out = Fir(y_state.tw(0.5))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out)
 
     mass_spring_damper = Neu4mes(seed=42)
-    mass_spring_damper.addModel(out)
+    mass_spring_damper.addModel('model', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
@@ -146,7 +146,7 @@ elif example == 4:
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.01}
-    mass_spring_damper.trainModel(splits=[70,20,10], prediction_horizon=0.3, shuffle_data=False, training_params=params)
+    mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
 
 elif example == 5:
     print('#### EXAMPLE 5 - Recurrent Training with multi-dimensional output and multi-window ####')
@@ -156,12 +156,12 @@ elif example == 5:
     y_state = State('y_state', dimensions=3)
     x_out = Linear(output_dimension=3)(x_state.tw(0.5))
     y_out = Linear(output_dimension=3)(y_state.tw(0.5))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out)
 
     mass_spring_damper = Neu4mes()
-    mass_spring_damper.addModel(out)
+    mass_spring_damper.addModel('model', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
@@ -181,7 +181,7 @@ elif example == 5:
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.01}
-    mass_spring_damper.trainModel(splits=[70,20,10], prediction_horizon=0.3, shuffle_data=False, training_params=params)
+    mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
 
 elif example == 6:
     print('#### EXAMPLE 6 - Recurrent Training with state variables and close_loop ####')
@@ -192,8 +192,8 @@ elif example == 6:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.3))
     y_out = Fir(y_state.tw(0.3))
-    x_out.update(x_state)
-    y_out.update(y_state)
+    x_out.closedLoop(x_state)
+    y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out+F.last())
 
     mass_spring_damper = Neu4mes()

@@ -72,7 +72,8 @@ class TextVisualizer(Visualizer):
             self.__param("Number of files:", f'{self.n4m.file_count}')
             self.__param("Total number of samples:", f'{self.n4m.num_of_samples[name]}')
             for key in self.n4m.model_def['Inputs'].keys():
-                self.__param(f"Shape of {key}:", f'{self.n4m.data[name][key].shape}')
+                if key in self.n4m.data[name].keys():
+                    self.__param(f"Shape of {key}:", f'{self.n4m.data[name][key].shape}')
             self.__line()
 
     def showTraining(self, epoch, train_losses, val_losses):

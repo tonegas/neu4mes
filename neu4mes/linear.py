@@ -14,7 +14,7 @@ from neu4mes.visualizer import Visualizer
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
     def __init__(self, output_dimension:int|None = None, W_init:None = None, W_init_params:None = None, b_init:None = None, b_init_params:None = None,
-                 W:Parameter|None = None, b:bool|Parameter|None = None, dropout:int = 0):
+                 W:Parameter|None|str = None, b:bool|str|Parameter|None = None, dropout:int = 0):
         self.relation_name = linear_relation_name
         self.W_init = W_init
         self.W_init_params = W_init_params
@@ -92,7 +92,7 @@ class Linear(NeuObj, AutoToStream):
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname, self.dropout]
         return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
-
+'''
 class Linear_Layer(nn.Module):
     def __init__(self, weights, bias, dropout):
         super(Linear_Layer, self).__init__()
@@ -108,6 +108,24 @@ class Linear_Layer(nn.Module):
             x = self.dropout(x)
         x = self.lin(x)
         return x
+'''
+class Linear_Layer(nn.Module):
+    def __init__(self, weights, bias=None, dropout=0):
+        super(Linear_Layer, self).__init__()
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
+        self.weights = weights[0]
+        self.bias = bias
+
+    def forward(self, x):
+        # x is expected to be of shape [batch, window, input_dimension]
+        # Using torch.einsum for batch matrix multiplication
+        y = torch.einsum('bwi,io->bwo', x, self.weights)  # y will have shape [batch, window, output_features]
+        if self.bias is not None:
+            y += self.bias  # Add bias
+        # Add dropout if necessary
+        if self.dropout:
+            y = self.dropout(y)
+        return y
 
 def createLinear(self, weights, bias, dropout):
     return Linear_Layer(weights, bias, dropout)
