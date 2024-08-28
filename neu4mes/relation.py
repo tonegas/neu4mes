@@ -117,6 +117,7 @@ class Stream(Relation):
               f"The {obj} must be a State and not a {type(obj)}.")
         check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
               f"The state variable {obj.name} is already connected.")
+        self.json = merge(self.json, obj.json)
         self.json['States'][obj.name]['closedLoop'] = self.name
 
 
