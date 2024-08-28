@@ -116,8 +116,7 @@ class Stream(Relation):
               f"The {obj} must be a State and not a {type(obj)}.")
         check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
               f"The state variable {obj.name} is already connected.")
-        check(not isinstance(self, (Input,Output)), TypeError,
-              f"The {self.name} is a {type(self)} but must be a type of Stream.")
+        self.json = merge(self.json, obj.json)
         self.json['States'][obj.name]['connect'] = self.name
 
     def closedLoop(self, obj):
@@ -127,8 +126,7 @@ class Stream(Relation):
               f"The {obj} must be a State and not a {type(obj)}.")
         check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
               f"The state variable {obj.name} is already connected.")
-        check(not isinstance(self, (Input,Output)), TypeError,
-              f"The {self.name} is a {type(self)} but must be a type of Stream.")
+        self.json = merge(self.json, obj.json)
         self.json['States'][obj.name]['closedLoop'] = self.name
 
 
