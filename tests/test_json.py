@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 
 import unittest, logging
 from neu4mes import *
+relation.CHECK_NAMES = False
 
 # This test file tests the json, in particular
 # the dimensions that are propagated through the relations

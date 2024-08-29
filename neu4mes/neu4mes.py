@@ -14,7 +14,7 @@ import re
 import matplotlib.pyplot as plt
 
 from neu4mes.input import closedloop_name, connect_name
-from neu4mes.relation import NeuObj
+from neu4mes.relation import NeuObj, MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
@@ -51,7 +51,6 @@ class Neu4mes:
         self.stream_dict = {}
         self.minimize_dict = {}
         self.update_state_dict = {}
-        self.model_def = NeuObj().json
 
         # Network Parametrs
         self.input_tw_backward, self.input_tw_forward = {}, {}
@@ -285,7 +284,7 @@ class Neu4mes:
         self.visualizer.showaddMinimize(name)
 
     def __update_model(self):
-        self.model_def = copy.deepcopy(NeuObj().json)
+        self.model_def = copy.deepcopy(MAIN_JSON)
         for key, stream_list in self.stream_dict.items():
             for stream in stream_list:
                 self.model_def = merge(self.model_def, stream.json)
@@ -503,6 +502,7 @@ class Neu4mes:
 
 
     def resultAnalysis(self, name_data, XY_data, connect):
+        import warnings
         with torch.inference_mode():
             self.performance[name_data] = {}
             self.prediction[name_data] = {}
@@ -536,16 +536,23 @@ class Neu4mes:
                 error_mean = np.mean(residual)
                 #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
                 #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
-                self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
-                self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                with warnings.catch_warnings(record=True) as w:
+                    self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+                    self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                    if w and np.var(A_np) == 0.0 and  np.var(B_np) == 0.0:
+                        self.performance[name_data][key]['fvu']['A'] = np.nan
+                        self.performance[name_data][key]['fvu']['B'] = np.nan
                 self.performance[name_data][key]['fvu']['total'] = np.mean([self.performance[name_data][key]['fvu']['A'],self.performance[name_data][key]['fvu']['B']]).item()
                 # Compute AIC
                 #normal_dist = norm(0, error_var ** 0.5)
                 #probability_of_residual = normal_dist.pdf(residual)
                 #log_likelihood_first = sum(np.log(probability_of_residual))
                 p1 = -len(residual)/2.0*np.log(2*np.pi)
-                p2 = -len(residual)/2.0*np.log(error_var)
-                p3 = -1/(2.0*error_var)*np.sum(residual**2)
+                with warnings.catch_warnings(record=True) as w:
+                    p2 = -len(residual)/2.0*np.log(error_var)
+                    p3 = -1 / (2.0 * error_var) * np.sum(residual ** 2)
+                    if w and p2 == np.float32(np.inf) and p3 == np.float32(-np.inf):
+                        p2 = p3 = 0.0
                 log_likelihood = p1+p2+p3
                 #print(f"{key} log likelihood second mode:{log_likelihood} = {p1}+{p2}+{p3} first mode: {log_likelihood_first}")
                 total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad) #TODO to be check the number is doubled
@@ -748,18 +755,17 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        '''
-        # TODO: adjust the result analysis with states variables
+
         self.resultAnalysis(train_dataset, XY_train, connect)
         if self.n_samples_val > 0:
             self.resultAnalysis(validation_dataset, XY_val, connect)
         if self.n_samples_test > 0:
             self.resultAnalysis(test_dataset, XY_test, connect)
-        '''
+
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
-        
+
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
@@ -816,6 +822,7 @@ class Neu4mes:
             ## Gradient Step
             if train:
                 self.optimizer.step()
+
         ## return the losses
         return aux_losses
     

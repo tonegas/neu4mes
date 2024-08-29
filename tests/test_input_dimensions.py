@@ -5,6 +5,8 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
+relation.CHECK_NAMES = False
+
 logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
 
 # This file tests the dimensions of the inputs in particular:

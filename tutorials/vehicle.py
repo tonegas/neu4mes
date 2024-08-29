@@ -23,7 +23,7 @@ acc = Input('acc')
 
 # Create neural network relations
 air_drag_force = Linear(b=True)(velocity.last()**2)
-breaking_force = -Relu(Fir(parameter_init = init_negexp, parameter_init_params={'size_index':0, 'first_value':0.01, 'lambda':3})(brake.sw(n)))
+breaking_force = -Relu(Fir(parameter_init = init_negexp, parameter_init_params={'size_index':0, 'first_value':0.005, 'lambda':3})(brake.sw(n)))
 gravity_force = Linear(W_init=init_lin, W_init_params={'size_index':1, 'first_value':-1, 'last_value':1})(altitude.last())
 fuzzi_gear = Fuzzify(6, range=[2,7], functions='Rectangular')(gear.last())
 local_model = LocalModel(input_function=lambda: Fir(parameter_init = init_negexp))
@@ -50,4 +50,4 @@ def filter_function(sample):
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, training_params={'num_of_epochs':400, 'val_batch_size':128, 'train_batch_size':128, 'learning_rate':0.00003})
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, training_params={'num_of_epochs':300, 'val_batch_size':128, 'train_batch_size':128, 'learning_rate':0.00003})
