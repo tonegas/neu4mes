@@ -60,20 +60,21 @@ test.neuralizeModel()
 test.addConnect(out_y,[y_in,yy_in])
 test.neuralizeModel()
 
-# La funzione neuralize potrebbe essere fata in automatico
-test.neuralizeModel()
-
 # Connect caso 2
 # Voglio creare una finestra di una relazione
-out_fir = Fir(out_fun.tw(5))
+# Modalita estesa
+
+fir_in = State('fir_in')
+out_fir = Fir(fir_in.tw(5))
+out_fir_connect = Connect(out_fun, fir_in) # Questa è la stessa funzione
 out_y_fir = Output('out_y_fir',out_fir)
-test.addModel('out_fir_model',out_y_fir)
-# Questo è equivalente a
-# fir_in = State('fir_in')
-# out_fir = Fir(fir_in.tw(5))
-# out_fir.connect(fir_in) # Questa è utile per evitare di dover creare l'oggetto neu4mes
-# out_fir = Connect(out_fir, fir_in) # Questa è la stessa funzione
-# out_y_fir = Output('out_y_fir',out_fir)
-# test.addModel('out_fir_model',out_y_fir)
+test.addModel('out_fir_model',[out_y_fir,out_fir_connect])
+test.neuralizeModel()
+
+out_fir = Fir(out_fun.tw(5))
+out_y_fir = Output('out_y_fir2',out_fir)
+test.addModel('out_fir_model_2',out_y_fir)
+test.neuralizeModel()
+
 
 

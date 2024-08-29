@@ -69,13 +69,26 @@ class Stream(Relation):
         self.json = copy.deepcopy(json)
         self.dim = dim
 
-    def connect(self, obj):
-        from neu4mes.input import Connect
-        return Connect(self, obj)
+    def tw(self, tw, offset = None):
+        from neu4mes.input import State, Connect
+        from neu4mes.utilis import merge
+        s = State(self.name+"_state")
+        if type(tw) == int:
+            out_connect = Connect(self, s)
+            win_state = s.tw(tw, offset)
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), out_connect.dim,0 )
 
-    def closedLoop(self, obj):
-        from neu4mes.input import ClosedLoop
-        return ClosedLoop(self, obj)
+    def sw(self, sw, offset = None):
+        from neu4mes.input import State, Connect
+        s = State(self.name+"_state")
+        if type(sw) == int:
+            return Connect(self, s.sw(sw,offset))
+
+    def z(self, delay):
+        from neu4mes.input import State, Connect
+        s = State(self.name + "_state")
+        if type(delay) == int and delay > 0:
+            return Connect(self, s.z(delay))
 
 
 class ToStream():

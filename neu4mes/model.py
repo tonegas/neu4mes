@@ -84,7 +84,7 @@ class Model(nn.Module):
         ## save the states updates
         self.states_updates = {}
         for state, param in self.state_model.items():
-            self.states_updates[state] = param['closedLoop']
+            self.states_updates[state] = param['connect']
 
         ## Create all the relations
         for relation, inputs in self.relations.items():

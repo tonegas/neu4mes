@@ -243,16 +243,19 @@ class Neu4mes:
                   f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
             check(type(state_in) is State, TypeError,
                   f"The {state_in} must be a State and not a {type(state_in)}.")
+            if type(stream_out) is Output:
+                stream_name = self.model_def['Outputs'][stream_out.name]
+                stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
             self.update_state_dict[state_in.name] = Connect(stream_out, state_in)
         self.__update_model()
 
     def addModel(self, name, stream_list):
-        if type(stream_list) is Output:
+        if isinstance(stream_list, (Output,Stream)):
             stream_list = [stream_list]
         if type(stream_list) is list:
             self.stream_dict[name] = copy.deepcopy(stream_list)
         else:
-            raise TypeError(f'json_model is type {type(stream_list)} but must be an Output or list of Output!')
+            raise TypeError(f'stream_list is type {type(stream_list)} but must be an Output or Stream or a list of them')
         self.__update_model()
 
     def removeModel(self, name_list):
