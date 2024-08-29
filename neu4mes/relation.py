@@ -1,11 +1,4 @@
 import copy
-from pprint import pformat
-
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-from neu4mes.utilis import check
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
 MAIN_JSON = {
                 'SampleTime': 0,
@@ -17,33 +10,6 @@ MAIN_JSON = {
                 'Relations': {},
             }
 
-def merge(source, destination, main = True):
-    if main:
-        log.debug("Merge Source")
-        log.debug("\n"+pformat(source))
-        log.debug("Merge Destination")
-        log.debug("\n"+pformat(destination))
-        result = copy.deepcopy(destination)
-    else:
-        result = destination
-    for key, value in source.items():
-        if isinstance(value, dict):
-            # get node or create one
-            node = result.setdefault(key, {})
-            merge(value, node, False)
-        else:
-            if key in result and type(result[key]) is list:
-                if key == 'tw' or key == 'sw':
-                    if result[key][0] > value[0]:
-                        result[key][0] = value[0]
-                    if result[key][1] < value[1]:
-                        result[key][1] = value[1]
-            else:
-                result[key] = value
-    if main == True:
-        log.debug("Merge Result")
-        log.debug("\n" + pformat(result))
-    return result
 
 def toStream(obj):
     from neu4mes.parameter import Parameter
@@ -104,22 +70,12 @@ class Stream(Relation):
         self.dim = dim
 
     def connect(self, obj):
-        from neu4mes.input import State
-        check(type(obj) is State, TypeError,
-              f"The {obj} must be a State and not a {type(obj)}.")
-        self.json = merge(self.json, obj.json)
-        check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
-              f"The state variable {obj.name} is already connected.")
-        self.json['States'][obj.name]['connect'] = self.name
+        from neu4mes.input import Connect
+        return Connect(self, obj)
 
     def closedLoop(self, obj):
-        from neu4mes.input import State
-        check(type(obj) is State, TypeError,
-              f"The {obj} must be a State and not a {type(obj)}.")
-        self.json = merge(self.json, obj.json)
-        check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
-              f"The state variable {obj.name} is already connected.")
-        self.json['States'][obj.name]['closedLoop'] = self.name
+        from neu4mes.input import ClosedLoop
+        return ClosedLoop(self, obj)
 
 
 class ToStream():

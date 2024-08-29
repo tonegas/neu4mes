@@ -2,8 +2,9 @@ import copy
 
 import numpy as np
 
-from neu4mes.relation import NeuObj, Stream
-from neu4mes.utilis import check
+from neu4mes.output import Output
+from neu4mes.relation import NeuObj, Stream, ToStream
+from neu4mes.utilis import check, merge
 from neu4mes.part import SamplePart, TimePart
 
 
@@ -93,3 +94,33 @@ class Input(InputState):
 class State(InputState):
     def __init__(self, name, dimensions:int = 1):
         InputState.__init__(self, 'States', name, dimensions)
+
+
+# connect operation
+connect_name = 'connect'
+closedloop_name = 'closedLoop'
+class Connect(Stream, ToStream):
+    def __init__(self, obj1:Stream|Output, obj2:State) -> Stream:
+        check(isinstance(obj1,(Output,Stream)), TypeError,
+              f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
+        check(type(obj2) is State, TypeError,
+              f"The {obj2} must be a State and not a {type(obj2)}.")
+        super().__init__(connect_name + str(Stream.count),merge(obj1.json, obj2.json),obj1.dim)
+        check(closedloop_name not in self.json['States'][obj2.name] or connect_name not in self.json['States'][obj2.name],
+              KeyError,f"The state variable {obj2.name} is already connected.")
+
+        obj1_name = self.json['Output'][obj1.name] if type(obj1) is Output else obj1.name
+        self.json['States'][obj2.name][connect_name] = obj1_name
+
+class ClosedLoop(Stream, ToStream):
+    def __init__(self, obj1:Stream|Output, obj2: State) -> Stream:
+        check(isinstance(obj1,(Output,Stream)), TypeError,
+              f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
+        check(type(obj2) is State, TypeError,
+              f"The {obj2} must be a State and not a {type(obj2)}.")
+        super().__init__(closedloop_name + str(Stream.count), merge(obj1.json, obj2.json), obj1.dim)
+        check(closedloop_name not in self.json['States'][obj2.name] or connect_name not in self.json['States'][obj2.name],
+              KeyError, f"The state variable {obj2.name} is already connected.")
+
+        obj1_name = self.json['Output'][obj1.name] if type(obj1) is Output else obj1.name
+        self.json['States'][obj2.name][closedloop_name] = obj1_name

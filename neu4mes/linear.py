@@ -4,12 +4,11 @@ import inspect
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
-from neu4mes.input import Input
+from neu4mes.relation import NeuObj, Stream, AutoToStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
-from neu4mes.utilis import check
-from neu4mes.visualizer import Visualizer
+from neu4mes.utilis import check, merge
+
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):

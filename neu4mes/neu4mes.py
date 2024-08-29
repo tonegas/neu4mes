@@ -13,13 +13,14 @@ from pprint import pformat
 import re
 import matplotlib.pyplot as plt
 
-from neu4mes.relation import NeuObj, merge
+from neu4mes.input import closedloop_name, connect_name
+from neu4mes.relation import NeuObj
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.relation import Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check, argmax_max, argmin_min
+from neu4mes.utilis import check, argmax_max, argmin_min, merge
 
 
 from neu4mes import LOG_LEVEL
@@ -49,6 +50,7 @@ class Neu4mes:
         # Inizialize the model definition
         self.stream_dict = {}
         self.minimize_dict = {}
+        self.update_state_dict = {}
         self.model_def = NeuObj().json
 
         # Network Parametrs
@@ -232,6 +234,17 @@ class Neu4mes:
             print('The Dataset must first be loaded using <loadData> function!')
             return {}
 
+    def addConnect(self, stream_out, state_list_in):
+        from neu4mes.input import Connect, State
+        if type(state_list_in) is not list:
+            state_list_in = [state_list_in]
+        for state_in in state_list_in:
+            check(isinstance(stream_out, (Output, Stream)), TypeError,
+                  f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
+            check(type(state_in) is State, TypeError,
+                  f"The {state_in} must be a State and not a {type(state_in)}.")
+            self.update_state_dict[state_in.name] = Connect(stream_out, state_in)
+        self.__update_model()
 
     def addModel(self, name, stream_list):
         if type(stream_list) is Output:
@@ -276,6 +289,8 @@ class Neu4mes:
         for key, minimize in self.minimize_dict.items():
             self.model_def = merge(self.model_def, minimize['A'].json)
             self.model_def = merge(self.model_def, minimize['B'].json)
+        for key, update_state in self.update_state_dict.items():
+            self.model_def = merge(self.model_def, update_state.json)
 
 
     def neuralizeModel(self, sample_time = 1):
@@ -289,7 +304,8 @@ class Neu4mes:
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
 
         for key,value in self.model_def['States'].items():
-            check('closedLoop' in self.model_def['States'][key], RuntimeError, f'Update function is missing for state {key}. Call X.update({key}) on a Stream X.')
+            check(closedloop_name in self.model_def['States'][key] or connect_name in self.model_def['States'][key],
+                  KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
 
         for key, value in json_inputs.items():
             self.input_tw_backward[key] = -value['tw'][0]

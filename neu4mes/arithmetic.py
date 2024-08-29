@@ -1,9 +1,9 @@
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import ToStream, merge, Stream, toStream
+from neu4mes.relation import ToStream, Stream, toStream
 from neu4mes.model import Model
-from neu4mes.utilis import check
+from neu4mes.utilis import check, merge
 
 
 # Binary operators
