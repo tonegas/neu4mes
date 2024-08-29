@@ -181,7 +181,7 @@ class Fuzzify_Layer(nn.Module):
         #    res = res.unsqueeze(1)  ## add the window dimension
         return res
 
-def createFuzzify(self, params):
-    return Fuzzify_Layer(params)
+def createFuzzify(self, *params):
+    return Fuzzify_Layer(params[0])
 
 setattr(Model, fuzzify_relation_name, createFuzzify)

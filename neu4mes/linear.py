@@ -127,7 +127,7 @@ class Linear_Layer(nn.Module):
             y = self.dropout(y)
         return y
 
-def createLinear(self, weights, bias, dropout):
-    return Linear_Layer(weights, bias, dropout)
+def createLinear(self, *inputs):
+    return Linear_Layer(weights=inputs[0], bias=inputs[1], dropout=inputs[2])
 
 setattr(Model, linear_relation_name, createLinear)

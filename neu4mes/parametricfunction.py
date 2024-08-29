@@ -130,25 +130,25 @@ class ParamFun(NeuObj):
                     self.json['Parameters'][param_name] = {'dim' : 1}
 
 class Parametric_Layer(nn.Module):
-    def __init__(self, params):
+    def __init__(self, func, params):
         super().__init__()
-        self.name = params['name']
-
+        self.name = func['name']
+        self.params = params
         ## Add the function to the globals
         try:
-            exec(params['code'], globals())
+            exec(func['code'], globals())
         except Exception as e:
             print(f"An error occurred: {e}")
 
-    def forward(self, inputs, parameters):
-        args = inputs + parameters
+    def forward(self, *inputs):
+        args = list(inputs) + self.params
         # Retrieve the function object from the globals dictionary
         function_to_call = globals()[self.name]
         # Call the function using the retrieved function object
         result = function_to_call(*args)
         return result
 
-def createParamFun(self, func_params):
-    return Parametric_Layer(params=func_params)
+def createParamFun(self, *func_params):
+    return Parametric_Layer(func=func_params[0], params=func_params[1])
 
 setattr(Model, paramfun_relation_name, createParamFun)

@@ -116,7 +116,7 @@ class Fir_Layer(nn.Module):
             x = self.dropout(x)
         return x
 
-def createFir(self, weights, dropout):
-    return Fir_Layer(weights, dropout)
+def createFir(self, *inputs):
+    return Fir_Layer(weights=inputs[0], dropout=inputs[1])
 
 setattr(Model, fir_relation_name, createFir)

@@ -6,6 +6,8 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
+from neu4mes import relation
+
 relation.CHECK_NAMES = False
 
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')

@@ -6,6 +6,7 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
+from neu4mes import relation
 relation.CHECK_NAMES = False
 
 logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
@@ -52,7 +53,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel4 = Fir(input2.tw([-0.02,0.02]))
         fun = Output('out',rel1+rel2+rel3+rel4)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
         
@@ -153,7 +154,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel6 = Fir(input2.sw([-4,2],offset=1))
         fun = Output('out',rel3+rel4+rel5+rel6)
 
-        test = Neu4mes( seed=1)
+        test = Neu4mes(visualizer=None, seed=1)
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 

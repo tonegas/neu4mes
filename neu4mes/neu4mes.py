@@ -148,6 +148,11 @@ class Neu4mes:
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
+        ## Initialize the batch_size
+        self.model.batch_size = 1
+        ## Initialize the connect variables
+        if connect:
+            self.model.connect = connect
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
@@ -181,10 +186,10 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(0)
 
                 ## Model Predict
-                if connect:
+                if self.model.connect:
                     if i==0 or i%prediction_samples == 0:
                         self.model.clear_connect_variables()
-                result, _ = self.model(X, connect)
+                result, _ = self.model(X)
 
                 ## Update the recurrent variable
                 for close_in, close_out in close_loop.items():
@@ -289,7 +294,9 @@ class Neu4mes:
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
 
         for key,value in self.model_def['States'].items():
-            check('closedLoop' in self.model_def['States'][key], RuntimeError, f'Update function is missing for state {key}. Call X.update({key}) on a Stream X.')
+            check('closedLoop' in self.model_def['States'][key] or 'connect' in self.model_def['States'][key], 
+                  RuntimeError, 
+                  f'Update function is missing for state {key}. Call X.closedLoop({key}) or X.connect on a Stream X.')
 
         for key, value in json_inputs.items():
             self.input_tw_backward[key] = -value['tw'][0]
@@ -752,8 +759,13 @@ class Neu4mes:
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step) if shuffle else 0
+        ## Initialize the batch_size
+        self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
+        ## Initialize connect inputs
+        if connect:
+            self.model.connect = connect
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             ## Build the input tensor
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
@@ -762,9 +774,9 @@ class Neu4mes:
             horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
             for horizon_idx in range(prediction_samples):
                 ## Model Forward
-                if connect and horizon_idx==0:
+                if self.model.connect and horizon_idx==0:
                     self.model.clear_connect_variables()
-                out, minimize_out = self.model(XY, connect)  ## Forward pass
+                out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
@@ -777,7 +789,7 @@ class Neu4mes:
                         if state_key in XY.keys():
                             del XY[state_key]
 
-                if close_loop or connect:
+                if close_loop or self.model.connect:
                     ## Update the input with the recurrent prediction
                     if horizon_idx != prediction_samples-1:
                         for key in XY.keys():
@@ -812,6 +824,8 @@ class Neu4mes:
         if shuffle:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
+        ## Initialize the batch_size
+        self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
         for idx in range(0, (n_samples - batch_size + 1), batch_size):

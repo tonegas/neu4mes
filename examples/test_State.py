@@ -5,7 +5,7 @@ sys.path.append(os.getcwd())
 
 from neu4mes import *
 
-example = 1
+example = 6
 
 if example == 1:
     print('#### EXAMPLE 1 - NON Recurrent Training ####')
@@ -50,7 +50,7 @@ elif example == 2:
     x_out.closedLoop(x_state)
     out = Output('out',x_out)
 
-    mass_spring_damper = Neu4mes()
+    mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel('model', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
@@ -68,7 +68,7 @@ elif example == 2:
     print('x_state (last):', mass_spring_damper.data['dataset']['x_state'][-1])
     
     # Training ricorrente
-    params = {'num_of_epochs': 1, 
+    params = {'num_of_epochs': 3, 
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
@@ -106,12 +106,13 @@ elif example == 3:
     print('x_state (last):', mass_spring_damper.data['dataset']['x_state'][-1])
     
     # Training non ricorrente
-    params = {'num_of_epochs': 1, 
+    params = {'num_of_epochs': 3, 
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.001}
     mass_spring_damper.trainModel(splits=[100,0,0], shuffle_data=False, training_params=params)
+    print('finale state: ', mass_spring_damper.model.states)
 
 elif example == 4:
     print('#### EXAMPLE 4 - Recurrent Training (2 state variables) ####')
@@ -141,12 +142,13 @@ elif example == 4:
     print('x_state (last):', mass_spring_damper.data['dataset']['x_state'][-1])
     
     # Training non ricorrente
-    params = {'num_of_epochs': 1, 
+    params = {'num_of_epochs': 3, 
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.01}
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
+    print('finale state: ', mass_spring_damper.model.states)
 
 elif example == 5:
     print('#### EXAMPLE 5 - Recurrent Training with multi-dimensional output and multi-window ####')
@@ -160,7 +162,7 @@ elif example == 5:
     y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out)
 
-    mass_spring_damper = Neu4mes()
+    mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel('model', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
@@ -176,12 +178,13 @@ elif example == 5:
     print('x_state (last):', mass_spring_damper.data['dataset']['x_state'][-1])
     
     # Training non ricorrente
-    params = {'num_of_epochs': 1, 
+    params = {'num_of_epochs': 3, 
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.01}
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
+    print('finale state: ', mass_spring_damper.model.states)
 
 elif example == 6:
     print('#### EXAMPLE 6 - Recurrent Training with state variables and close_loop ####')
@@ -196,8 +199,8 @@ elif example == 6:
     y_out.closedLoop(y_state)
     out = Output('out',x_out+y_out+F.last())
 
-    mass_spring_damper = Neu4mes()
-    mass_spring_damper.addModel(out)
+    mass_spring_damper = Neu4mes(seed=42)
+    mass_spring_damper.addModel('out', out)
     mass_spring_damper.addMinimize('error', out, x.next())
 
     mass_spring_damper.neuralizeModel(0.1)
@@ -212,9 +215,10 @@ elif example == 6:
     print('x_state (last):', mass_spring_damper.data['dataset']['x_state'][-1])
     
     # Training non ricorrente
-    params = {'num_of_epochs': 1, 
+    params = {'num_of_epochs': 3, 
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
           'learning_rate':0.01}
-    mass_spring_damper.trainModel(splits=[70,20,10], close_loop={'F':'out'}, prediction_horizon=0.3, shuffle_data=False, training_params=params)
+    mass_spring_damper.trainModel(splits=[70,20,10], close_loop={'F':'out'}, prediction_samples=3, shuffle_data=False, training_params=params)
+    print('finale state: ', mass_spring_damper.model.states)
