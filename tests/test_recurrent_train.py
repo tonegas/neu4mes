@@ -147,7 +147,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         x_state = State('x_state')
         p = Parameter('p', dimensions=1, tw=0.03, values=[[1.0], [1.0], [1.0]])
         rel_x = Fir(parameter=p)(x_state.tw(0.03))
-        rel_x.closedLoop(x_state)
+        rel_x = ClosedLoop(rel_x, x_state)
         out = Output('out', rel_x)
 
         test = Neu4mes(visualizer=None, seed=42)

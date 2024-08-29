@@ -76,5 +76,5 @@ out_y_fir = Output('out_y_fir2',out_fir)
 test.addModel('out_fir_model_2',out_y_fir)
 test.neuralizeModel()
 
-
+test.trainModel(training_params={"num_of_epochs":15})
 

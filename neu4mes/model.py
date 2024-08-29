@@ -188,6 +188,7 @@ class Model(nn.Module):
                                     if connect_in in kwargs.keys(): ## initialize with dataset
                                         self.connect_variables[connect_in] = kwargs[connect_in]
                                     else: ## initialize with zeros
+                                        ## TODO: set requires_grad(false)
                                         self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=True)
                                     result_dict[connect_in] = self.connect_variables[connect_in].clone()
                                 else: ## update connect variable

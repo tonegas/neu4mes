@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import NeuObj, MAIN_JSON
-from neu4mes.relation import NeuObj
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
@@ -507,7 +506,7 @@ class Neu4mes:
                 self.test_batch_size = 1
 
 
-    def resultAnalysis(self, name_data, XY_data, connect):
+    def resultAnalysis(self, name_data, XY_data):
         import warnings
         with torch.inference_mode():
             self.performance[name_data] = {}
@@ -523,7 +522,7 @@ class Neu4mes:
                 B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
                 aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
-            _, minimize_out = self.model(XY_data, connect)
+            _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A[key] = minimize_out[value['A'].name]
                 B[key] = minimize_out[value['B'].name]
@@ -762,11 +761,11 @@ class Neu4mes:
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
 
-        self.resultAnalysis(train_dataset, XY_train, connect)
+        self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
-            self.resultAnalysis(validation_dataset, XY_val, connect)
+            self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
-            self.resultAnalysis(test_dataset, XY_test, connect)
+            self.resultAnalysis(test_dataset, XY_test)
 
 
         self.visualizer.showResults()

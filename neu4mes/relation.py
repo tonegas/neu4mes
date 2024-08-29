@@ -84,7 +84,7 @@ class Stream(Relation):
     def tw(self, tw, offset = None):
         from neu4mes.input import State, Connect
         from neu4mes.utilis import merge
-        s = State(self.name+"_state",dimensions=self.dim)
+        s = State(self.name+"_state",dimensions=self.dim['dim'])
         if type(tw) == int:
             out_connect = Connect(self, s)
             win_state = s.tw(tw, offset)
@@ -93,7 +93,7 @@ class Stream(Relation):
     def sw(self, sw, offset = None):
         from neu4mes.input import State, Connect
         from neu4mes.utilis import merge
-        s = State(self.name+"_state",dimensions=self.dim)
+        s = State(self.name+"_state",dimensions=self.dim['dim'])
         if type(sw) == int:
             out_connect = Connect(self, s)
             win_state = s.sw(sw, offset)
@@ -102,7 +102,7 @@ class Stream(Relation):
     def z(self, delay):
         from neu4mes.input import State, Connect
         from neu4mes.utilis import merge
-        s = State(self.name + "_state",dimensions=self.dim)
+        s = State(self.name + "_state",dimensions=self.dim['dim'])
         if type(delay) == int and delay > 0:
             out_connect = Connect(self, s)
             win_state = s.z(delay)
