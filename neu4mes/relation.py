@@ -72,29 +72,29 @@ class Stream(Relation):
     def tw(self, tw, offset = None):
         from neu4mes.input import State, Connect
         from neu4mes.utilis import merge
-        s = State(self.name+"_state")
+        s = State(self.name+"_state",dimensions=self.dim)
         if type(tw) == int:
             out_connect = Connect(self, s)
             win_state = s.tw(tw, offset)
-            return Stream(win_state.name, merge(win_state.json, out_connect.json), out_connect.dim,0 )
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), win_state.dim,0 )
 
     def sw(self, sw, offset = None):
         from neu4mes.input import State, Connect
         from neu4mes.utilis import merge
-        s = State(self.name+"_state")
+        s = State(self.name+"_state",dimensions=self.dim)
         if type(sw) == int:
             out_connect = Connect(self, s)
             win_state = s.sw(sw, offset)
-            return Stream(win_state.name, merge(win_state.json, out_connect.json), out_connect.dim,0 )
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), win_state.dim,0 )
 
     def z(self, delay):
         from neu4mes.input import State, Connect
         from neu4mes.utilis import merge
-        s = State(self.name + "_state")
+        s = State(self.name + "_state",dimensions=self.dim)
         if type(delay) == int and delay > 0:
             out_connect = Connect(self, s)
             win_state = s.z(delay)
-            return Stream(win_state.name, merge(win_state.json, out_connect.json), out_connect.dim,0 )
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), win_state.dim,0 )
 
 
 class ToStream():
