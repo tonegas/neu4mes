@@ -24,7 +24,7 @@ class Visualizer():
     def warning(self, msg):
         print(color(msg, YELLOW))
 
-    def showModel(self):
+    def showModel(self, model):
         pass
 
     def showaddMinimize(self,variable_name):
