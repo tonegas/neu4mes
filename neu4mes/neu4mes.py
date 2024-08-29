@@ -239,7 +239,17 @@ class Neu4mes:
             return {}
 
     def addConnect(self, stream_out, state_list_in):
-        from neu4mes.input import Connect, State
+        from neu4mes.input import Connect
+        self.__update_state(stream_out, state_list_in, Connect)
+        self.__update_model()
+
+    def addClosedLoop(self, stream_out, state_list_in):
+        from neu4mes.input import ClosedLoop
+        self.__update_state(stream_out, state_list_in, ClosedLoop)
+        self.__update_model()
+
+    def __update_state(self, stream_out, state_list_in, UpdateState):
+        from neu4mes.input import  State
         if type(state_list_in) is not list:
             state_list_in = [state_list_in]
         for state_in in state_list_in:
@@ -250,8 +260,7 @@ class Neu4mes:
             if type(stream_out) is Output:
                 stream_name = self.model_def['Outputs'][stream_out.name]
                 stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
-            self.update_state_dict[state_in.name] = Connect(stream_out, state_in)
-        self.__update_model()
+            self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
 
     def addModel(self, name, stream_list):
         if isinstance(stream_list, (Output,Stream)):
@@ -301,16 +310,24 @@ class Neu4mes:
 
 
     def neuralizeModel(self, sample_time = 1):
+        if self.model is not None:
+            self.model_def_trained = copy.deepcopy(self.model_def)
+            for key,param in self.model.all_parameters.items():
+                self.model_def_trained['Parameters'][key]['values'] = param.tolist()
+                if 'init_fun' in self.model_def_trained['Parameters'][key]:
+                    del self.model_def_trained['Parameters'][key]['init_fun']
+            model_def = copy.deepcopy(self.model_def_trained)
+        else:
+            model_def = copy.deepcopy(self.model_def)
 
         check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
-        self.model_def["SampleTime"] = sample_time
-        #model_def_final = copy.deepcopy(self.model_def)
-        self.visualizer.showModel()
+        model_def["SampleTime"] = sample_time
+        self.visualizer.showModel(model_def)
 
-        check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
-        json_inputs = self.model_def['Inputs'] | self.model_def['States']
+        check(model_def['Inputs'] | model_def['States'] != {}, RuntimeError, "No model is defined!")
+        json_inputs = model_def['Inputs'] | self.model_def['States']
 
-        for key,value in self.model_def['States'].items():
+        for key,value in model_def['States'].items():
             check(closedloop_name in self.model_def['States'][key] or connect_name in self.model_def['States'][key],
                   KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
 
@@ -339,7 +356,7 @@ class Neu4mes:
 
         #self.visualizer.showModel()
         ## Build the network
-        self.model = Model(copy.deepcopy(self.model_def), self.minimize_dict, self.input_ns_backward, self.input_n_samples)
+        self.model = Model(model_def, self.minimize_dict, self.input_ns_backward, self.input_n_samples)
         self.visualizer.showBuiltModel()
         self.neuralized = True
 

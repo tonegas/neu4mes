@@ -26,7 +26,9 @@ y = Input('y')
 def fun(x,a,b,c,d):
     return a*x**3+b*x**2+c*x+d
 
-out_fun = ParamFun(fun)(x.last())
+p = Parameter('GAS', init=init_constant, init_params={'value':1})
+out_fun = ParamFun(fun, n_input=1, parameters={'b':p})(x.last())
+
 out_y = Output('out_y',out_fun)
 test = Neu4mes(visualizer=FunctionVisualizer())
 test.addModel('in_model',out_y)
