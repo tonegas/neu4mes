@@ -51,22 +51,21 @@ params = {'num_of_epochs': 100,
           'test_batch_size':1, 
           'learning_rate':0.001}
 
-def early_stop(train_losses, val_losses):
-    for loss_name, loss_value in train_losses.items():
-        if sum(loss_value[-10:]) > 0.08:
-            return False
-    return True
-
-mass_spring_damper.trainModel(splits=[70,20,10], early_stopping=early_stop, training_params = params)
+mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 
 # Add visualizer and show the results on the loaded dataset
-vis = MPLVisulizer()
-vis.set_n4m(mass_spring_damper)
-vis.showOneResult("validation")
+#vis = MPLVisulizer()
+#vis.set_n4m(mass_spring_damper)
+#vis.showOneResult("validation")
 
+params = {'num_of_epochs': 100,
+          'train_batch_size': 128, 
+          'val_batch_size':128, 
+          'test_batch_size':1, 
+          'learning_rate':0.0001}
 #Neural network train not reccurent training
-mass_spring_damper.trainModel(splits=[70,20,10], training_params =  {'learning_rate':0.0001}, close_loop={'x':'x[k+1]'}, prediction_samples=10)
+mass_spring_damper.trainModel(splits=[70,20,10], training_params = params, close_loop={'x':'x[k+1]'}, prediction_samples=10)
 
 # Add visualizer and show the results on the loaded dataset
-vis.showOneResult("validation")
+#vis.showOneResult("validation")
 

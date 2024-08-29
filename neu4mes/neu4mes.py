@@ -13,13 +13,14 @@ from pprint import pformat
 import re
 import matplotlib.pyplot as plt
 
-from neu4mes.relation import merge, MAIN_JSON
+from neu4mes.input import closedloop_name, connect_name
+from neu4mes.relation import NeuObj, MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.relation import Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check, argmax_max, argmin_min
+from neu4mes.utilis import check, argmax_max, argmin_min, merge
 
 
 from neu4mes import LOG_LEVEL
@@ -49,7 +50,7 @@ class Neu4mes:
         # Inizialize the model definition
         self.stream_dict = {}
         self.minimize_dict = {}
-        #self.model_def = NeuObj().json
+        self.update_state_dict = {}
 
         # Network Parametrs
         self.input_tw_backward, self.input_tw_forward = {}, {}
@@ -154,6 +155,11 @@ class Neu4mes:
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
+        ## Initialize the batch_size
+        self.model.batch_size = 1
+        ## Initialize the connect variables
+        if connect:
+            self.model.connect = connect
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
@@ -187,10 +193,10 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(0)
 
                 ## Model Predict
-                if connect:
+                if self.model.connect:
                     if i==0 or i%prediction_samples == 0:
                         self.model.clear_connect_variables()
-                result, _ = self.model(X, connect)
+                result, _ = self.model(X)
 
                 ## Update the recurrent variable
                 for close_in, close_out in close_loop.items():
@@ -238,14 +244,37 @@ class Neu4mes:
             print('The Dataset must first be loaded using <loadData> function!')
             return {}
 
+    def addConnect(self, stream_out, state_list_in):
+        from neu4mes.input import Connect
+        self.__update_state(stream_out, state_list_in, Connect)
+        self.__update_model()
+
+    def addClosedLoop(self, stream_out, state_list_in):
+        from neu4mes.input import ClosedLoop
+        self.__update_state(stream_out, state_list_in, ClosedLoop)
+        self.__update_model()
+
+    def __update_state(self, stream_out, state_list_in, UpdateState):
+        from neu4mes.input import  State
+        if type(state_list_in) is not list:
+            state_list_in = [state_list_in]
+        for state_in in state_list_in:
+            check(isinstance(stream_out, (Output, Stream)), TypeError,
+                  f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
+            check(type(state_in) is State, TypeError,
+                  f"The {state_in} must be a State and not a {type(state_in)}.")
+            if type(stream_out) is Output:
+                stream_name = self.model_def['Outputs'][stream_out.name]
+                stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
+            self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
 
     def addModel(self, name, stream_list):
-        if type(stream_list) is Output:
+        if isinstance(stream_list, (Output,Stream)):
             stream_list = [stream_list]
         if type(stream_list) is list:
             self.stream_dict[name] = copy.deepcopy(stream_list)
         else:
-            raise TypeError(f'json_model is type {type(stream_list)} but must be an Output or list of Output!')
+            raise TypeError(f'stream_list is type {type(stream_list)} but must be an Output or Stream or a list of them')
         self.__update_model()
 
     def removeModel(self, name_list):
@@ -282,20 +311,31 @@ class Neu4mes:
         for key, minimize in self.minimize_dict.items():
             self.model_def = merge(self.model_def, minimize['A'].json)
             self.model_def = merge(self.model_def, minimize['B'].json)
+        for key, update_state in self.update_state_dict.items():
+            self.model_def = merge(self.model_def, update_state.json)
 
 
-    def neuralizeModel(self, sample_time = 1):
+    def neuralizeModel(self, sample_time = 1, clear_model = False):
+        if self.model is not None and clear_model == False:
+            self.model_def_trained = copy.deepcopy(self.model_def)
+            for key,param in self.model.all_parameters.items():
+                self.model_def_trained['Parameters'][key]['values'] = param.tolist()
+                if 'init_fun' in self.model_def_trained['Parameters'][key]:
+                    del self.model_def_trained['Parameters'][key]['init_fun']
+            model_def = copy.deepcopy(self.model_def_trained)
+        else:
+            model_def = copy.deepcopy(self.model_def)
 
         check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
-        self.model_def["SampleTime"] = sample_time
-        #model_def_final = copy.deepcopy(self.model_def)
-        self.visualizer.showModel()
+        model_def["SampleTime"] = sample_time
+        self.visualizer.showModel(model_def)
 
-        check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
-        json_inputs = self.model_def['Inputs'] | self.model_def['States']
+        check(model_def['Inputs'] | model_def['States'] != {}, RuntimeError, "No model is defined!")
+        json_inputs = model_def['Inputs'] | self.model_def['States']
 
-        for key,value in self.model_def['States'].items():
-            check('closedLoop' in self.model_def['States'][key], RuntimeError, f'Update function is missing for state {key}. Call X.update({key}) on a Stream X.')
+        for key,value in model_def['States'].items():
+            check(closedloop_name in self.model_def['States'][key] or connect_name in self.model_def['States'][key],
+                  KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
 
         for key, value in json_inputs.items():
             self.input_tw_backward[key] = -value['tw'][0]
@@ -322,7 +362,7 @@ class Neu4mes:
 
         #self.visualizer.showModel()
         ## Build the network
-        self.model = Model(copy.deepcopy(self.model_def), self.minimize_dict, self.input_ns_backward, self.input_n_samples)
+        self.model = Model(model_def, self.minimize_dict, self.input_ns_backward, self.input_n_samples)
         self.visualizer.showBuiltModel()
         self.neuralized = True
 
@@ -491,7 +531,7 @@ class Neu4mes:
             self.test_batch_size = self.n_samples_test
 
 
-    def resultAnalysis(self, name_data, XY_data, connect):
+    def resultAnalysis(self, name_data, XY_data):
         import warnings
         with torch.inference_mode():
             self.performance[name_data] = {}
@@ -507,7 +547,7 @@ class Neu4mes:
                 B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
                 aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
-            _, minimize_out = self.model(XY_data, connect)
+            _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A[key] = minimize_out[value['A'].name]
                 B[key] = minimize_out[value['B'].name]
@@ -751,11 +791,11 @@ class Neu4mes:
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
 
-        self.resultAnalysis(train_dataset, XY_train, connect)
+        self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
-            self.resultAnalysis(validation_dataset, XY_val, connect)
+            self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
-            self.resultAnalysis(test_dataset, XY_test, connect)
+            self.resultAnalysis(test_dataset, XY_test)
 
 
         self.visualizer.showResults()
@@ -765,8 +805,13 @@ class Neu4mes:
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step) if shuffle else 0
+        ## Initialize the batch_size
+        self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
+        ## Initialize connect inputs
+        if connect:
+            self.model.connect = connect
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             ## Build the input tensor
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
@@ -775,9 +820,9 @@ class Neu4mes:
             horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
             for horizon_idx in range(prediction_samples):
                 ## Model Forward
-                if connect and horizon_idx==0:
+                if self.model.connect and horizon_idx==0:
                     self.model.clear_connect_variables()
-                out, minimize_out = self.model(XY, connect)  ## Forward pass
+                out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
@@ -790,7 +835,7 @@ class Neu4mes:
                         if state_key in XY.keys():
                             del XY[state_key]
 
-                if close_loop or connect:
+                if close_loop or self.model.connect:
                     ## Update the input with the recurrent prediction
                     if horizon_idx != prediction_samples-1:
                         for key in XY.keys():
@@ -825,6 +870,8 @@ class Neu4mes:
         if shuffle:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
+        ## Initialize the batch_size
+        self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
         for idx in range(0, (n_samples - batch_size + 1), batch_size):

@@ -4,12 +4,11 @@ import inspect
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
-from neu4mes.input import Input
+from neu4mes.relation import NeuObj, Stream, AutoToStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
-from neu4mes.utilis import check
-from neu4mes.visualizer import Visualizer
+from neu4mes.utilis import check, merge
+
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
@@ -127,7 +126,7 @@ class Linear_Layer(nn.Module):
             y = self.dropout(y)
         return y
 
-def createLinear(self, weights, bias, dropout):
-    return Linear_Layer(weights, bias, dropout)
+def createLinear(self, *inputs):
+    return Linear_Layer(weights=inputs[0], bias=inputs[1], dropout=inputs[2])
 
 setattr(Model, linear_relation_name, createLinear)

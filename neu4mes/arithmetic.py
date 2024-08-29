@@ -1,9 +1,9 @@
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import ToStream, merge, Stream, toStream
+from neu4mes.relation import ToStream, Stream, toStream
 from neu4mes.model import Model
-from neu4mes.utilis import check
+from neu4mes.utilis import check, merge
 
 
 # Binary operators
@@ -107,7 +107,7 @@ class Add_Layer(nn.Module):
     def __init__(self):
         super(Add_Layer, self).__init__()
 
-    def forward(self, inputs):
+    def forward(self, *inputs):
         return torch.add(inputs[0], inputs[1])
 
 def createAdd(name, *inputs):
@@ -117,7 +117,7 @@ class Sub_Layer(nn.Module):
     def __init__(self):
         super(Sub_Layer, self).__init__()
 
-    def forward(self, inputs):
+    def forward(self, *inputs):
         # Perform element-wise subtraction
         return torch.add(inputs[0],-inputs[1])
 
@@ -129,7 +129,7 @@ class Mul_Layer(nn.Module):
     def __init__(self):
         super(Mul_Layer, self).__init__()
 
-    def forward(self, inputs):
+    def forward(self, *inputs):
         return inputs[0] * inputs[1]
 
 def createMul(name, *inputs):
@@ -139,7 +139,7 @@ class Div_Layer(nn.Module):
     def __init__(self):
         super(Div_Layer, self).__init__()
 
-    def forward(self, inputs):
+    def forward(self, *inputs):
         return inputs[0] / inputs[1]
 
 def createDiv(name, *inputs):
@@ -149,7 +149,7 @@ class Pow_Layer(nn.Module):
     def __init__(self):
         super(Pow_Layer, self).__init__()
 
-    def forward(self, inputs):
+    def forward(self, *inputs):
         return torch.pow(inputs[0], inputs[1])
 
 def createPow(name, *inputs):

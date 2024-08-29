@@ -4,8 +4,8 @@ import inspect
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
-from neu4mes.utilis import check
+from neu4mes.relation import NeuObj, Stream, AutoToStream
+from neu4mes.utilis import check, merge
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.input import Input
@@ -116,7 +116,7 @@ class Fir_Layer(nn.Module):
             x = self.dropout(x)
         return x
 
-def createFir(self, weights, dropout):
-    return Fir_Layer(weights, dropout)
+def createFir(self, *inputs):
+    return Fir_Layer(weights=inputs[0], dropout=inputs[1])
 
 setattr(Model, fir_relation_name, createFir)

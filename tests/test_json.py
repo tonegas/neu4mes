@@ -5,6 +5,7 @@ sys.path.append(os.getcwd())
 
 import unittest, logging
 from neu4mes import *
+from neu4mes import relation
 relation.CHECK_NAMES = False
 
 # This test file tests the json, in particular
