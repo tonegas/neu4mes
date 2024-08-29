@@ -80,15 +80,21 @@ class Stream(Relation):
 
     def sw(self, sw, offset = None):
         from neu4mes.input import State, Connect
+        from neu4mes.utilis import merge
         s = State(self.name+"_state")
         if type(sw) == int:
-            return Connect(self, s.sw(sw,offset))
+            out_connect = Connect(self, s)
+            win_state = s.sw(sw, offset)
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), out_connect.dim,0 )
 
     def z(self, delay):
         from neu4mes.input import State, Connect
+        from neu4mes.utilis import merge
         s = State(self.name + "_state")
         if type(delay) == int and delay > 0:
-            return Connect(self, s.z(delay))
+            out_connect = Connect(self, s)
+            win_state = s.z(delay)
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), out_connect.dim,0 )
 
 
 class ToStream():
