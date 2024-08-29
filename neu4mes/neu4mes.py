@@ -309,8 +309,8 @@ class Neu4mes:
             self.model_def = merge(self.model_def, update_state.json)
 
 
-    def neuralizeModel(self, sample_time = 1):
-        if self.model is not None:
+    def neuralizeModel(self, sample_time = 1, clear_model = False):
+        if self.model is not None and clear_model == False:
             self.model_def_trained = copy.deepcopy(self.model_def)
             for key,param in self.model.all_parameters.items():
                 self.model_def_trained['Parameters'][key]['values'] = param.tolist()
