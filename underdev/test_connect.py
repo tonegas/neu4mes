@@ -21,6 +21,7 @@ class FunctionVisualizer(TextVisualizer):
         plt.ylabel('y')
         plt.show()
 
+'''
 x = Input('x')
 y = Input('y')
 def fun(x,a,b,c,d):
@@ -34,7 +35,7 @@ test.addMinimize('err_in',y.last(),out_y)
 test.neuralizeModel()
 
 # Costruisco il dataset
-data_x = np.arange(-5,5,0.01)
+data_x = np.arange(-2,2,0.01)
 data_a = 2
 data_b = -3
 data_c = 4
@@ -42,7 +43,7 @@ data_d = 5
 dataset = {'x': data_x, 'y': fun(data_x,data_a,data_b,data_c,data_d)}
 
 test.loadData('data',dataset)
-test.trainModel(training_params={"num_of_epochs":15})
+test.trainModel(training_params={"num_of_epochs":1})
 
 # Connect caso 1
 # Voglio invertire l'uscita
@@ -57,13 +58,14 @@ test.addMinimize('err_out',x.last(),out_x)
 test.addConnect(out_fun,y_in)
 test.neuralizeModel()
 
+test.trainModel(splits=[100,0,0], training_params={"num_of_epochs":1, "train_batch_size":1})
+
 test.addConnect(out_y,[y_in,yy_in])
 test.neuralizeModel()
 
 # Connect caso 2
 # Voglio creare una finestra di una relazione
 # Modalita estesa
-
 fir_in = State('fir_in')
 out_fir = Fir(fir_in.tw(5))
 out_fir_connect = Connect(out_fun, fir_in) # Questa è la stessa funzione
@@ -76,5 +78,31 @@ out_y_fir = Output('out_y_fir2',out_fir)
 test.addModel('out_fir_model_2',out_y_fir)
 test.neuralizeModel()
 
-test.trainModel(training_params={"num_of_epochs":15})
 
+test.trainModel(splits=[100,0,0], training_params={"num_of_epochs":1, "train_batch_size":8})
+'''
+
+def fun(x,a,b,c,d):
+    return a*x**3+b*x**2+c*x+d
+
+# Costruisco il dataset
+data_x = np.arange(-2,2,0.01)
+data_a = 2
+data_b = -3
+data_c = 4
+data_d = 5
+dataset = {'x': data_x, 'y': fun(data_x,data_a,data_b,data_c,data_d)}
+
+x = Input('x')
+y = Input('y')
+x_state = State('x_state')
+
+out_fun = ParamFun(fun)(x.last())
+out_y = Output('out_y',out_fun)
+test = Neu4mes(visualizer=FunctionVisualizer())
+test.addModel('in_model',out_y)
+test.addMinimize('err_in',y.last(),out_y)
+test.neuralizeModel()
+
+test.loadData('data',dataset)
+test.trainModel(training_params={"num_of_epochs":1})

@@ -139,7 +139,7 @@ class Model(nn.Module):
         available_inputs = [key for key in self.inputs.keys() if key not in self.connect.keys()]  ## remove connected inputs
         available_states = [key for key in self.state_model.keys() if key not in self.states_connect.keys()] ## remove connected states
         available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.constants) + available_states)
-        
+
         ## Initialize State variables if necessary
         for state in self.state_model.keys():
             if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
@@ -148,7 +148,7 @@ class Model(nn.Module):
             elif self.batch_size > self.states[state].shape[0]:
                 self.states[state] = self.states[state].repeat(self.batch_size, 1, 1)
                 self.states[state].requires_grad = False
-
+                
         ## Forward pass through the relations
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs
             for relation in self.relations.keys():
@@ -188,13 +188,15 @@ class Model(nn.Module):
                                     if connect_in in kwargs.keys(): ## initialize with dataset
                                         self.connect_variables[connect_in] = kwargs[connect_in]
                                     else: ## initialize with zeros
-                                        ## TODO: set requires_grad(false)
-                                        self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=True)
+                                        self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=False)
                                     result_dict[connect_in] = self.connect_variables[connect_in].clone()
                                 else: ## update connect variable
                                     result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-relation_size, dims=1)
                                 result_dict[connect_in][:, -relation_size:, :] = result_dict[relation].clone() 
                                 self.connect_variables[connect_in] = result_dict[connect_in].clone()
+                            ## add the new input
+                            result_dict[connect_in].requires_grad(False)
+                            self.connect_variables[connect_in].requires_grad(False)
                             ## add the new input
                             available_keys.add(connect_in)
 

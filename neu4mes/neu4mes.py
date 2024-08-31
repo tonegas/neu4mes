@@ -101,7 +101,7 @@ class Neu4mes:
         model_states = list(self.model_def['States'].keys())
         provided_inputs = list(inputs.keys())
         missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
-        extra_inputs = list(set(provided_inputs) - set(model_inputs))
+        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
 
         for key in model_states:
             if key in inputs.keys():
@@ -152,8 +152,7 @@ class Neu4mes:
         ## Initialize the batch_size
         self.model.batch_size = 1
         ## Initialize the connect variables
-        if connect:
-            self.model.connect = connect
+        self.model.connect = connect
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
@@ -167,7 +166,6 @@ class Neu4mes:
 
                     ## Collect the inputs
                     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
-
                     if key in model_inputs:
                         input_dim = self.model_def['Inputs'][key]['dim']
                     elif key in model_states:
@@ -760,13 +758,13 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-
+        
         self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
             self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
             self.resultAnalysis(test_dataset, XY_test)
-
+        
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
