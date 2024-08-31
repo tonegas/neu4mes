@@ -21,7 +21,6 @@ dataset = {'in1': data_x, 'out': linear_fun(data_x,data_a,data_b)}
 data_folder = '/tests/data/'
 
 class Neu4mesTrainingTest(unittest.TestCase):
-    '''
     def test_build_dataset_batch(self):
         input1 = Input('in1')
         out = Input('out')
@@ -131,7 +130,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         x_state = State('x_state')
         p = Parameter('p', dimensions=1, sw=1, values=[[1.0]])
         rel_x = Fir(parameter=p)(x_state.last())
-        rel_x.closedLoop(x_state)
+        rel_x = ClosedLoop(rel_x, x_state)
         out = Output('out', rel_x)
 
         test = Neu4mes(visualizer=None, seed=42)
@@ -143,12 +142,12 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(test.model.states['x_state'], torch.tensor(result['out']))
         result = test(inputs={'x': [2]})
         self.assertEqual(test.model.states['x_state'], torch.tensor(1.0))
-    '''
+    
     def test_recurrent_train_only_state_variables(self):
         x_state = State('x_state')
         p = Parameter('p', dimensions=1, tw=0.03, values=[[1.0], [1.0], [1.0]])
         rel_x = Fir(parameter=p)(x_state.tw(0.03))
-        rel_x = ClosedLoop(rel_x, x_state)  ## TODO: wrong json it should give a valid relation not "closedloop"
+        rel_x = ClosedLoop(rel_x, x_state) 
         out = Output('out', rel_x)
 
         test = Neu4mes(seed=42)

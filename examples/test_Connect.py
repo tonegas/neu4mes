@@ -57,7 +57,6 @@ elif example == 2:
     # Modello b
     a = Input('a')
     b_t = Input('b_t')
-    #relation_b = Linear(W='condiviso')(a.last())+Linear(W='A')(Fir(parameter='B')(a.tw(0.5)))
     b = Output('b',Linear(W='condiviso')(a.last())+Linear(W='A')(Fir(parameter='B')(a.tw(0.5))))
 
     model = Neu4mes(seed=42)

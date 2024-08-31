@@ -148,7 +148,7 @@ class Model(nn.Module):
             elif self.batch_size > self.states[state].shape[0]:
                 self.states[state] = self.states[state].repeat(self.batch_size, 1, 1)
                 self.states[state].requires_grad = False
-                
+
         ## Forward pass through the relations
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs
             for relation in self.relations.keys():
@@ -186,7 +186,7 @@ class Model(nn.Module):
                             else: ## input window is bigger than the output window
                                 if connect_in not in self.connect_variables:  ## initialization
                                     if connect_in in kwargs.keys(): ## initialize with dataset
-                                        self.connect_variables[connect_in] = kwargs[connect_in]
+                                        self.connect_variables[connect_in] = kwargs[connect_in].detach()
                                     else: ## initialize with zeros
                                         self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=False)
                                     result_dict[connect_in] = self.connect_variables[connect_in].clone()
@@ -194,9 +194,6 @@ class Model(nn.Module):
                                     result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-relation_size, dims=1)
                                 result_dict[connect_in][:, -relation_size:, :] = result_dict[relation].clone() 
                                 self.connect_variables[connect_in] = result_dict[connect_in].clone()
-                            ## add the new input
-                            result_dict[connect_in].requires_grad(False)
-                            self.connect_variables[connect_in].requires_grad(False)
                             ## add the new input
                             available_keys.add(connect_in)
 

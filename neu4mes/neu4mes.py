@@ -592,7 +592,7 @@ class Neu4mes:
 
     def trainModel(self, models=None,
                     train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
-                    close_loop=None, step=1, prediction_samples=0,
+                    close_loop={}, step=1, prediction_samples=0,
                     shuffle_data=True, early_stopping=None,
                     lr_gain={}, minimize_gain={}, connect={},
                     training_params = {}):
@@ -775,13 +775,13 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        
+        '''
         self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
             self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
             self.resultAnalysis(test_dataset, XY_test)
-        
+        '''
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
@@ -819,23 +819,18 @@ class Neu4mes:
                     for state_key in self.model_def['States'].keys():
                         if state_key in XY.keys():
                             del XY[state_key]
-
-                if close_loop or self.model.connect:
-                    ## Update the input with the recurrent prediction
-                    if horizon_idx != prediction_samples-1:
-                        for key in XY.keys():
-                            if close_loop:
-                                if key in close_loop.keys(): ## the variable is recurrent
-                                    dim = out[close_loop[key]].shape[1]  ## take the output time dimension
-                                    XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
-                                    XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
-                                    XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
-                                else: ## the variable is not recurrent
-                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                                    XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
-                            else: ## the variable is not recurrent
-                                XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                                XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
+                
+                ## Update the input with the recurrent prediction
+                if horizon_idx < prediction_samples -1:
+                    for key in XY.keys():
+                        if key in close_loop.keys(): ## the input is recurrent
+                            dim = out[close_loop[key]].shape[1]  ## take the output time dimension
+                            XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
+                            XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
+                            XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                        else: ## the input is not recurrent
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
+                            XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
             ## Calculate the total loss
