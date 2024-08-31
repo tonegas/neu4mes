@@ -28,10 +28,10 @@ class TextVisualizer(Visualizer):
     def __param(self,name, value, dim =30):
         print(color((name).ljust(dim) + value,GREEN))
 
-    def showModel(self):
+    def showModel(self, model):
         if self.verbose >= 1:
             self.__title(" Neu4mes Model ")
-            print(color(pformat(self.n4m.model_def),GREEN))
+            print(color(pformat(model),GREEN))
             self.__line()
 
     def showaddMinimize(self,variable_name):

@@ -105,7 +105,7 @@ class Connect(Stream, ToStream):
               f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
         check(type(obj2) is State, TypeError,
               f"The {obj2} must be a State and not a {type(obj2)}.")
-        super().__init__(connect_name + str(Stream.count),merge(obj1.json, obj2.json),obj1.dim)
+        super().__init__(obj1.name,merge(obj1.json, obj2.json),obj1.dim)
         check(closedloop_name not in self.json['States'][obj2.name] or connect_name not in self.json['States'][obj2.name],
               KeyError,f"The state variable {obj2.name} is already connected.")
         self.json['States'][obj2.name][connect_name] = obj1.name
@@ -116,7 +116,7 @@ class ClosedLoop(Stream, ToStream):
               f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
         check(type(obj2) is State, TypeError,
               f"The {obj2} must be a State and not a {type(obj2)}.")
-        super().__init__(closedloop_name + str(Stream.count), merge(obj1.json, obj2.json), obj1.dim)
+        super().__init__(obj1.name, merge(obj1.json, obj2.json), obj1.dim)
         check(closedloop_name not in self.json['States'][obj2.name] or connect_name not in self.json['States'][obj2.name],
               KeyError, f"The state variable {obj2.name} is already connected.")
         self.json['States'][obj2.name][closedloop_name] = obj1.name

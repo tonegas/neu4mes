@@ -11,7 +11,7 @@ from neu4mes.utilis import check, merge
 paramfun_relation_name = 'ParamFun'
 
 class ParamFun(NeuObj):
-    def __init__(self, param_fun, parameters_dimensions = None, parameters = None):
+    def __init__(self, param_fun, n_input = None, parameters_dimensions = None, parameters = None):
         self.relation_name = paramfun_relation_name
         self.param_fun = param_fun
         self.output_dimension = {}
@@ -21,7 +21,7 @@ class ParamFun(NeuObj):
             'name' : param_fun.__name__
         }
         self.json['Functions'][self.name]['parameters'] = []
-        self.__set_params(parameters_dimensions = parameters_dimensions, parameters = parameters)
+        self.__set_params(n_input = n_input, parameters_dimensions = parameters_dimensions, parameters = parameters)
 
     def __call__(self, *obj):
         stream_name = paramfun_relation_name + str(Stream.count)
@@ -96,27 +96,55 @@ class ParamFun(NeuObj):
         self.output_dimension = {'dim': out_dim[0], out_win_type : out_win}
 
     def __set_params(self, n_input = None, parameters_dimensions = None, parameters = None):
-        if parameters is not None:
-            check(parameters_dimensions is None, ValueError, '\"parameters_dimensions\" must be None if \"parameters\" is set')
-            check(type(parameters) is list, TypeError, '\"parameters\" must be a list')
+        funinfo = inspect.getfullargspec(self.param_fun)
+        if type(parameters) is list:
+            check(parameters_dimensions is None, ValueError,
+                  '\"parameters_dimensions\" must be None if \"parameters\" is set using list')
+            check(n_input is None, ValueError,
+                  '\"n_input\" must be None if \"parameters\" is set using list')
             for param in parameters:
                 if type(param) is Parameter:
                     self.json['Functions'][self.name]['parameters'].append(param.name)
                     self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param.name])
                 elif type(param) is str:
                     self.json['Functions'][self.name]['parameters'].append(param)
-                    self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param])
+                    self.json['Parameters'][param] = {'dim': 1}
                 else:
-                    check(type(param) is Parameter or type(param) is str, TypeError, 'The element inside the \"parameters\" list must be a Parameter or str')
-
-        elif parameters_dimensions is not None:
-            check(type(parameters_dimensions) is dict, TypeError, '\"parameters_dimensions\" must be a dict')
-            funinfo = inspect.getfullargspec(self.param_fun)
-            for i in range(len(parameters_dimensions)):
-                param_name = self.name + str(funinfo.args[-1 - i])
+                    check(type(param) is Parameter or type(param) is str, TypeError,
+                          'The element inside the \"parameters\" list must be a Parameter or str')
+        elif type(parameters_dimensions) is list:
+            check(n_input is None, ValueError,
+                  '\"n_input\" must be None if \"parameters\" is set using list')
+            for i, param_dim in enumerate(parameters_dimensions):
+                idx = i + len(funinfo.args) - len(parameters_dimensions)
+                param_name = self.name + str(idx)
                 self.json['Functions'][self.name]['parameters'].append(param_name)
-                self.json['Parameters'][param_name] = {'dim' :parameters_dimensions[funinfo.args[-1 - i]]}
-
+                self.json['Parameters'][param_name] = {'dim': parameters_dimensions[funinfo.args[idx]]}
+        elif type(parameters) is dict or type(parameters_dimensions) is dict:
+            check(n_input is not None, TypeError, 'if \"parameter\" or \"parameters_dimensions\" are dict the number of input must be set')
+            for i, key in enumerate(funinfo.args):
+                if i >= n_input:
+                    if type(parameters) is dict and key in parameters:
+                        param = parameters[key]
+                        if type(parameters[key]) is Parameter:
+                            self.json['Functions'][self.name]['parameters'].append(param.name)
+                            self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param.name])
+                        elif type(parameters[key]) is str:
+                            self.json['Functions'][self.name]['parameters'].append(param)
+                            self.json['Parameters'][param] = {'dim': 1}
+                        else:
+                            check(type(param) is Parameter or type(param) is str, TypeError,
+                                  'The element inside the \"parameters\" dict must be a Parameter or str')
+                    elif type(parameters_dimensions) is dict and key in parameters_dimensions:
+                        param_name = self.name + key
+                        check(isinstance(parameters_dimensions[key],(tuple,int)), TypeError,
+                              'The element inside the \"parameters_dimensions\" dict must be a tuple or int')
+                        self.json['Functions'][self.name]['parameters'].append(param_name)
+                        self.json['Parameters'][param_name] = {'dim': parameters_dimensions[key]}
+                    else:
+                        param_name = self.name + key
+                        self.json['Functions'][self.name]['parameters'].append(param_name)
+                        self.json['Parameters'][param_name] = {'dim': 1}
         elif n_input is not None:
             funinfo = inspect.getfullargspec(self.param_fun)
             n_input_params = len(funinfo.args) - n_input
