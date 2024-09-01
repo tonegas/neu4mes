@@ -36,7 +36,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         rel2 = Fir(input1.tw(0.01))
         fun = Output('out',rel1+rel2)
 
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
         
