@@ -139,7 +139,7 @@ class Model(nn.Module):
         available_inputs = [key for key in self.inputs.keys() if key not in self.connect.keys()]  ## remove connected inputs
         available_states = [key for key in self.state_model.keys() if key not in self.states_connect.keys()] ## remove connected states
         available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.constants) + available_states)
-        
+
         ## Initialize State variables if necessary
         for state in self.state_model.keys():
             if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
@@ -186,10 +186,9 @@ class Model(nn.Module):
                             else: ## input window is bigger than the output window
                                 if connect_in not in self.connect_variables:  ## initialization
                                     if connect_in in kwargs.keys(): ## initialize with dataset
-                                        self.connect_variables[connect_in] = kwargs[connect_in]
+                                        self.connect_variables[connect_in] = kwargs[connect_in].detach()
                                     else: ## initialize with zeros
-                                        ## TODO: set requires_grad(false)
-                                        self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=True)
+                                        self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=False)
                                     result_dict[connect_in] = self.connect_variables[connect_in].clone()
                                 else: ## update connect variable
                                     result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-relation_size, dims=1)

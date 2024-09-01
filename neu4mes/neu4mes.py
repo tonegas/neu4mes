@@ -107,7 +107,7 @@ class Neu4mes:
         model_states = list(self.model_def['States'].keys())
         provided_inputs = list(inputs.keys())
         missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
-        extra_inputs = list(set(provided_inputs) - set(model_inputs))
+        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
 
         for key in model_states:
             if key in inputs.keys():
@@ -158,8 +158,7 @@ class Neu4mes:
         ## Initialize the batch_size
         self.model.batch_size = 1
         ## Initialize the connect variables
-        if connect:
-            self.model.connect = connect
+        self.model.connect = connect
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
@@ -456,7 +455,6 @@ class Neu4mes:
             for key in model_inputs:
                 if key not in source.keys():
                     continue
-                #check(key in self.data[name].keys(), KeyError, f"The input {key} is missing in the dataset {name}.")
                 self.data[name][key] = np.stack(self.data[name][key])
                 if self.data[name][key].ndim == 2: ## Add the sample dimension
                     self.data[name][key] = np.expand_dims(self.data[name][key], axis=-1)
@@ -790,13 +788,13 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-
+        '''
         self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
             self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
             self.resultAnalysis(test_dataset, XY_test)
-
+        '''
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
@@ -835,22 +833,17 @@ class Neu4mes:
                         if state_key in XY.keys():
                             del XY[state_key]
 
-                if close_loop or self.model.connect:
-                    ## Update the input with the recurrent prediction
-                    if horizon_idx != prediction_samples-1:
-                        for key in XY.keys():
-                            if close_loop:
-                                if key in close_loop.keys(): ## the variable is recurrent
-                                    dim = out[close_loop[key]].shape[1]  ## take the output time dimension
-                                    XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
-                                    XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
-                                    XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
-                                else: ## the variable is not recurrent
-                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                                    XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
-                            else: ## the variable is not recurrent
-                                XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                                XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
+                ## Update the input with the recurrent prediction
+                if horizon_idx < prediction_samples -1:
+                    for key in XY.keys():
+                        if key in close_loop.keys(): ## the input is recurrent
+                            dim = out[close_loop[key]].shape[1]  ## take the output time dimension
+                            XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
+                            XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
+                            XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                        else: ## the input is not recurrent
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
+                            XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
             ## Calculate the total loss
