@@ -45,6 +45,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
 
     def test_network_building_tw(self):
+        Stream.reset_count()
         input1 = Input('in1')
         input2 = Input('in2')
         rel1 = Fir(input1.tw(0.05))
@@ -62,6 +63,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
     
     def test_network_building_tw2(self):
+        Stream.reset_count()
         input2 = Input('in2')
         rel3 = Fir(input2.tw(0.05))
         rel4 = Fir(input2.tw([-0.02,0.02]))

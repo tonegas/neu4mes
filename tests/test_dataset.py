@@ -61,20 +61,20 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         self.assertEqual((10,5,1),test.data['train_dataset']['in'].shape)
         self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977]] , test.data['train_dataset']['in'][0].tolist())
-        self.assertEqual((10,5,1),test.data['validation_dataset']['in'].shape)
+        self.assertEqual((6,5,1),test.data['validation_dataset']['in'].shape)
         self.assertEqual([[0.884],[0.883],[0.882],[0.88],[0.877]] , test.data['validation_dataset']['in'][0].tolist())
-        self.assertEqual((10,5,1),test.data['test_dataset']['in'].shape)
+        self.assertEqual((8,5,1),test.data['test_dataset']['in'].shape)
         self.assertEqual([[0.784],[0.783],[0.782],[0.78],[0.777]] , test.data['test_dataset']['in'][0].tolist())
 
         self.assertEqual((10,1,1),test.data['train_dataset']['out'].shape)
         self.assertEqual([[1.225]], test.data['train_dataset']['out'][0].tolist())
         self.assertEqual([[[1.225]], [[1.224]], [[1.222]], [[1.22]], [[1.217]], [[1.214]], [[1.211]], [[1.207]], [[1.204]], [[1.2]]], test.data['train_dataset']['out'].tolist())
-        self.assertEqual((10,1,1),test.data['validation_dataset']['out'].shape)
+        self.assertEqual((6,1,1),test.data['validation_dataset']['out'].shape)
         self.assertEqual([[2.225]], test.data['validation_dataset']['out'][0].tolist())
-        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]], [[2.214]], [[2.211]], [[2.207]], [[2.204]], [[2.2]]], test.data['validation_dataset']['out'].tolist())
-        self.assertEqual((10,1,1),test.data['test_dataset']['out'].shape)
+        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]], [[2.214]]], test.data['validation_dataset']['out'].tolist())
+        self.assertEqual((8,1,1),test.data['test_dataset']['out'].shape)
         self.assertEqual([[3.225]], test.data['test_dataset']['out'][0].tolist())
-        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]], [[3.207]], [[3.204]], [[3.2]]], test.data['test_dataset']['out'].tolist())
+        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]], [[3.207]]], test.data['test_dataset']['out'].tolist())
     
     def test_build_dataset_medium1(self):
         input = Input('in')
@@ -114,17 +114,17 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         self.assertEqual((10,5,1),test.data['train_dataset']['in'].shape)
         self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977]],test.data['train_dataset']['in'][0].tolist())
-        self.assertEqual((10,5,1),test.data['validation_dataset']['in'].shape)
+        self.assertEqual((6,5,1),test.data['validation_dataset']['in'].shape)
         self.assertEqual([[0.884],[0.883],[0.882],[0.88],[0.877]],test.data['validation_dataset']['in'][0].tolist())
-        self.assertEqual((10,5,1),test.data['test_dataset']['in'].shape)
+        self.assertEqual((8,5,1),test.data['test_dataset']['in'].shape)
         self.assertEqual([[0.784],[0.783],[0.782],[0.78],[0.777]],test.data['test_dataset']['in'][0].tolist())
 
         self.assertEqual((10,1,1),test.data['train_dataset']['out'].shape)
         self.assertEqual([[[1.225]], [[1.224]], [[1.222]], [[1.22]], [[1.217]], [[1.214]], [[1.211]], [[1.207]], [[1.204]], [[1.2]]],test.data['train_dataset']['out'].tolist())
-        self.assertEqual((10,1,1),test.data['validation_dataset']['out'].shape)
-        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]], [[2.214]], [[2.211]], [[2.207]], [[2.204]], [[2.2]]],test.data['validation_dataset']['out'].tolist())
-        self.assertEqual((10,1,1),test.data['test_dataset']['out'].shape)
-        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]], [[3.207]], [[3.204]], [[3.2]]],test.data['test_dataset']['out'].tolist())
+        self.assertEqual((6,1,1),test.data['validation_dataset']['out'].shape)
+        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]], [[2.214]]],test.data['validation_dataset']['out'].tolist())
+        self.assertEqual((8,1,1),test.data['test_dataset']['out'].shape)
+        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]], [[3.207]]],test.data['test_dataset']['out'].tolist())
     
     def test_build_dataset_medium2(self):
         input1 = Input('in1')
@@ -187,17 +187,17 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         self.assertEqual((9,7,1),test.data['train_dataset']['in1'].shape)
         self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977],[0.973],[0.969]],test.data['train_dataset']['in1'][0].tolist())
-        self.assertEqual((9,7,1),test.data['validation_dataset']['in1'].shape)
+        self.assertEqual((5,7,1),test.data['validation_dataset']['in1'].shape)
         self.assertEqual([[0.884],[0.883],[0.882],[0.88],[0.877],[0.873],[0.869]],test.data['validation_dataset']['in1'][0].tolist())
-        self.assertEqual((9,7,1),test.data['test_dataset']['in1'].shape)
+        self.assertEqual((7,7,1),test.data['test_dataset']['in1'].shape)
         self.assertEqual([[0.784],[0.783],[0.782],[0.78],[0.777],[0.773],[0.769]],test.data['test_dataset']['in1'][0].tolist())
 
         self.assertEqual((9,1,1),test.data['train_dataset']['out'].shape)
         self.assertEqual([[[1.225]], [[1.224]], [[1.222]], [[1.22]], [[1.217]], [[1.214]], [[1.211]], [[1.207]], [[1.204]]],test.data['train_dataset']['out'].tolist())
-        self.assertEqual((9,1,1),test.data['validation_dataset']['out'].shape)
-        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]], [[2.214]], [[2.211]], [[2.207]], [[2.204]]],test.data['validation_dataset']['out'].tolist())
-        self.assertEqual((9,1,1),test.data['test_dataset']['out'].shape)
-        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]], [[3.207]], [[3.204]]],test.data['test_dataset']['out'].tolist())
+        self.assertEqual((5,1,1),test.data['validation_dataset']['out'].shape)
+        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]]],test.data['validation_dataset']['out'].tolist())
+        self.assertEqual((7,1,1),test.data['test_dataset']['out'].shape)
+        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]]],test.data['test_dataset']['out'].tolist())
     
     def test_build_dataset_complex2(self):
         input1 = Input('in1')
@@ -267,24 +267,24 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         self.assertEqual((10,6,1),test.data['train_dataset']['in1'].shape)
         self.assertEqual([[0.984],[0.983],[0.982],[0.98],[0.977],[0.973]],test.data['train_dataset']['in1'][0].tolist())
-        self.assertEqual((10,6,1),test.data['validation_dataset']['in1'].shape)
+        self.assertEqual((6,6,1),test.data['validation_dataset']['in1'].shape)
         self.assertEqual([[0.884],[0.883],[0.882],[0.88],[0.877],[0.873]],test.data['validation_dataset']['in1'][0].tolist())
-        self.assertEqual((10,6,1),test.data['test_dataset']['in1'].shape)
+        self.assertEqual((8,6,1),test.data['test_dataset']['in1'].shape)
         self.assertEqual([[0.784],[0.783],[0.782],[0.78],[0.777],[0.773]],test.data['test_dataset']['in1'][0].tolist())
         
         self.assertEqual((10,2,1),test.data['train_dataset']['in2'].shape)
         self.assertEqual([[12.498], [12.502]],test.data['train_dataset']['in2'][0].tolist())
-        self.assertEqual((10,2,1),test.data['validation_dataset']['in2'].shape)
+        self.assertEqual((6,2,1),test.data['validation_dataset']['in2'].shape)
         self.assertEqual([[12.498], [12.502]],test.data['validation_dataset']['in2'][0].tolist())
-        self.assertEqual((10,2,1),test.data['test_dataset']['in2'].shape)
+        self.assertEqual((8,2,1),test.data['test_dataset']['in2'].shape)
         self.assertEqual([[12.498], [12.502]],test.data['test_dataset']['in2'][0].tolist())
 
         self.assertEqual((10,1,1),test.data['train_dataset']['out'].shape)
         self.assertEqual([[[1.225]], [[1.224]], [[1.222]], [[1.22]], [[1.217]], [[1.214]], [[1.211]], [[1.207]], [[1.204]], [[1.2]]],test.data['train_dataset']['out'].tolist())
-        self.assertEqual((10,1,1),test.data['validation_dataset']['out'].shape)
-        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]], [[2.214]], [[2.211]], [[2.207]], [[2.204]], [[2.2]]],test.data['validation_dataset']['out'].tolist())
-        self.assertEqual((10,1,1),test.data['test_dataset']['out'].shape)
-        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]], [[3.207]], [[3.204]], [[3.2]]],test.data['test_dataset']['out'].tolist())
+        self.assertEqual((6,1,1),test.data['validation_dataset']['out'].shape)
+        self.assertEqual([[[2.225]], [[2.224]], [[2.222]], [[2.22]], [[2.217]], [[2.214]]],test.data['validation_dataset']['out'].tolist())
+        self.assertEqual((8,1,1),test.data['test_dataset']['out'].shape)
+        self.assertEqual([[[3.225]], [[3.224]], [[3.222]], [[3.22]], [[3.217]], [[3.214]], [[3.211]], [[3.207]]],test.data['test_dataset']['out'].tolist())
     
     def test_build_dataset_complex5(self):
         input1 = Input('in1')

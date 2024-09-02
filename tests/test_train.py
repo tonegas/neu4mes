@@ -32,6 +32,16 @@ class Neu4mesTrainingTest(unittest.TestCase):
         data_struct = ['x','F','x2','y2','','A1x','A1y','B1x','B1y','','A2x','A2y','B2x','out','','x3','in1','in2','time']
         test.loadData(name='dataset', source=data_folder, format=data_struct, skiplines=4, delimiter='\t', header=None)
         test.trainModel(splits=[80,10,10])
+
+        self.assertEqual((15-6), test.num_of_samples['dataset'])
+        self.assertEqual(round((15-6)*80/100),test.run_training_params['n_samples_train'])
+        self.assertEqual(round((15-6)*10/100),test.run_training_params['n_samples_val'])
+        self.assertEqual(round((15-6)*10/100),test.run_training_params['n_samples_test'])
+        self.assertEqual(round((15-6)*80/100),test.run_training_params['train_batch_size'])
+        self.assertEqual(1,test.run_training_params['val_batch_size'])
+        self.assertEqual(1,test.run_training_params['test_batch_size'])
+        self.assertEqual(100,test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.001,test.run_training_params['optimizer_defaults']['lr'])
     
     def test_build_dataset_batch(self):
         input1 = Input('in1')
@@ -50,7 +60,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 1
         training_params['val_batch_size'] = 1
         training_params['test_batch_size'] = 1
-        training_params['learning_rate'] = 0.1
+        training_params['lr'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(splits=[70,20,10],training_params = training_params)
 
@@ -59,15 +69,16 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # 10 / 1 * 0.7 = 7 for training
         # 10 / 1 * 0.2 = 2 for validation
         # 10 / 1 * 0.1 = 1 for test
-        self.assertEqual(7,test.n_samples_train)
-        self.assertEqual(2,test.n_samples_val)
-        self.assertEqual(1,test.n_samples_test)
+
+        self.assertEqual(7,test.run_training_params['n_samples_train'])
+        self.assertEqual(2,test.run_training_params['n_samples_val'])
+        self.assertEqual(1,test.run_training_params['n_samples_test'])
         self.assertEqual(10,test.num_of_samples['dataset'])
-        self.assertEqual(1,test.train_batch_size)
-        self.assertEqual(1,test.val_batch_size)
-        self.assertEqual(1,test.test_batch_size)
-        self.assertEqual(5,test.num_of_epochs)
-        self.assertEqual(0.1,test.learning_rate)
+        self.assertEqual(1,test.run_training_params['train_batch_size'])
+        self.assertEqual(1,test.run_training_params['val_batch_size'])
+        self.assertEqual(1,test.run_training_params['test_batch_size'])
+        self.assertEqual(5,test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.1,test.run_training_params['optimizer_defaults']['lr'])
     
     def test_build_dataset_batch2(self):
         input1 = Input('in1')
@@ -86,7 +97,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 25
         training_params['val_batch_size'] = 25
         training_params['test_batch_size'] = 25
-        training_params['learning_rate'] = 0.1
+        training_params['lr'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(splits=[50,0,50],training_params = training_params)
 
@@ -96,15 +107,16 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # 10 / 1 * 0.5 = 5 for training
         # 10 / 1 * 0.0 = 0 for validation
         # 10 / 1 * 0.5 = 5 for test
-        self.assertEqual(5,test.n_samples_train)
-        self.assertEqual(0,test.n_samples_val)
-        self.assertEqual(5,test.n_samples_test)
-        self.assertEqual(1,test.train_batch_size)
-        self.assertEqual(1,test.val_batch_size)
-        self.assertEqual(1,test.test_batch_size)
-        self.assertEqual(5,test.num_of_epochs)
-        self.assertEqual(0.1,test.learning_rate)
-    
+        self.assertEqual((15 - 5), test.num_of_samples['dataset'])
+        self.assertEqual(round((15 - 5) * 50 / 100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round((15 - 5) * 0 / 100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round((15 - 5) * 50 / 100), test.run_training_params['n_samples_test'])
+        self.assertEqual(round((15 - 5) * 50 / 100), test.run_training_params['train_batch_size'])
+        self.assertEqual(0, test.run_training_params['val_batch_size'])
+        self.assertEqual(round((15 - 5) * 50 / 100), test.run_training_params['test_batch_size'])
+        self.assertEqual(5, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.1, test.run_training_params['optimizer_defaults']['lr'])
+
     def test_build_dataset_batch3(self):
         input1 = Input('in1')
         output = Input('out')
@@ -122,7 +134,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 2
         training_params['val_batch_size'] = 2
         training_params['test_batch_size'] = 2
-        training_params['learning_rate'] = 0.1
+        training_params['lr'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(splits=[40,30,30], training_params = training_params)
 
@@ -134,16 +146,16 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # 10 * 0.4 = 2 for training
         # 10 * 0.3 = 1 for validation
         # 10 * 0.3 = 1 for test
-        self.assertEqual(4,test.n_samples_train)
-        self.assertEqual(3,test.n_samples_val)
-        self.assertEqual(3,test.n_samples_test)
-        self.assertEqual(10,test.num_of_samples['dataset'])
-        self.assertEqual(2,test.train_batch_size)
-        self.assertEqual(2,test.val_batch_size)
-        self.assertEqual(2,test.test_batch_size)
-        self.assertEqual(5,test.num_of_epochs)
-        self.assertEqual(0.1,test.learning_rate)
-    
+        self.assertEqual((15 - 5), test.num_of_samples['dataset'])
+        self.assertEqual(round((15 - 5) * 40 / 100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round((15 - 5) * 30 / 100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round((15 - 5) * 30 / 100), test.run_training_params['n_samples_test'])
+        self.assertEqual(2, test.run_training_params['train_batch_size'])
+        self.assertEqual(2, test.run_training_params['val_batch_size'])
+        self.assertEqual(2, test.run_training_params['test_batch_size'])
+        self.assertEqual(5, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.1, test.run_training_params['optimizer_defaults']['lr'])
+
     def test_build_dataset_batch4(self):
         input1 = Input('in1')
         output = Input('out')
@@ -161,7 +173,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 2
         training_params['val_batch_size'] = 2
         training_params['test_batch_size'] = 2
-        training_params['learning_rate'] = 0.1
+        training_params['lr'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(splits=[80,10,10], training_params = training_params)
 
@@ -173,15 +185,15 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # 10 * 0.8 = 8 for training
         # 10 * 0.1 = 1 for validation
         # 10 * 0.1 = 1 for test
-        self.assertEqual(8,test.n_samples_train)
-        self.assertEqual(1,test.n_samples_val)
-        self.assertEqual(1,test.n_samples_test)
-        self.assertEqual(10,test.num_of_samples['dataset'])
-        self.assertEqual(2,test.train_batch_size)
-        self.assertEqual(1,test.val_batch_size)
-        self.assertEqual(1,test.test_batch_size)
-        self.assertEqual(5,test.num_of_epochs)
-        self.assertEqual(0.1,test.learning_rate)
+        self.assertEqual((15 - 5), test.num_of_samples['dataset'])
+        self.assertEqual(round((15 - 5) * 80 / 100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round((15 - 5) * 10 / 100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round((15 - 5) * 10 / 100), test.run_training_params['n_samples_test'])
+        self.assertEqual(2, test.run_training_params['train_batch_size'])
+        self.assertEqual(1, test.run_training_params['val_batch_size'])
+        self.assertEqual(1, test.run_training_params['test_batch_size'])
+        self.assertEqual(5, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.1, test.run_training_params['optimizer_defaults']['lr'])
     
     def test_build_dataset_from_code(self):
         input1 = Input('in1')
@@ -205,7 +217,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 2
         training_params['val_batch_size'] = 2
         training_params['test_batch_size'] = 2
-        training_params['learning_rate'] = 0.1
+        training_params['lr'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(splits=[80,20,0], training_params = training_params)
 
@@ -217,15 +229,15 @@ class Neu4mesTrainingTest(unittest.TestCase):
         # 15 * 0.8 = 12 for training
         # 15 * 0.2 = 3 for validation
         # 15 * 0.0 = 0 for test
-        self.assertEqual(12,test.n_samples_train)
-        self.assertEqual(3,test.n_samples_val)
-        self.assertEqual(0,test.n_samples_test)
-        self.assertEqual(15,test.num_of_samples['dataset'])
-        self.assertEqual(2,test.train_batch_size)
-        self.assertEqual(2,test.val_batch_size)
-        self.assertEqual(1,test.test_batch_size)
-        self.assertEqual(5,test.num_of_epochs)
-        self.assertEqual(0.1,test.learning_rate)
+        self.assertEqual((20 - 5), test.num_of_samples['dataset'])
+        self.assertEqual(round((20 - 5) * 80 / 100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round((20 - 5) * 20 / 100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round((20 - 5) * 0 / 100), test.run_training_params['n_samples_test'])
+        self.assertEqual(2, test.run_training_params['train_batch_size'])
+        self.assertEqual(2, test.run_training_params['val_batch_size'])
+        self.assertEqual(0, test.run_training_params['test_batch_size'])
+        self.assertEqual(5, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.1, test.run_training_params['optimizer_defaults']['lr'])
     
     def test_network_multi_dataset(self):
         train_folder = os.path.join(os.path.dirname(__file__), 'data/')
@@ -256,21 +268,21 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 3
         training_params['val_batch_size'] = 2
         training_params['test_batch_size'] = 1
-        training_params['learning_rate'] = 0.1
+        training_params['lr'] = 0.1
         training_params['num_of_epochs'] = 5
         test.trainModel(train_dataset='train_dataset', validation_dataset='validation_dataset', test_dataset='test_dataset', training_params=training_params)
 
         self.assertEqual(9,test.num_of_samples['train_dataset'])
-        self.assertEqual(9,test.num_of_samples['validation_dataset'])
-        self.assertEqual(9,test.num_of_samples['test_dataset'])
-        self.assertEqual(3,test.train_batch_size)
-        self.assertEqual(2,test.val_batch_size)
-        self.assertEqual(1,test.test_batch_size)
-        self.assertEqual(9,test.n_samples_train)
-        self.assertEqual(9,test.n_samples_val)
-        self.assertEqual(9,test.n_samples_test)
-        self.assertEqual(5,test.num_of_epochs)
-        self.assertEqual(0.1,test.learning_rate)
+        self.assertEqual(5,test.num_of_samples['validation_dataset'])
+        self.assertEqual(7,test.num_of_samples['test_dataset'])
+        self.assertEqual( 9, test.run_training_params['n_samples_train'])
+        self.assertEqual(5, test.run_training_params['n_samples_val'])
+        self.assertEqual(7, test.run_training_params['n_samples_test'])
+        self.assertEqual(3, test.run_training_params['train_batch_size'])
+        self.assertEqual(2, test.run_training_params['val_batch_size'])
+        self.assertEqual(1, test.run_training_params['test_batch_size'])
+        self.assertEqual(5, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.1, test.run_training_params['optimizer_defaults']['lr'])
     
     def test_train_vector_input(self):
         x = Input('x', dimensions=4)
@@ -293,19 +305,19 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 1
         training_params['val_batch_size'] = 1
         training_params['test_batch_size'] = 1
-        training_params['learning_rate'] = 0.01
+        training_params['lr'] = 0.01
         training_params['num_of_epochs'] = 7
         test.trainModel(train_dataset='dataset', splits=[80,10,10],  training_params=training_params)
 
-        self.assertEqual(22, test.num_of_samples['dataset'])
-        self.assertEqual(1, test.train_batch_size)
-        self.assertEqual(1, test.val_batch_size)
-        self.assertEqual(1, test.test_batch_size)
-        self.assertEqual(18, test.n_samples_train)
-        self.assertEqual(2, test.n_samples_val)
-        self.assertEqual(2, test.n_samples_test)
-        self.assertEqual(7, test.num_of_epochs)
-        self.assertEqual(0.01, test.learning_rate)
+        self.assertEqual(22,test.num_of_samples['dataset'])
+        self.assertEqual( 18, test.run_training_params['n_samples_train'])
+        self.assertEqual(2, test.run_training_params['n_samples_val'])
+        self.assertEqual(2, test.run_training_params['n_samples_test'])
+        self.assertEqual(1, test.run_training_params['train_batch_size'])
+        self.assertEqual(1, test.run_training_params['val_batch_size'])
+        self.assertEqual(1, test.run_training_params['test_batch_size'])
+        self.assertEqual(7, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.01, test.run_training_params['optimizer_defaults']['lr'])
 
         training_params = {}
         training_params['train_batch_size'] = 6
@@ -313,13 +325,18 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['test_batch_size'] = 2
         test.trainModel(train_dataset='dataset', splits=[80,10,10],  training_params=training_params)
 
-        self.assertEqual(22, test.num_of_samples['dataset'])
-        self.assertEqual(6, test.train_batch_size)
-        self.assertEqual(2, test.val_batch_size)
-        self.assertEqual(2, test.test_batch_size)
-        self.assertEqual(18, test.n_samples_train)
-        self.assertEqual(2, test.n_samples_val)
-        self.assertEqual(2, test.n_samples_test)
+        self.assertEqual(22,test.num_of_samples['dataset'])
+        self.assertEqual( 18, test.run_training_params['n_samples_train'])
+        self.assertEqual(2, test.run_training_params['n_samples_val'])
+        self.assertEqual(2, test.run_training_params['n_samples_test'])
+        self.assertEqual(6, test.run_training_params['train_batch_size'])
+        self.assertEqual(2, test.run_training_params['val_batch_size'])
+        self.assertEqual(2, test.run_training_params['test_batch_size'])
+        self.assertEqual(100, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.001, test.run_training_params['optimizer_defaults']['lr'])
+
+    def test_optimizer_configuration(self):
+        pass
     
     def test_multimodel_with_loss_gain_and_lr_gain(self):
         ## Model1
@@ -348,18 +365,44 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         test.loadData(name='dataset', source=dataset)
 
-        params = {
-            'num_of_epochs': 1,
-            'train_batch_size': 1
-        }
-
-        optimizer_params = {
-            'lr': 0.1
-        }
-        
         ## Train only model1
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
+
+        # Massimo livello di configurazione il livello è come pytorch
+        # oppure posso anche crearmi il mio ottimizzatore
+        # Quando optimizer è un optimizer
+        opt_params = {
+            'lr': 0.1
+        }
+        opt_params_per_parameter = {
+            'a': {'lr':0.1, 'weight_decay':0}
+        }
+        opt = Optimizer(opt_params, opt_params_per_parameter)
+        test.trainModel(models='model1', splits=[100, 0, 0], optimizer=opt, train_parameters=params)
+
+        #livello intermadio vorrei poter aggiungere dei parametriche non sono presenti di default dentro l'ottimizzare
+
+        # Livello di configurazione base
+        # Voglio una configurazione abbastanza specifica anche per parametro
+        # Quando optimizer è una stringa
+        test.trainModel(models='model1', splits=[100, 0, 0], optimizer='SGD', lr = 0.5, lr_param={'a':0.1}, weight_decay=0, weight_decay_gain={'a':.1}, num_of_epochs= 100)
+
+        # Vorrei che fosse facile aggiungere un altro ottimizzatore
+
+        params['lr'] = 0.1
+        params['lr_gain'] = {'a':0.1}
+        test.trainModel(models='model1', splits=[100, 0, 0], training_params=params)
+
+        # Così passo direttamente i parametri all'ottimizzatore???
+        test.trainModel(models='model1', splits=[100, 0, 0], optimizer_params=params)
+
+        training_params = {},
+
+        optimizer = torch.optim.Adam,
+        lr_gain = {},
+        optimizer_params = {}
+
         test.trainModel(models='model1', splits=[100,0,0], optimizer=torch.optim.SGD, training_params=params, optimizer_params=optimizer_params)
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[0.20872743427753448],[0.20891857147216797],[0.20914430916309357],[0.20934967696666718],[0.20958690345287323]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
@@ -428,9 +471,9 @@ class Neu4mesTrainingTest(unittest.TestCase):
           'train_batch_size': 3, 
           'val_batch_size': 1, 
           'test_batch_size':1, 
-          'learning_rate':0.1}
+          'lr':0.1}
         
-        test.trainModel(splits=[100,0,0], training_params=params, lr_gain={'a':0, 'b':0, 'c':0}, prediction_samples=3, connect={'in3':'out1'}, shuffle_data=False)
+        test.trainModel(splits=[100,0,0], training_params=params, lr_param={'a':0, 'b':0, 'c':0}, prediction_samples=3, connect={'in3':'out1'}, shuffle_data=False)
     
     
 if __name__ == '__main__':

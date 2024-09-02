@@ -1,4 +1,5 @@
 import copy
+import inspect
 
 import torch
 from torch.export import export
@@ -21,6 +22,7 @@ from neu4mes.output import Output
 from neu4mes.relation import Stream
 from neu4mes.model import Model
 from neu4mes.utilis import check, argmax_max, argmin_min, merge
+from neu4mes.optimizer import Optimizer, SGD, Adam
 
 
 from neu4mes import LOG_LEVEL
@@ -48,7 +50,7 @@ class Neu4mes:
             np.random.seed(seed) ## set the numpy seed
 
         # Inizialize the model definition
-        self.stream_dict = {}
+        self.model_dict = {}
         self.minimize_dict = {}
         self.update_state_dict = {}
 
@@ -70,18 +72,29 @@ class Neu4mes:
         self.datasets_loaded = set()
 
         # Training Parameters
-        self.training_params_list = {'num_of_epochs', 'train_batch_size', 'val_batch_size', 'test_batch_size' }
-        self.num_of_epochs = 100
-        self.train_batch_size, self.val_batch_size, self.test_batch_size = 1, 1, 1
-        self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
-        self.close_loop = None
-        self.prediction_samples = 1
+        self.standard_train_parameters = {
+            'models' : None,
+            'train_dataset' : None, 'validation_dataset' : None, 'test_dataset' : None, 'splits' : [70, 20, 10],
+            'closed_loop' : {}, 'connect' : {}, 'step' : 1, 'prediction_samples' : 1,
+            'shuffle_data' : True, 'early_stopping' : None,
+            'minimize_gain' : {},
+            'num_of_epochs': 100,
+            'train_batch_size' : 128, 'val_batch_size' : 1, 'test_batch_size' : 1,
+            'optimizer' : 'Adam',
+            'lr' : 0.001, 'lr_param' : {}, 'weight_decay' : 0, 'weight_decay_param' : {},
+            'optimizer_params' : [],
+            'optimizer_defaults' : {}
+        }
+
+        # self.num_of_epochs = 100
+        # self.train_batch_size, self.val_batch_size, self.test_batch_size = 1, 1, 1
+        #self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
+        # self.close_loop = None
+        # self.prediction_samples = 1
 
         # Optimizer Parameters
         self.optimizer = None
-        self.optimizer_params = {}
-        #self.learning_rate = 0.01
-        #self.weight_decay = 0.0
+        # self.optimizer_parameters = {'lr': 0.01, 'lr_param':{}, 'weight_decay': 0.0, 'weight_decay_param' : {}}
 
         # Training Losses
         self.losses = {}
@@ -91,17 +104,17 @@ class Neu4mes:
         self.prediction = {}
 
 
-    def __call__(self, inputs={}, sampled=False, close_loop={}, connect={}, prediction_samples=1):
+    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples=1):
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
-        close_loop_windows = {}
-        for close_in, close_out in close_loop.items():
+        closed_loop_windows = {}
+        for close_in, close_out in closed_loop.items():
             check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
             check(close_out in self.model_def['Outputs'], ValueError, f'the tag {close_out} is not an output of the network')
             if close_in in inputs.keys():
-                close_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
+                closed_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
             else:
-                close_loop_windows[close_in] = 1
+                closed_loop_windows[close_in] = 1
 
         model_inputs = list(self.model_def['Inputs'].keys())
         model_states = list(self.model_def['States'].keys())
@@ -111,9 +124,9 @@ class Neu4mes:
 
         for key in model_states:
             if key in inputs.keys():
-                close_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
+                closed_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
             else:
-                close_loop_windows[key] = 1
+                closed_loop_windows[key] = 1
 
         ## Ignoring extra inputs if not necessary
         if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
@@ -121,7 +134,7 @@ class Neu4mes:
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
-        non_recurrent_inputs = list(set(provided_inputs) - set(close_loop.keys()) - set(model_states) - set(connect.keys()))
+        non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(model_states) - set(connect.keys()))
 
         ## Determine the Maximal number of samples that can be created
         if non_recurrent_inputs:
@@ -133,8 +146,8 @@ class Neu4mes:
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         else:
             if provided_inputs:
-                min_dim_ind, min_dim  = argmin_min([close_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
-                max_dim_ind, max_dim = argmax_max([close_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
+                min_dim_ind, min_dim  = argmin_min([closed_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
+                max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
             else:
                 min_dim = max_dim = prediction_samples
 
@@ -164,8 +177,8 @@ class Neu4mes:
             X = {}
             for i in range(window_dim):
                 for key, val in inputs.items():
-                    if key in close_loop.keys() or key in model_states:
-                        if i >= close_loop_windows[key]:
+                    if key in closed_loop.keys() or key in model_states:
+                        if i >= closed_loop_windows[key]:
                             if key in model_states and key in X.keys():
                                 del X[key]
                             continue
@@ -198,8 +211,8 @@ class Neu4mes:
                 result, _ = self.model(X)
 
                 ## Update the recurrent variable
-                for close_in, close_out in close_loop.items():
-                    if i >= close_loop_windows[close_in]-1:
+                for close_in, close_out in closed_loop.items():
+                    if i >= closed_loop_windows[close_in]-1:
                         dim = result[close_out].shape[1]  ## take the output time dimension
                         X[close_in] = torch.roll(X[close_in], shifts=-dim, dims=1) ## Roll the time window
                         X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
@@ -271,7 +284,7 @@ class Neu4mes:
         if isinstance(stream_list, (Output,Stream)):
             stream_list = [stream_list]
         if type(stream_list) is list:
-            self.stream_dict[name] = copy.deepcopy(stream_list)
+            self.model_dict[name] = copy.deepcopy(stream_list)
         else:
             raise TypeError(f'stream_list is type {type(stream_list)} but must be an Output or Stream or a list of them')
         self.__update_model()
@@ -281,8 +294,8 @@ class Neu4mes:
             name_list = [name_list]
         if type(name_list) is list:
             for name in name_list:
-                check(name in self.stream_dict, IndexError, f"The name {name} is not part of the available models")
-                del self.stream_dict[name]
+                check(name in self.model_dict, IndexError, f"The name {name} is not part of the available models")
+                del self.model_dict[name]
         self.__update_model()
 
     def addMinimize(self, name, streamA, streamB, loss_function='mse'):
@@ -304,7 +317,7 @@ class Neu4mes:
 
     def __update_model(self):
         self.model_def = copy.deepcopy(MAIN_JSON)
-        for key, stream_list in self.stream_dict.items():
+        for key, stream_list in self.model_dict.items():
             for stream in stream_list:
                 self.model_def = merge(self.model_def, stream.json)
         for key, minimize in self.minimize_dict.items():
@@ -510,24 +523,6 @@ class Neu4mes:
                 self.num_of_samples[dataset_name] = self.data[dataset_name][key].shape[0]
             self.visualizer.showDataset(name=dataset_name)
 
-    def __getTrainingParams(self, params):
-        # Set all parameters in training_params
-        for key,value in params.items():
-            try:
-                if key in self.training_params_list:
-                    getattr(self, key)
-                    setattr(self, key, value)
-            except:
-                raise KeyError(f"The training_params contains a wrong key: {key}.")
-    def __getBatchSizes(self):
-        ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to 1
-        if self.train_batch_size > self.n_samples_train:
-            self.train_batch_size = self.n_samples_train
-        if self.val_batch_size > self.n_samples_val:
-            self.val_batch_size = self.n_samples_val
-        if self.test_batch_size > self.n_samples_test:
-            self.test_batch_size = self.n_samples_test
-
 
     def resultAnalysis(self, name_data, XY_data):
         import warnings
@@ -598,28 +593,90 @@ class Neu4mes:
             self.performance[name_data]['total']['fvu'] = np.mean([self.performance[name_data][key]['fvu']['total'] for key in self.minimize_dict.keys()])
             self.performance[name_data]['total']['aic'] = np.mean([self.performance[name_data][key]['aic']['value']for key in self.minimize_dict.keys()])
 
-    def trainModel(self, models=None,
-                    train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
-                    close_loop={}, connect={}, step=1, prediction_samples=0,
-                    shuffle_data=True, early_stopping=None,
-                    minimize_gain={},
-                    training_params={},
-                    optimizer=torch.optim.Adam,
-                    lr_gain={},
-                    optimizer_params={}
+
+        # try:
+        #     for key in dict_param.keys():
+        #         if key in params:
+        #             check(dict_param[key] is None, ValueError, "The param {key} is set two times, in the function and in the parameters list.")
+        #             getattr(self, key)
+        #             setattr(self, key, params[key])
+        #         else:
+        #             setattr(self, key, dict_param[key])
+        # except:
+        #     raise KeyError(f"The dict_param contains a wrong key: {key}.")
+        # for key in params_set:
+        #     if key in params:
+        #         if key in dict_param:
+        #
+        # for key, value in dict_param.items():
+        #     if value is not None:
+        #
+        # # Set all parameters in training_params
+        # for key,value in params.items():
+        #     try:
+        #         if key in params_list:
+        #             getattr(self, key)
+        #             setattr(self, key, value)
+        #     except:
+        #         raise KeyError(f"The training_params contains a wrong key: {key}.")
+
+    def __getTrainParameters(self, training_params):
+        run_train_parameters = copy.deepcopy(self.standard_train_parameters)
+        if training_params is None:
+            return run_train_parameters
+        for key, value in training_params.items():
+            check(key in run_train_parameters, KeyError, f"The param {key} is not exist as standard parameters")
+            run_train_parameters[key] = value
+        return run_train_parameters
+
+    def __getParameter(self, **parameter):
+        assert len(parameter) == 1
+        name = list(parameter.keys())[0]
+        self.run_training_params[name] =  parameter[name] if parameter[name] is not None else self.run_training_params[name]
+        return self.run_training_params[name]
+
+    def __getBatchSizes(self, train_batch_size, val_batch_size, test_batch_size):
+        ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to the maximum value
+        self.__getParameter(train_batch_size = train_batch_size)
+        self.__getParameter(val_batch_size = val_batch_size)
+        self.__getParameter(test_batch_size = test_batch_size)
+        if self.run_training_params['train_batch_size'] > self.run_training_params['n_samples_train']:
+            self.run_training_params['train_batch_size'] = self.run_training_params['n_samples_train']
+        if  self.run_training_params['val_batch_size'] > self.run_training_params['n_samples_val']:
+            self.run_training_params['val_batch_size'] = self.run_training_params['n_samples_val']
+        if self.run_training_params['test_batch_size'] > self.run_training_params['n_samples_test']:
+            self.run_training_params['test_batch_size'] = self.run_training_params['n_samples_test']
+        return self.run_training_params['train_batch_size'], self.run_training_params['val_batch_size'], self.run_training_params['test_batch_size']
+
+    def trainModel(self,
+                    models=None,
+                    train_dataset = None, validation_dataset = None, test_dataset = None, splits = None,
+                    closed_loop = None, connect = None, step = None, prediction_samples = None,
+                    shuffle_data = None, early_stopping=  None,
+                    minimize_gain = None,
+                    num_of_epochs = None,
+                    train_batch_size = None, val_batch_size = None, test_batch_size = None,
+                    optimizer = None,
+                    lr = None, lr_param = None, weight_decay = None, weight_decay_param = None,
+                    optimizer_params = None,
+                    optimizer_defaults = None,
+                    training_params = None
                    ):
+        # def trainModel(self, train_parameters = None, optimizer_parameters = None, **kwargs):
+        check(self.data_loaded, RuntimeError, 'There is no data loaded! The Training will stop.')
+        check(list(self.model.parameters()), RuntimeError, 'There are no modules with learnable parameters! The Training will stop.')
 
-        if not self.data_loaded:
-            print('There is no data loaded! The Training will stop.')
-            return
-        if not list(self.model.parameters()):
-            print('There are no modules with learnable parameters! The Training will stop.')
-            return
+        # Get running parameter from dict
+        self.run_training_params = self.__getTrainParameters(training_params)
 
+        # Get connect and closed_loop
+        prediction_samples = self.__getParameter(prediction_samples = prediction_samples)
         check(prediction_samples >= 0, KeyError, 'The sample horizon must be positive!')
-        self.close_loop = close_loop
-        if self.close_loop:
-            for input, output in self.close_loop.items():
+        step = self.__getParameter(step = step)
+        closed_loop = self.__getParameter(closed_loop = closed_loop)
+        connect = self.__getParameter(connect = connect)
+        if closed_loop:
+            for input, output in closed_loop.items():
                 check(input in self.model_def['Inputs'], ValueError, f'the tag {input} is not an input variable.')
                 check(output in self.model_def['Outputs'], ValueError, f'the tag {output} is not an output of the network')
             self.visualizer.warning(f'Recurrent train: closing the loop for {prediction_samples} samples')
@@ -636,12 +693,20 @@ class Neu4mes:
         else:
             recurrent_train = False
 
+        ## Get early stopping
+        early_stopping = self.__getParameter(early_stopping = early_stopping)
+
+        # Get dataset for training
+        shuffle_data = self.__getParameter(shuffle_data = shuffle_data)
+        # TODO condsider different situation of dataset train and validation
         if self.n_datasets == 1: ## If we use 1 dataset with the splits
+            splits = self.__getParameter(splits = splits)
             check(len(splits)==3, ValueError, '3 elements must be inserted for the dataset split in training, validation and test')
             check(sum(splits)==100, ValueError, 'Training, Validation and Test splits must sum up to 100.')
             check(splits[0] > 0, ValueError, 'The training split cannot be zero.')
 
             ## Get the dataset name
+            # TODO use all dataset not only one
             dataset = list(self.data.keys())[0] ## take the dataset name
             self.visualizer.warning(f'Only {self.n_datasets} Dataset loaded ({dataset}). The training will continue using \n{splits[0]}% of data as training set \n{splits[1]}% of data as validation set \n{splits[2]}% of data as test set')
 
@@ -649,9 +714,9 @@ class Neu4mes:
             train_size = splits[0] / 100.0
             val_size = splits[1] / 100.0
             test_size = 1 - (train_size + val_size)
-            self.n_samples_train = round(self.num_of_samples[dataset]*train_size)
-            self.n_samples_val = round(self.num_of_samples[dataset]*val_size)
-            self.n_samples_test = round(self.num_of_samples[dataset]*test_size)
+            n_samples_train = round(self.num_of_samples[dataset]*train_size)
+            n_samples_val = round(self.num_of_samples[dataset]*val_size)
+            n_samples_test = round(self.num_of_samples[dataset]*test_size)
 
             ## Split into train, validation and test
             XY_train, XY_val, XY_test = {}, {}, {}
@@ -670,6 +735,7 @@ class Neu4mes:
                     XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
 
             ## Set name for resultsAnalysis
+            # TODO set correct name if I have only one dataset
             train_dataset = "train"
             validation_dataset = "validation"
             test_dataset = "test"
@@ -683,49 +749,89 @@ class Neu4mes:
                 self.visualizer.warning(f'Test Dataset [{test_dataset}] Not Loaded. The training will continue without test')
 
             ## Collect the number of samples for each dataset
-            self.n_samples_train, self.n_samples_val, self.n_samples_test = 0, 0, 0
+            n_samples_train, n_samples_val, n_samples_test = 0, 0, 0
             ## Split into train, validation and test
-            self.n_samples_train = self.num_of_samples[train_dataset]
+            n_samples_train = self.num_of_samples[train_dataset]
             XY_train = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[train_dataset].items()}
             if validation_dataset in datasets:
-                self.n_samples_val = self.num_of_samples[validation_dataset]
+                n_samples_val = self.num_of_samples[validation_dataset]
                 XY_val = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[validation_dataset].items()}
             if test_dataset in datasets:
-                self.n_samples_test = self.num_of_samples[test_dataset]
+                n_samples_test = self.num_of_samples[test_dataset]
                 XY_test = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[test_dataset].items()}
 
-        ## TRAIN MODEL
-        ## Check parameters
-        self.__getTrainingParams(training_params)
-        self.__getBatchSizes()
-        assert self.n_samples_train > 0, f'There are {self.n_samples_train} samples for training.'
-        self.prediction_samples = prediction_samples if (recurrent_train and prediction_samples != 0) else 1
+        assert n_samples_train > 0, f'There are {n_samples_train} samples for training.'
+        self.run_training_params['n_samples_train'] = n_samples_train
+        self.run_training_params['n_samples_val'] = n_samples_val
+        self.run_training_params['n_samples_test'] = n_samples_test
+        train_batch_size, val_batch_size, test_batch_size = self.__getBatchSizes(train_batch_size, val_batch_size, test_batch_size)
 
-        ## define optimizer
-        freezed_model_parameters = set()
+
+        ## Define the optimizer
+        optimizer = self.__getParameter(optimizer = optimizer)
+        optimizer_params = self.__getParameter(optimizer_params = optimizer_params)
+        optimizer_defaults = self.__getParameter(optimizer_defaults = optimizer_defaults)
+
+        ## Get params to train
+        models = self.__getParameter(models = models)
+        all_parameters = self.model.all_parameters
+        params_to_train = set()
         if models:
             if isinstance(models, str):
                 models = [models]
-            for model_name, model_params in self.stream_dict.items():
-                if model_name not in models:
-                    freezed_model_parameters = freezed_model_parameters.union(set(model_params[0].json['Parameters'].keys()))
-        freezed_model_parameters = freezed_model_parameters - set(lr_gain.keys())
-        #print('freezed model parameters: ', freezed_model_parameters)
-        learned_model_parameters = set(self.model_def['Parameters'].keys()) - freezed_model_parameters
-        #print('learned model parameters: ', learned_model_parameters)
-        model_parameters = []
-        for param_name, param_value in self.model.all_parameters.items():
-            if param_name in lr_gain.keys():  ## if the parameter is specified it has top priority
-                model_parameters.append({'params':param_value, 'lr':self.learning_rate*lr_gain[param_name]})
-            elif param_name in freezed_model_parameters: ## if the parameter is not in the training model, it's freezed
-                model_parameters.append({'params':param_value, 'lr':0.0})
-            elif param_name in learned_model_parameters: ## if the parameter is in the training model, it's learned with the default learning rate
-                model_parameters.append({'params':param_value, 'lr':self.learning_rate})
-        #print('model parameters: ', model_parameters)
-        self.optimizer = optimizer(model_parameters, **optimizer_params)
-        #self.optimizer = torch.optim.Adam(self.model.parameters(),lr=self.learning_rate, weight_decay=self.weight_decay)
+            for model_name, model_params in self.model_dict.items():
+                if model_name in models:
+                    params_to_train = params_to_train.union(set(model_params[0].json['Parameters'].keys()))
+        else:
+            params_to_train = all_parameters.keys()
+
+        # Get the optimizer
+        if type(optimizer) is str:
+            optimizer_defaults['lr'] = self.__getParameter(lr=lr)
+            optimizer_defaults['weight_decay'] = self.__getParameter(weight_decay=weight_decay)
+            if optimizer == 'SGD':
+                optimizer = SGD(optimizer_defaults, optimizer_params)
+
+            elif optimizer == 'Adam':
+                optimizer = Adam(optimizer_defaults, optimizer_params)
+        elif issubclass(optimizer,Optimizer):
+            check(optimizer_params == [], ValueError, "If the optimzer is passed to the training function the optimizer_params option is ignored." )
+            check(optimizer_defaults == {}, ValueError,
+                  "If the optimzer is passed to the training function the optimizer_params option is ignored.")
+            optimizer_defaults['lr'] = self.__getParameter(lr = lr)
+            optimizer_defaults['weight_decay'] = self.__getParameter(weight_decay = weight_decay)
+            self.run_training_params['optimizer'] = optimizer.name
+            optimizer.set_params(all_parameters, params_to_train)
+
+
+        optimizer.set_params(all_parameters, params_to_train)
+        optimizer.add_option_to_params('lr', self.run_training_params['lr_param'], False)
+        optimizer.add_option_to_params('weight_decay', self.run_training_params['weight_decay_param'], False)
+        optimizer.add_option_to_params('lr', lr_param)
+        optimizer.add_option_to_params('weight_decay', weight_decay_param)
+        self.run_training_params['optimizer_params'] = optimizer.optimizer_params
+        self.run_training_params['optimizer_defaults'] = optimizer.optimizer_defaults
+
+
+        # Clean the dict of the training parameter
+        del self.run_training_params['lr']
+        del self.run_training_params['weight_decay']
+        del self.run_training_params['lr_param']
+        del self.run_training_params['weight_decay_param']
+        if not recurrent_train:
+            del self.run_training_params['connect']
+            del self.run_training_params['closed_loop']
+            del self.run_training_params['step']
+            del self.run_training_params['prediction_samples']
+
+
+        self.optimizer = optimizer.get_torch_optimizer()
+
+        ## Get num_of_epochs
+        num_of_epochs = self.__getParameter(num_of_epochs = num_of_epochs)
 
         ## Define the loss functions
+        minimize_gain = self.__getParameter(minimize_gain = minimize_gain)
         for name, values in self.minimize_dict.items():
             self.losses[name] = CustomLoss(values['loss'])
 
@@ -733,31 +839,32 @@ class Neu4mes:
         train_losses, val_losses, test_losses = {}, {}, {}
         for key in self.minimize_dict.keys():
             train_losses[key] = []
-            if self.n_samples_val > 0:
+            if n_samples_val > 0:
                 val_losses[key] = []
+
+        pprint(self.run_training_params)
 
         import time
         ## start the train timer
         start = time.time()
-
-        for epoch in range(self.num_of_epochs):
+        for epoch in range(num_of_epochs):
             ## TRAIN
             self.model.train()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, self.prediction_samples, close_loop, step, connect, shuffle=shuffle_data, train=True)
+                losses = self.__recurrentTrain(XY_train, n_samples_train, train_batch_size, minimize_gain, prediction_samples, closed_loop, step, connect, shuffle=shuffle_data, train=True)
             else:
-                losses = self.__Train(XY_train, self.n_samples_train, self.train_batch_size, minimize_gain, shuffle_data, train=True)
+                losses = self.__Train(XY_train,n_samples_train, train_batch_size, minimize_gain, shuffle=shuffle_data, train=True)
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 train_losses[key].append(torch.mean(losses[ind]).tolist())
 
-            if self.n_samples_val > 0: 
+            if n_samples_val > 0:
                 ## VALIDATION
                 self.model.eval()
                 if recurrent_train:
-                    losses = self.__recurrentTrain(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, self.prediction_samples, close_loop, step, connect, shuffle=False, train=False)
+                    losses = self.__recurrentTrain(XY_val, n_samples_val, val_batch_size, minimize_gain, prediction_samples, closed_loop, step, connect, shuffle=False, train=False)
                 else:
-                    losses = self.__Train(XY_val, self.n_samples_val, self.val_batch_size, minimize_gain, shuffle=False, train=False)
+                    losses = self.__Train(XY_val, n_samples_val, val_batch_size, minimize_gain, shuffle=False, train=False)
                 ## save the losses
                 for ind, key in enumerate(self.minimize_dict.keys()):
                     val_losses[key].append(torch.mean(losses[ind]).tolist())
@@ -777,13 +884,13 @@ class Neu4mes:
         self.visualizer.showTrainingTime(end-start)
 
         ## Test the model
-        if self.n_samples_test > 0: 
+        if n_samples_test > 0:
             ## TEST
             self.model.eval()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, self.prediction_samples, close_loop, step, connect, shuffle=False, train=False)
+                losses = self.__recurrentTrain(XY_test, n_samples_test, test_batch_size, minimize_gain, prediction_samples, closed_loop, step, connect, shuffle=False, train=False)
             else:
-                losses = self.__Train(XY_test, self.n_samples_test, self.test_batch_size, minimize_gain, shuffle=False, train=False)
+                losses = self.__Train(XY_test, n_samples_test, test_batch_size, minimize_gain, shuffle=False, train=False)
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
@@ -800,7 +907,7 @@ class Neu4mes:
         return train_losses, val_losses, test_losses
 
 
-    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, connect, shuffle=True, train=True):
+    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, closed_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step) if shuffle else 0
         ## Initialize the batch_size
@@ -836,10 +943,10 @@ class Neu4mes:
                 ## Update the input with the recurrent prediction
                 if horizon_idx < prediction_samples -1:
                     for key in XY.keys():
-                        if key in close_loop.keys(): ## the input is recurrent
-                            dim = out[close_loop[key]].shape[1]  ## take the output time dimension
+                        if key in closed_loop.keys(): ## the input is recurrent
+                            dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
                             XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
-                            XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
+                            XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
                             XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
                         else: ## the input is not recurrent
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window

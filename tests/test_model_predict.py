@@ -1181,22 +1181,22 @@ class MyTestCase(unittest.TestCase):
         test.neuralizeModel(0.1)
 
         ## one sample prediction with F initialized with zeros
-        result = test(inputs={'x':[1,2,3,4,5]}, close_loop={'F':'out'})
+        result = test(inputs={'x':[1,2,3,4,5]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [15.0])
         ## 5 samples prediction with F initialized with zero only the first time
-        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9]}, close_loop={'F':'out'})
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [15.0, 35.0, 60.0, 90.0, 125.0])
         ## one sample prediction with F initialized with [1]
-        result = test(inputs={'x':[1,2,3,4,5], 'F':[1]}, close_loop={'F':'out'})
+        result = test(inputs={'x':[1,2,3,4,5], 'F':[1]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [16.0])
         ## 5 samples prediction with F initialized with [1] only the first time
-        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1]}, close_loop={'F':'out'})
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [16.0, 36.0, 61.0, 91.0, 126.0])
         ## 5 samples prediction with F initialized with [1] the first time, [2] the second time and [3] the third time
-        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1,2,3]}, close_loop={'F':'out'})
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1,2,3]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [16.0, 22.0, 28.0, 58.0, 93.0])
         ## one sample prediction with F initialized with [1] (the other values are ignored)
-        result = test(inputs={'x':[1,2,3,4,5], 'F':[1,2,3]}, close_loop={'F':'out'})
+        result = test(inputs={'x':[1,2,3,4,5], 'F':[1,2,3]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [16.0])
 
     def test_recurrent_training_complex(self):
@@ -1217,30 +1217,30 @@ class MyTestCase(unittest.TestCase):
         test.neuralizeModel(0.1)
 
         ## two sample prediction with x in close loop
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6]}, close_loop={'x':'out_pos'})
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6]}, closed_loop={'x':'out_pos'})
         self.assertEqual(result['out'], [0.0, 9.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0])
         self.assertEqual(result['out_neg'], [-15.0, -20.0])
         ## two sample prediction with y in close loop
-        result = test(inputs={'x':[1,2,3,4,5,6], 'y':[1,2,3,4,5]}, close_loop={'y':'out_pos'})
+        result = test(inputs={'x':[1,2,3,4,5,6], 'y':[1,2,3,4,5]}, closed_loop={'y':'out_pos'})
         self.assertEqual(result['out'], [0.0, -9.0])
         self.assertEqual(result['out_pos'], [15.0, 20.0])
         self.assertEqual(result['out_neg'], [-15.0, -29.0])
         ## one sample prediction with both close loops
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, close_loop={'x':'out_pos', 'y':'out_neg'})
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'})
         self.assertEqual(result['out'], [0.0])
         self.assertEqual(result['out_pos'], [15.0])
         self.assertEqual(result['out_neg'], [-15.0])
         ## three sample prediction with both close loops
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
         self.assertEqual(result['out'], [0.0, 30.0, 58.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
         ## three sample prediction with both close loops but y gets initialized for 3 steps
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, close_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
         self.assertEqual(result['out'], [0.0, 9.0, 31.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
