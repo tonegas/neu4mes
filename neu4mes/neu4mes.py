@@ -877,7 +877,7 @@ class Neu4mes:
 
             ## Early-stopping
             if early_stopping:
-                if early_stopping(train_losses, val_losses):
+                if early_stopping(train_losses, val_losses, training_params):
                     self.visualizer.warning('Stopping the training..')
                     break
 
