@@ -78,7 +78,8 @@ class TextVisualizer(Visualizer):
 
     def showTraining(self, epoch, train_losses, val_losses):
         eng = lambda val: np.format_float_scientific(val, precision=3)
-        show_epoch = 1 if self.n4m.num_of_epochs <= 20 else 10
+        par = self.n4m.run_training_params
+        show_epoch = 1 if par['num_of_epochs'] <= 20 else 10
         dim = len(self.n4m.minimize_dict)
         if self.verbose >= 1:
             if epoch == 0:
@@ -107,9 +108,9 @@ class TextVisualizer(Visualizer):
                     print(color((f'train').center(19, ' ') + '|'))
 
                 print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
-            if epoch < self.n4m.num_of_epochs:
+            if epoch < par['num_of_epochs']:
                 print('', end='\r')
-                print('|' + (f'{epoch + 1}/{self.n4m.num_of_epochs}').center(10, ' ') + '|', end='')
+                print('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|', end='')
                 train_loss = []
                 val_loss = []
                 for key in self.n4m.minimize_dict.keys():
@@ -129,7 +130,7 @@ class TextVisualizer(Visualizer):
 
                 if (epoch + 1) % show_epoch == 0:
                     print('', end='\r')
-                    print(color('|' + (f'{epoch + 1}/{self.n4m.num_of_epochs}').center(10, ' ') + '|'), end='')
+                    print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|'), end='')
                     for key in self.n4m.minimize_dict.keys():
                         if val_losses:
                             print(color((f'{eng(train_losses[key][epoch])}').center(9, ' ') + '|'), end='')
@@ -143,7 +144,7 @@ class TextVisualizer(Visualizer):
                     else:
                         print(color((f'{eng(np.mean(train_loss))}').center(19, ' ') + '|'))
 
-            if epoch+1 == self.n4m.num_of_epochs:
+            if epoch+1 == par['num_of_epochs']:
                 print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
 
     def showTrainingTime(self, time):
@@ -153,12 +154,6 @@ class TextVisualizer(Visualizer):
             self.__line()
 
     def showTrainParams(self):
-        self.standard_train_parameters = {
-            'optimizer' : 'Adam',
-            'lr' : 0.001, 'lr_param' : {}, 'weight_decay' : 0, 'weight_decay_param' : {},
-            'optimizer_params' : [],
-            'optimizer_defaults' : {}
-        }
         if self.verbose >= 1:
             self.__title(" Neu4mes Model Train Parameters ")
             par = self.n4m.run_training_params
@@ -172,15 +167,17 @@ class TextVisualizer(Visualizer):
                 self.__param("test dataset:", f"{par['test_dataset']}")
                 self.__param("test {batch size, samples}:", f"{{{par['test_batch_size']}, {par['n_samples_test']}}}")
 
-            self.__paramjson("num of epochs:", self.n4m.num_of_epochs)
-            self.__param('shuffle data:', par['shuffle_data'])
-            self.__param('shuffle early_stopping:', par['early_stopping'])
+            self.__paramjson("num of epochs:", par['num_of_epochs'])
+            if par['shuffle_data']:
+                self.__param('shuffle data:', str(par['shuffle_data']))
+            if par['early_stopping']:
+                self.__param('shuffle early_stopping:', par['early_stopping'])
 
-            self.__paramjson('shuffle minimize_gain:', par['minimize_gain'])
+            self.__paramjson('minimize:', par['minimize'])
 
-            if self.n4m.recurrent_train:
-                self.__param("prediction samples:", par['prediction_samples'])
-                self.__param("step:", par['step'])
+            if par['recurrent_train']:
+                self.__param("prediction samples:", str(par['prediction_samples']))
+                self.__param("step:", str(par['step']))
                 self.__paramjson("closed loop:", par['closed_loop'])
                 self.__paramjson("connect:", par['connect'])
 

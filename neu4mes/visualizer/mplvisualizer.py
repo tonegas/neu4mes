@@ -28,13 +28,14 @@ class MPLVisulizer(TextVisualizer):
                 # Start the data visualizer process
                 self.process_training[key] = subprocess.Popen(['python', self.training_visualizer_script], stdin=subprocess.PIPE, text=True)
 
-        if epoch+1 <= self.n4m.num_of_epochs:
+        num_of_epochs = self.n4m.run_training_params['num_of_epochs']
+        if epoch+1 <= num_of_epochs:
             for key in self.n4m.minimize_dict.keys():
                 if val_losses:
                     val_loss = val_losses[key][epoch]
                 else:
                     val_loss = []
-                data = {"key":key, "last": self.n4m.num_of_epochs-(epoch+1), "epoch":epoch, "train_losses": train_losses[key][epoch], "val_losses": val_loss}
+                data = {"key":key, "last": num_of_epochs-(epoch+1), "epoch":epoch, "train_losses": train_losses[key][epoch], "val_losses": val_loss}
                 try:
                     # Send data to the visualizer process
                     self.process_training[key].stdin.write(f"{json.dumps(data)}\n")
@@ -42,7 +43,7 @@ class MPLVisulizer(TextVisualizer):
                 except BrokenPipeError:
                     print("The visualizer process has been closed.")
 
-        if epoch+1 == self.n4m.num_of_epochs:
+        if epoch+1 == num_of_epochs:
             for key in self.n4m.minimize_dict.keys():
                 self.process_training[key].terminate()
 

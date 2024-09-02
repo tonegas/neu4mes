@@ -86,15 +86,8 @@ class Neu4mes:
             'optimizer_defaults' : {}
         }
 
-        # self.num_of_epochs = 100
-        # self.train_batch_size, self.val_batch_size, self.test_batch_size = 1, 1, 1
-        #self.n_samples_train, self.n_samples_test, self.n_samples_val = None, None, None
-        # self.close_loop = None
-        # self.prediction_samples = 1
-
-        # Optimizer Parameters
+        # Optimizer
         self.optimizer = None
-        # self.optimizer_parameters = {'lr': 0.01, 'lr_param':{}, 'weight_decay': 0.0, 'weight_decay_param' : {}}
 
         # Training Losses
         self.losses = {}
@@ -692,6 +685,7 @@ class Neu4mes:
             recurrent_train = True
         else:
             recurrent_train = False
+        self.run_training_params['recurrent_train'] = recurrent_train
 
         ## Get early stopping
         early_stopping = self.__getParameter(early_stopping = early_stopping)
@@ -737,9 +731,9 @@ class Neu4mes:
                     XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
 
             ## Set name for resultsAnalysis
-            train_dataset = self.__getParameter(train_dataset = f"train_{dataset}_{train_size}")
-            validation_dataset = self.__getParameter(validation_dataset =f"validation_{dataset}_{val_size}")
-            test_dataset = self.__getParameter(test_dataset = f"test_{dataset}_{test_size}")
+            train_dataset = self.__getParameter(train_dataset = f"train_{dataset}_{train_size:0.2f}")
+            validation_dataset = self.__getParameter(validation_dataset =f"validation_{dataset}_{val_size:0.2f}")
+            test_dataset = self.__getParameter(test_dataset = f"test_{dataset}_{test_size:0.2f}")
         else: ## Multi-Dataset
             ## Get the names of the datasets
             datasets = list(self.data.keys())
@@ -818,8 +812,25 @@ class Neu4mes:
         self.run_training_params['optimizer_params'] = optimizer.optimizer_params
         self.run_training_params['optimizer_defaults'] = optimizer.optimizer_defaults
 
+        self.optimizer = optimizer.get_torch_optimizer()
+
+        ## Get num_of_epochs
+        num_of_epochs = self.__getParameter(num_of_epochs = num_of_epochs)
+
+        ## Define the loss functions
+        minimize_gain = self.__getParameter(minimize_gain = minimize_gain)
+        self.run_training_params['minimize'] = {}
+        for name, values in self.minimize_dict.items():
+            self.losses[name] = CustomLoss(values['loss'])
+            self.run_training_params['minimize'][name] = {}
+            self.run_training_params['minimize'][name]['A'] = values['A'].name
+            self.run_training_params['minimize'][name]['B'] = values['B'].name
+            self.run_training_params['minimize'][name]['loss'] = values['loss']
+            if name in minimize_gain:
+                self.run_training_params['minimize'][name]['gain'] = minimize_gain[name]
 
         # Clean the dict of the training parameter
+        del self.run_training_params['minimize_gain']
         del self.run_training_params['lr']
         del self.run_training_params['weight_decay']
         del self.run_training_params['lr_param']
@@ -829,16 +840,6 @@ class Neu4mes:
             del self.run_training_params['closed_loop']
             del self.run_training_params['step']
             del self.run_training_params['prediction_samples']
-
-        self.optimizer = optimizer.get_torch_optimizer()
-
-        ## Get num_of_epochs
-        num_of_epochs = self.__getParameter(num_of_epochs = num_of_epochs)
-
-        ## Define the loss functions
-        minimize_gain = self.__getParameter(minimize_gain = minimize_gain)
-        for name, values in self.minimize_dict.items():
-            self.losses[name] = CustomLoss(values['loss'])
 
         ## Create the train, validation and test loss dictionaries
         train_losses, val_losses, test_losses = {}, {}, {}
