@@ -30,6 +30,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
             self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
       
     def test_network_building_simple(self):
+        Stream.reset_count()
         input1 = Input('in1')
         rel1 = Fir(input1.tw(0.05))
         rel2 = Fir(input1.tw(0.01))
@@ -39,9 +40,9 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
         
-        list_of_dimensions = [[5,1], [1,1]]
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
-            self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
+        list_of_dimensions = {'Fir3':[5,1],'Fir6':[1,1]}
+        for key, value in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
+            self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
 
     def test_network_building_tw(self):
         Stream.reset_count()
