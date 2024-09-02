@@ -153,16 +153,42 @@ class TextVisualizer(Visualizer):
             self.__line()
 
     def showTrainParams(self):
+        self.standard_train_parameters = {
+            'optimizer' : 'Adam',
+            'lr' : 0.001, 'lr_param' : {}, 'weight_decay' : 0, 'weight_decay_param' : {},
+            'optimizer_params' : [],
+            'optimizer_defaults' : {}
+        }
         if self.verbose >= 1:
             self.__title(" Neu4mes Model Train Parameters ")
-            self.__paramjson("learning rate:",self.n4m.learning_rate)
-            self.__paramjson("num of epochs:",self.n4m.num_of_epochs)
-            self.__param("Available Datasets:", f'{self.n4m.datasets_loaded}')
-            self.__param("train {batch size, samples}:", f"{{{self.n4m.train_batch_size}, {self.n4m.n_samples_train}}}")
-            self.__param("val {batch size, samples}:", f"{{{self.n4m.val_batch_size}, {self.n4m.n_samples_val}}}")
-            self.__param("test {batch size, samples}:", f"{{{self.n4m.test_batch_size}, {self.n4m.n_samples_test}}}")
-            if self.n4m.prediction_samples:
-                self.__paramjson("prediction samples:", self.n4m.prediction_samples)
+            par = self.n4m.run_training_params
+            self.__paramjson("models:", par['models'])
+            self.__param("train dataset:", f"{par['train_dataset']}")
+            self.__param("train {batch size, samples}:", f"{{{par['train_batch_size']}, {par['n_samples_train']}}}")
+            if par['n_samples_val']:
+                self.__param("val dataset:", f"{par['validation_dataset']}")
+                self.__param("val {batch size, samples}:", f"{{{par['val_batch_size']}, {par['n_samples_val']}}}")
+            if par['n_samples_test']:
+                self.__param("test dataset:", f"{par['test_dataset']}")
+                self.__param("test {batch size, samples}:", f"{{{par['test_batch_size']}, {par['n_samples_test']}}}")
+
+            self.__paramjson("num of epochs:", self.n4m.num_of_epochs)
+            self.__param('shuffle data:', par['shuffle_data'])
+            self.__param('shuffle early_stopping:', par['early_stopping'])
+
+            self.__paramjson('shuffle minimize_gain:', par['minimize_gain'])
+
+            if self.n4m.recurrent_train:
+                self.__param("prediction samples:", par['prediction_samples'])
+                self.__param("step:", par['step'])
+                self.__paramjson("closed loop:", par['closed_loop'])
+                self.__paramjson("connect:", par['connect'])
+
+            self.__paramjson("optimizer:", par['optimizer'])
+            self.__paramjson("optimizer_defaults:",self.n4m.run_training_params['optimizer_defaults'])
+            if self.n4m.run_training_params['optimizer_params'] is not None:
+                self.__paramjson("optimizer_params:", self.n4m.run_training_params['optimizer_params'])
+
             self.__line()
 
     def showOneResult(self, name_data = None):

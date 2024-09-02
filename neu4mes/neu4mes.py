@@ -698,25 +698,27 @@ class Neu4mes:
 
         # Get dataset for training
         shuffle_data = self.__getParameter(shuffle_data = shuffle_data)
-        # TODO condsider different situation of dataset train and validation
-        if self.n_datasets == 1: ## If we use 1 dataset with the splits
+
+        ## Get the dataset name
+        train_dataset = self.__getParameter(train_dataset=train_dataset)
+        #TODO manage multiple datasets
+        if train_dataset is None: ## If we use all datasets with the splits
             splits = self.__getParameter(splits = splits)
             check(len(splits)==3, ValueError, '3 elements must be inserted for the dataset split in training, validation and test')
             check(sum(splits)==100, ValueError, 'Training, Validation and Test splits must sum up to 100.')
             check(splits[0] > 0, ValueError, 'The training split cannot be zero.')
 
             ## Get the dataset name
-            # TODO use all dataset not only one
             dataset = list(self.data.keys())[0] ## take the dataset name
-            self.visualizer.warning(f'Only {self.n_datasets} Dataset loaded ({dataset}). The training will continue using \n{splits[0]}% of data as training set \n{splits[1]}% of data as validation set \n{splits[2]}% of data as test set')
 
             # Collect the split sizes
             train_size = splits[0] / 100.0
             val_size = splits[1] / 100.0
             test_size = 1 - (train_size + val_size)
-            n_samples_train = round(self.num_of_samples[dataset]*train_size)
-            n_samples_val = round(self.num_of_samples[dataset]*val_size)
-            n_samples_test = round(self.num_of_samples[dataset]*test_size)
+            num_of_samples = self.num_of_samples[dataset]
+            n_samples_train = round(num_of_samples*train_size)
+            n_samples_val = round(num_of_samples*val_size)
+            n_samples_test = round(num_of_samples*test_size)
 
             ## Split into train, validation and test
             XY_train, XY_val, XY_test = {}, {}, {}
@@ -735,12 +737,17 @@ class Neu4mes:
                     XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
 
             ## Set name for resultsAnalysis
-            # TODO set correct name if I have only one dataset
-            train_dataset = "train"
-            validation_dataset = "validation"
-            test_dataset = "test"
+            train_dataset = self.__getParameter(train_dataset = f"train_{dataset}_{train_size}")
+            validation_dataset = self.__getParameter(validation_dataset =f"validation_{dataset}_{val_size}")
+            test_dataset = self.__getParameter(test_dataset = f"test_{dataset}_{test_size}")
         else: ## Multi-Dataset
+            ## Get the names of the datasets
             datasets = list(self.data.keys())
+            validation_dataset = self.__getParameter(validation_dataset=validation_dataset)
+            test_dataset = self.__getParameter(test_dataset=test_dataset)
+
+            ## Collect the number of samples for each dataset
+            n_samples_train, n_samples_val, n_samples_test = 0, 0, 0
 
             check(train_dataset in datasets, KeyError, f'{train_dataset} Not Loaded!')
             if validation_dataset is not None and validation_dataset not in datasets:
@@ -748,8 +755,6 @@ class Neu4mes:
             if test_dataset is not None and test_dataset not in datasets:
                 self.visualizer.warning(f'Test Dataset [{test_dataset}] Not Loaded. The training will continue without test')
 
-            ## Collect the number of samples for each dataset
-            n_samples_train, n_samples_val, n_samples_test = 0, 0, 0
             ## Split into train, validation and test
             n_samples_train = self.num_of_samples[train_dataset]
             XY_train = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[train_dataset].items()}
@@ -783,6 +788,7 @@ class Neu4mes:
                 if model_name in models:
                     params_to_train = params_to_train.union(set(model_params[0].json['Parameters'].keys()))
         else:
+            self.__getParameter(models = list(self.model_dict.keys()))
             params_to_train = all_parameters.keys()
 
         # Get the optimizer
@@ -824,7 +830,6 @@ class Neu4mes:
             del self.run_training_params['step']
             del self.run_training_params['prediction_samples']
 
-
         self.optimizer = optimizer.get_torch_optimizer()
 
         ## Get num_of_epochs
@@ -842,7 +847,7 @@ class Neu4mes:
             if n_samples_val > 0:
                 val_losses[key] = []
 
-        pprint(self.run_training_params)
+        self.visualizer.showTrainParams()
 
         import time
         ## start the train timer

@@ -307,7 +307,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['test_batch_size'] = 1
         training_params['lr'] = 0.01
         training_params['num_of_epochs'] = 7
-        test.trainModel(train_dataset='dataset', splits=[80,10,10],  training_params=training_params)
+        test.trainModel(splits=[80,10,10],  training_params=training_params)
 
         self.assertEqual(22,test.num_of_samples['dataset'])
         self.assertEqual( 18, test.run_training_params['n_samples_train'])
@@ -323,7 +323,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         training_params['train_batch_size'] = 6
         training_params['val_batch_size'] = 2
         training_params['test_batch_size'] = 2
-        test.trainModel(train_dataset='dataset', splits=[80,10,10],  training_params=training_params)
+        test.trainModel(splits=[80,10,10],  training_params=training_params)
 
         self.assertEqual(22,test.num_of_samples['dataset'])
         self.assertEqual( 18, test.run_training_params['n_samples_train'])
