@@ -81,7 +81,7 @@ class Neu4mes:
             'num_of_epochs': 100,
             'train_batch_size' : 128, 'val_batch_size' : 1, 'test_batch_size' : 1,
             'optimizer' : 'Adam',
-            'lr' : 0.001, 'lr_param' : {}, 'weight_decay' : 0, 'weight_decay_param' : {},
+            'lr' : 0.001, 'lr_param' : {}, 'weight_decay' : None, 'weight_decay_param' : {},
             'optimizer_params' : [],
             'optimizer_defaults' : {}
         }
@@ -587,33 +587,7 @@ class Neu4mes:
             self.performance[name_data]['total']['aic'] = np.mean([self.performance[name_data][key]['aic']['value']for key in self.minimize_dict.keys()])
 
 
-        # try:
-        #     for key in dict_param.keys():
-        #         if key in params:
-        #             check(dict_param[key] is None, ValueError, "The param {key} is set two times, in the function and in the parameters list.")
-        #             getattr(self, key)
-        #             setattr(self, key, params[key])
-        #         else:
-        #             setattr(self, key, dict_param[key])
-        # except:
-        #     raise KeyError(f"The dict_param contains a wrong key: {key}.")
-        # for key in params_set:
-        #     if key in params:
-        #         if key in dict_param:
-        #
-        # for key, value in dict_param.items():
-        #     if value is not None:
-        #
-        # # Set all parameters in training_params
-        # for key,value in params.items():
-        #     try:
-        #         if key in params_list:
-        #             getattr(self, key)
-        #             setattr(self, key, value)
-        #     except:
-        #         raise KeyError(f"The training_params contains a wrong key: {key}.")
-
-    def __getTrainParameters(self, training_params):
+    def __get_train_parameters(self, training_params):
         run_train_parameters = copy.deepcopy(self.standard_train_parameters)
         if training_params is None:
             return run_train_parameters
@@ -622,17 +596,17 @@ class Neu4mes:
             run_train_parameters[key] = value
         return run_train_parameters
 
-    def __getParameter(self, **parameter):
+    def __get_parameter(self, **parameter):
         assert len(parameter) == 1
         name = list(parameter.keys())[0]
         self.run_training_params[name] =  parameter[name] if parameter[name] is not None else self.run_training_params[name]
         return self.run_training_params[name]
 
-    def __getBatchSizes(self, train_batch_size, val_batch_size, test_batch_size):
+    def __get_batch_sizes(self, train_batch_size, val_batch_size, test_batch_size):
         ## Check if the batch_size can be used for the current dataset, otherwise set the batch_size to the maximum value
-        self.__getParameter(train_batch_size = train_batch_size)
-        self.__getParameter(val_batch_size = val_batch_size)
-        self.__getParameter(test_batch_size = test_batch_size)
+        self.__get_parameter(train_batch_size = train_batch_size)
+        self.__get_parameter(val_batch_size = val_batch_size)
+        self.__get_parameter(test_batch_size = test_batch_size)
         if self.run_training_params['train_batch_size'] > self.run_training_params['n_samples_train']:
             self.run_training_params['train_batch_size'] = self.run_training_params['n_samples_train']
         if  self.run_training_params['val_batch_size'] > self.run_training_params['n_samples_val']:
@@ -640,6 +614,45 @@ class Neu4mes:
         if self.run_training_params['test_batch_size'] > self.run_training_params['n_samples_test']:
             self.run_training_params['test_batch_size'] = self.run_training_params['n_samples_test']
         return self.run_training_params['train_batch_size'], self.run_training_params['val_batch_size'], self.run_training_params['test_batch_size']
+
+    def __inizilize_optimizer(self, optimizer, optimizer_params, optimizer_defaults, models):
+        # Get optimizer and initialization parameters
+        optimizer = copy.deepcopy(self.__get_parameter(optimizer=optimizer))
+        optimizer_params = copy.deepcopy(self.__get_parameter(optimizer_params=optimizer_params))
+        optimizer_defaults = copy.deepcopy(self.__get_parameter(optimizer_defaults=optimizer_defaults))
+
+        ## Get params to train
+        models = self.__get_parameter(models=models)
+        all_parameters = self.model.all_parameters
+        params_to_train = set()
+        if models:
+            if isinstance(models, str):
+                models = [models]
+            for model_name, model_params in self.model_dict.items():
+                if model_name in models:
+                    params_to_train = params_to_train.union(set(model_params[0].json['Parameters'].keys()))
+        else:
+            self.__get_parameter(models=list(self.model_dict.keys()))
+            params_to_train = all_parameters.keys()
+
+        # Get the optimizer
+        if type(optimizer) is str:
+            if optimizer == 'SGD':
+                optimizer = SGD()
+            elif optimizer == 'Adam':
+                optimizer = Adam()
+        else:
+            check(issubclass(type(optimizer), Optimizer), TypeError,
+                  "The optimizer must be an Optimizer or str")
+
+        optimizer.set_params_to_train(all_parameters, params_to_train)
+
+        if optimizer_defaults != {}:
+            optimizer.set_defaults(optimizer_defaults)
+        if optimizer_params != []:
+            optimizer.set_params(optimizer_params)
+
+        return optimizer
 
     def trainModel(self,
                     models=None,
@@ -660,44 +673,42 @@ class Neu4mes:
         check(list(self.model.parameters()), RuntimeError, 'There are no modules with learnable parameters! The Training will stop.')
 
         # Get running parameter from dict
-        self.run_training_params = self.__getTrainParameters(training_params)
+        self.run_training_params = copy.deepcopy(self.__get_train_parameters(training_params))
 
         # Get connect and closed_loop
-        prediction_samples = self.__getParameter(prediction_samples = prediction_samples)
+        prediction_samples = self.__get_parameter(prediction_samples = prediction_samples)
         check(prediction_samples >= 0, KeyError, 'The sample horizon must be positive!')
-        step = self.__getParameter(step = step)
-        closed_loop = self.__getParameter(closed_loop = closed_loop)
-        connect = self.__getParameter(connect = connect)
+        step = self.__get_parameter(step = step)
+        closed_loop = self.__get_parameter(closed_loop = closed_loop)
+        connect = self.__get_parameter(connect = connect)
+        recurrent_train = True
         if closed_loop:
             for input, output in closed_loop.items():
                 check(input in self.model_def['Inputs'], ValueError, f'the tag {input} is not an input variable.')
                 check(output in self.model_def['Outputs'], ValueError, f'the tag {output} is not an output of the network')
-            self.visualizer.warning(f'Recurrent train: closing the loop for {prediction_samples} samples')
-            recurrent_train = True
-        elif self.model_def['States']: ## if we have state variables we have to do the recurrent train
-            self.visualizer.warning(f'Recurrent train: Update States variables for {prediction_samples} time steps')
-            recurrent_train = True
+                self.visualizer.warning(f'Recurrent train: closing the loop between the the input ports {input} and the output ports {output} for {prediction_samples} samples')
         elif connect:
             for connect_in, connect_out in connect.items():
                 check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
                 check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
-            self.visualizer.warning(f'Recurrent train: closing the loop for {prediction_samples} samples')
-            recurrent_train = True
+                self.visualizer.warning(f'Recurrent train: connecting the input ports {connect_in} with output ports {connect_out} for {prediction_samples} samples')
+        elif self.model_def['States']: ## if we have state variables we have to do the recurrent train
+            self.visualizer.warning(f"Recurrent train: update States variables {list(self.model_def['States'].keys())} for {prediction_samples} samples")
         else:
             recurrent_train = False
         self.run_training_params['recurrent_train'] = recurrent_train
 
         ## Get early stopping
-        early_stopping = self.__getParameter(early_stopping = early_stopping)
+        early_stopping = self.__get_parameter(early_stopping = early_stopping)
 
         # Get dataset for training
-        shuffle_data = self.__getParameter(shuffle_data = shuffle_data)
+        shuffle_data = self.__get_parameter(shuffle_data = shuffle_data)
 
         ## Get the dataset name
-        train_dataset = self.__getParameter(train_dataset=train_dataset)
+        train_dataset = self.__get_parameter(train_dataset = train_dataset)
         #TODO manage multiple datasets
         if train_dataset is None: ## If we use all datasets with the splits
-            splits = self.__getParameter(splits = splits)
+            splits = self.__get_parameter(splits = splits)
             check(len(splits)==3, ValueError, '3 elements must be inserted for the dataset split in training, validation and test')
             check(sum(splits)==100, ValueError, 'Training, Validation and Test splits must sum up to 100.')
             check(splits[0] > 0, ValueError, 'The training split cannot be zero.')
@@ -731,14 +742,14 @@ class Neu4mes:
                     XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
 
             ## Set name for resultsAnalysis
-            train_dataset = self.__getParameter(train_dataset = f"train_{dataset}_{train_size:0.2f}")
-            validation_dataset = self.__getParameter(validation_dataset =f"validation_{dataset}_{val_size:0.2f}")
-            test_dataset = self.__getParameter(test_dataset = f"test_{dataset}_{test_size:0.2f}")
+            train_dataset = self.__get_parameter(train_dataset = f"train_{dataset}_{train_size:0.2f}")
+            validation_dataset = self.__get_parameter(validation_dataset =f"validation_{dataset}_{val_size:0.2f}")
+            test_dataset = self.__get_parameter(test_dataset = f"test_{dataset}_{test_size:0.2f}")
         else: ## Multi-Dataset
             ## Get the names of the datasets
             datasets = list(self.data.keys())
-            validation_dataset = self.__getParameter(validation_dataset=validation_dataset)
-            test_dataset = self.__getParameter(test_dataset=test_dataset)
+            validation_dataset = self.__get_parameter(validation_dataset=validation_dataset)
+            test_dataset = self.__get_parameter(test_dataset=test_dataset)
 
             ## Collect the number of samples for each dataset
             n_samples_train, n_samples_val, n_samples_test = 0, 0, 0
@@ -763,62 +774,33 @@ class Neu4mes:
         self.run_training_params['n_samples_train'] = n_samples_train
         self.run_training_params['n_samples_val'] = n_samples_val
         self.run_training_params['n_samples_test'] = n_samples_test
-        train_batch_size, val_batch_size, test_batch_size = self.__getBatchSizes(train_batch_size, val_batch_size, test_batch_size)
-
+        train_batch_size, val_batch_size, test_batch_size = self.__get_batch_sizes(train_batch_size, val_batch_size, test_batch_size)
 
         ## Define the optimizer
-        optimizer = self.__getParameter(optimizer = optimizer)
-        optimizer_params = self.__getParameter(optimizer_params = optimizer_params)
-        optimizer_defaults = self.__getParameter(optimizer_defaults = optimizer_defaults)
+        optimizer = self.__inizilize_optimizer(optimizer, optimizer_params, optimizer_defaults, models)
 
-        ## Get params to train
-        models = self.__getParameter(models = models)
-        all_parameters = self.model.all_parameters
-        params_to_train = set()
-        if models:
-            if isinstance(models, str):
-                models = [models]
-            for model_name, model_params in self.model_dict.items():
-                if model_name in models:
-                    params_to_train = params_to_train.union(set(model_params[0].json['Parameters'].keys()))
-        else:
-            self.__getParameter(models = list(self.model_dict.keys()))
-            params_to_train = all_parameters.keys()
-
-        # Get the optimizer
-        if type(optimizer) is str:
-            optimizer_defaults['lr'] = self.__getParameter(lr=lr)
-            optimizer_defaults['weight_decay'] = self.__getParameter(weight_decay=weight_decay)
-            if optimizer == 'SGD':
-                optimizer = SGD(optimizer_defaults, optimizer_params)
-
-            elif optimizer == 'Adam':
-                optimizer = Adam(optimizer_defaults, optimizer_params)
-        elif issubclass(optimizer,Optimizer):
-            check(optimizer_params == [], ValueError, "If the optimzer is passed to the training function the optimizer_params option is ignored." )
-            check(optimizer_defaults == {}, ValueError,
-                  "If the optimzer is passed to the training function the optimizer_params option is ignored.")
-            optimizer_defaults['lr'] = self.__getParameter(lr = lr)
-            optimizer_defaults['weight_decay'] = self.__getParameter(weight_decay = weight_decay)
-            self.run_training_params['optimizer'] = optimizer.name
-            optimizer.set_params(all_parameters, params_to_train)
-
-
-        optimizer.set_params(all_parameters, params_to_train)
-        optimizer.add_option_to_params('lr', self.run_training_params['lr_param'], False)
-        optimizer.add_option_to_params('weight_decay', self.run_training_params['weight_decay_param'], False)
+        # Modify the parameter
+        optimizer.add_defaults('lr', lr)
+        optimizer.add_defaults('weight_decay', weight_decay)
         optimizer.add_option_to_params('lr', lr_param)
         optimizer.add_option_to_params('weight_decay', weight_decay_param)
+
+        # Set default if the parameter is not set yet
+        optimizer.add_defaults('lr', self.run_training_params['lr'], False)
+        optimizer.add_defaults('weight_decay', self.run_training_params['weight_decay'], False)
+        optimizer.add_option_to_params('lr', self.run_training_params['lr_param'], False )
+        optimizer.add_option_to_params('weight_decay', self.run_training_params['weight_decay_param'], False)
+
+        self.run_training_params['optimizer'] = optimizer.name
         self.run_training_params['optimizer_params'] = optimizer.optimizer_params
         self.run_training_params['optimizer_defaults'] = optimizer.optimizer_defaults
-
         self.optimizer = optimizer.get_torch_optimizer()
 
         ## Get num_of_epochs
-        num_of_epochs = self.__getParameter(num_of_epochs = num_of_epochs)
+        num_of_epochs = self.__get_parameter(num_of_epochs = num_of_epochs)
 
         ## Define the loss functions
-        minimize_gain = self.__getParameter(minimize_gain = minimize_gain)
+        minimize_gain = self.__get_parameter(minimize_gain = minimize_gain)
         self.run_training_params['minimize'] = {}
         for name, values in self.minimize_dict.items():
             self.losses[name] = CustomLoss(values['loss'])
