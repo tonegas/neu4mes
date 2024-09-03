@@ -12,6 +12,14 @@ relation.CHECK_NAMES = False
 
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
+
+def funIn(x, w):
+    return x * w
+
+
+def funOut(x, w):
+    return x / w
+
 class Neu4mesTrainingTest(unittest.TestCase):
     def test_network_mass_spring_damper(self):
         x = Input('x')  # Position
@@ -336,7 +344,372 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual(0.001, test.run_training_params['optimizer_defaults']['lr'])
 
     def test_optimizer_configuration(self):
-        pass
+        ## Model1
+        input1 = Input('in1')
+        a = Parameter('a', dimensions=1, tw=0.05, values=[[1], [1], [1], [1], [1]])
+        shared_w = Parameter('w', values=[[5]])
+        output1 = Output('out1',
+                         Fir(parameter=a)(input1.tw(0.05)) + ParamFun(funIn, n_input=1, parameters={'w': shared_w})(
+                             input1.last()))
+
+        test = Neu4mes(visualizer = None, seed = 42)
+        test.addModel('model1', output1)
+        test.addMinimize('error1', input1.last(), output1)
+
+        ## Model2
+        input2 = Input('in2')
+        b = Parameter('b', dimensions=1, tw=0.05, values=[[1], [1], [1], [1], [1]])
+        output2 = Output('out2',
+                         Fir(parameter=b)(input2.tw(0.05)) + ParamFun(funOut, n_input=1, parameters={'w': shared_w})(
+                             input2.last()))
+
+        test.addModel('model2', output2)
+        test.addMinimize('error2', input2.last(), output2)
+        test.neuralizeModel(0.01)
+
+        # Dataset for train
+        data_in1 = np.linspace(0, 5, 60)
+        data_in2 = np.linspace(10, 15, 60)
+        data_out1 = 2
+        data_out2 = -3
+        dataset = {'in1': data_in1, 'in2': data_in2, 'out1': data_in1 * data_out1, 'out2': data_in2 * data_out2}
+        test.loadData(name='dataset1', source=dataset)
+
+        data_in1 = np.linspace(0, 5, 100)
+        data_in2 = np.linspace(10, 15, 100)
+        data_out1 = 2
+        data_out2 = -3
+        dataset = {'in1': data_in1, 'in2': data_in2, 'out1': data_in1 * data_out1, 'out2': data_in2 * data_out2}
+        test.loadData(name='dataset2', source=dataset)
+
+        # Optimizer
+        # Basic usage
+        # Standard optimizer with standard configuration
+        # We train all the models with split [70,20,10], lr =0.01 and epochs = 100
+        # TODO if more than one dataset is loaded I use all the dataset
+        test.trainModel()
+        self.assertEqual(['model1', 'model2'], test.run_training_params['models'])
+        self.assertEqual( 39, test.run_training_params['n_samples_train'])
+        self.assertEqual(11, test.run_training_params['n_samples_val'])
+        self.assertEqual(6, test.run_training_params['n_samples_test'])
+        self.assertEqual(100, test.run_training_params['num_of_epochs'])
+        self.assertEqual(0.001, test.run_training_params['optimizer_defaults']['lr'])
+
+
+        # We train only model1 with split [100,0,0]
+        # TODO Learning rate automoatically optimized based on the mean and variance of the output
+        # TODO num_of_epochs automatically defined
+        # now is 0.001 for learning rate and 100 for the epochs and optimizer Adam
+        test.trainModel(models='model1', splits=[100, 0, 0])
+        self.assertEqual('model1', test.run_training_params['models'])
+        self.assertEqual(100, test.run_training_params['num_of_epochs'])
+        self.assertEqual( 56, test.run_training_params['n_samples_train'])
+        self.assertEqual(0, test.run_training_params['n_samples_val'])
+        self.assertEqual(0, test.run_training_params['n_samples_test'])
+
+
+        # Set number of epoch and learning rate via parameters it works only for standard parameters
+        test.trainModel(models='model1', splits=[100, 0, 0], lr=0.5, num_of_epochs=5)
+        self.assertEqual('model1', test.run_training_params['models'])
+        self.assertEqual(5, test.run_training_params['num_of_epochs'])
+        self.assertEqual( 56, test.run_training_params['n_samples_train'])
+        self.assertEqual(0, test.run_training_params['n_samples_val'])
+        self.assertEqual(0, test.run_training_params['n_samples_test'])
+        self.assertEqual(0.5, test.run_training_params['optimizer_defaults']['lr'])
+
+
+        # Set number of epoch and learning rate via parameters it works only for standard parameters and use two different dataset one for train and one for validation
+        test.trainModel(models='model1', train_dataset='dataset1', validation_dataset='dataset2', lr=0.6, num_of_epochs=10)
+        self.assertEqual('model1', test.run_training_params['models'])
+        self.assertEqual(10, test.run_training_params['num_of_epochs'])
+        self.assertEqual(56, test.run_training_params['n_samples_train'])
+        self.assertEqual(96, test.run_training_params['n_samples_val'])
+        self.assertEqual(0, test.run_training_params['n_samples_test'])
+        self.assertEqual(0.6, test.run_training_params['optimizer_defaults']['lr'])
+
+        # Use dictionary for set number of epoch, learning rate, etc.. This configuration works only standard parameters (all the parameters that are input of the trainModel).
+        training_params = {
+            'models': ['model2'],
+            'splits': [55, 40, 5],
+            'num_of_epochs': 20,
+            'lr': 0.7
+        }
+        test.trainModel(training_params=training_params)
+        self.assertEqual(['model2'], test.run_training_params['models'])
+        self.assertEqual(20, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*55/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*40/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*5/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.7, test.run_training_params['optimizer_defaults']['lr'])
+
+        # If I add a function parameter it has the priority
+        # In this case apply train parameter but on a different model
+        test.trainModel(models='model1', training_params=training_params)
+        self.assertEqual('model1', test.run_training_params['models'])
+        self.assertEqual(20, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*55/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*40/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*5/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.7, test.run_training_params['optimizer_defaults']['lr'])
+
+        ##################################
+        # Modify additional parameters in the optimizer that are not present in the standard parameter
+        # In this case I modify the learning rate and the betas of the Adam optimizer
+        # For the optimizer parameter the priority is the following
+        # max priority to the function parameter ('lr' : 0.2)
+        # then the standard_optimizer_parameters ('lr' : 0.1)
+        # finally the standard_train_parameters  ('lr' : 0.5)
+        optimizer_defaults = {
+            'lr': 0.1,
+            'betas': (0.5, 0.99)
+        }
+        test.trainModel(training_params=training_params, optimizer_defaults=optimizer_defaults, lr=0.2)
+        self.assertEqual(['model2'], test.run_training_params['models'])
+        self.assertEqual(20, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*55/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*40/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*5/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.2, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual((0.5, 0.99), test.run_training_params['optimizer_defaults']['betas'])
+
+        test.trainModel(training_params=training_params, optimizer_defaults=optimizer_defaults)
+        self.assertEqual(['model2'], test.run_training_params['models'])
+        self.assertEqual(20, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*55/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*40/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*5/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.1, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual((0.5, 0.99), test.run_training_params['optimizer_defaults']['betas'])
+
+        test.trainModel(training_params=training_params)
+        self.assertEqual(['model2'], test.run_training_params['models'])
+        self.assertEqual(20, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*55/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*40/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*5/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.7, test.run_training_params['optimizer_defaults']['lr'])
+        ##################################
+
+        # Modify the non standard args of the optimizer using the optimizer_defaults
+        # In this case use the SGD with 0.2 of momentum
+        optimizer_defaults = {
+            'momentum': 0.002
+        }
+        test.trainModel(optimizer='SGD', training_params=training_params, optimizer_defaults=optimizer_defaults, lr=0.2)
+        self.assertEqual(['model2'], test.run_training_params['models'])
+        self.assertEqual('SGD', test.run_training_params['optimizer'])
+        self.assertEqual(20, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*55/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*40/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*5/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.2, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual(0.002, test.run_training_params['optimizer_defaults']['momentum'])
+
+
+        # Modify standard optimizer parameter for each training parameter
+        training_params = {
+            'models': ['model1'],
+            'splits': [100, 0, 0],
+            'num_of_epochs': 30,
+            'lr': 0.5,
+            'lr_param': {'a': 0.1}
+        }
+        test.trainModel(training_params=training_params)
+        self.assertEqual(['model1'], test.run_training_params['models'])
+        self.assertEqual(30, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*100/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.5, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'lr': 0.1, 'params': 'a'},
+                               {'lr': 0.0, 'params': 'b'},
+                               {'params': 'w'}], test.run_training_params['optimizer_params'])
+
+        ##################################
+        # Modify standard optimizer parameter for each training parameter using optimizer_params
+        # The priority is the following
+        # max priority to the function parameter ( 'lr_param'={'a': 0.4})
+        # then the optimizer_params ( {'params':'a','lr':0.6} )
+        # then the optimizer_params inside the train_parameters ( {'params':['a'],'lr':0.7} )
+        # finally the train_parameters  ( 'lr_param'={'a': 0.1})
+        # The value applied is 0.4 on the weight 'a'
+        training_params = {
+            'models': ['model1'],
+            'splits': [100, 0, 0],
+            'num_of_epochs': 40,
+            'lr': 0.5,
+            'lr_param': {'a': 0.1},
+            'optimizer_params': [{'params': ['a'], 'lr': 0.7}],
+            'optimizer_defaults': {'lr': 0.12}
+        }
+        optimizer_params = [
+            {'params': ['a'], 'lr': 0.6}
+        ]
+        optimizer_defaults = {
+            'lr': 0.2
+        }
+        test.trainModel(training_params=training_params, optimizer_params=optimizer_params, optimizer_defaults=optimizer_defaults, lr_param={'a': 0.4})
+        self.assertEqual(['model1'], test.run_training_params['models'])
+        self.assertEqual(40, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*100/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_test'])
+        self.assertEqual(0.2, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'lr': 0.4, 'params': 'a'}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(training_params=training_params, optimizer_params=optimizer_params, optimizer_defaults=optimizer_defaults)
+        self.assertEqual(0.2, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'lr': 0.6, 'params': 'a'}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(training_params=training_params, optimizer_params=optimizer_params)
+        self.assertEqual(0.12, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'lr': 0.6, 'params': 'a'}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(training_params=training_params)
+        self.assertEqual(0.12, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'params': 'a', 'lr': 0.7}], test.run_training_params['optimizer_params'])
+
+        del training_params['optimizer_defaults']
+        test.trainModel(training_params=training_params)
+        self.assertEqual(0.5, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'params': 'a', 'lr': 0.7}], test.run_training_params['optimizer_params'])
+
+        del training_params['optimizer_params']
+        test.trainModel(training_params=training_params)
+        self.assertEqual(0.5, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'lr': 0.1, 'params': 'a'},
+                               {'lr': 0.0, 'params': 'b'},
+                               {'params': 'w'}], test.run_training_params['optimizer_params'])
+
+        test.trainModel()
+        self.assertEqual(0.001, test.run_training_params['optimizer_defaults']['lr'])
+        self.assertEqual([{'params': 'a'},
+                               {'params': 'b'},
+                               {'params': 'w'}], test.run_training_params['optimizer_params'])
+        ##################################
+
+        ##################################
+        # Maximum level of configuration I define a custom optimizer with defaults
+        # For the optimizer default the priority is the following
+        # max priority to the function parameter ('lr'= 0.4)
+        # then the optimizer_defaults ('lr':0.1)
+        # then the optimizer_defaults inside the train_parameters ('lr'= 0.12)
+        # finally the train_parameters  ('lr'= 0.5)
+        # The value applied is 0.4 on the weight 'a'
+        class RMSprop(Optimizer):
+            def __init__(self, optimizer_defaults={}, optimizer_params=[]):
+                super(RMSprop, self).__init__('RMSprop', optimizer_defaults, optimizer_params)
+            def get_torch_optimizer(self):
+                import torch
+                return torch.optim.RMSprop(self.replace_key_with_params(), **self.optimizer_defaults)
+        training_params = {
+            'models': ['model1'],
+            'splits': [100, 0, 0],
+            'num_of_epochs': 40,
+            'lr': 0.5,
+            'lr_param': {'a': 0.1},
+            'optimizer_params': [{'params': ['a'], 'lr': 0.7}],
+            'optimizer_defaults': {'lr': 0.12}
+        }
+        optimizer_defaults = {
+            'alpha': 0.8
+        }
+        optimizer = RMSprop(optimizer_defaults)
+        test.trainModel(optimizer=optimizer, training_params=training_params, optimizer_defaults={'lr': 0.3}, lr=0.4)
+        self.assertEqual(['model1'], test.run_training_params['models'])
+        self.assertEqual('RMSprop', test.run_training_params['optimizer'])
+        self.assertEqual(40, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*100/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_test'])
+        self.assertEqual({'lr': 0.4}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'lr': 0.7, 'params': 'a'}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(optimizer=optimizer, training_params=training_params, optimizer_defaults={'lr': 0.1})
+        self.assertEqual({'lr': 0.1}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'lr': 0.7, 'params': 'a'}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(optimizer=optimizer, training_params=training_params)
+        self.assertEqual({'lr': 0.12}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'lr': 0.7, 'params': 'a'}], test.run_training_params['optimizer_params'])
+
+        del training_params['optimizer_defaults']
+        test.trainModel(optimizer=optimizer, training_params=training_params)
+        self.assertEqual({'alpha': 0.8, 'lr': 0.5}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'lr': 0.7, 'params': 'a'}], test.run_training_params['optimizer_params'])
+
+        del training_params['optimizer_params']
+        test.trainModel(optimizer=optimizer, training_params=training_params)
+        self.assertEqual({'alpha': 0.8, 'lr': 0.5}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'lr': 0.1, 'params': 'a'}, {'lr': 0.0, 'params': 'b'}, {'params': 'w'}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(optimizer=optimizer)
+        self.assertEqual({'alpha': 0.8, 'lr': 0.001}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'params': 'a'}, {'params': 'b'}, {'params': 'w'}], test.run_training_params['optimizer_params'])
+        ##################################
+
+        ##################################
+        # Maximum level of configuration I define a custom optimizer with custom value for each params
+        # The priority is the following
+        # max priority to the function parameter ( 'lr_param'={'a': 0.2})
+        # then the optimizer_params ( [{'params':['a'],'lr':1.0}] )
+        # then the optimizer_params inside the train_parameters (  [{'params':['a'],'lr':0.7}] )
+        # then the train_parameters  ( 'lr_param'={'a': 0.1} )
+        # finnaly the optimizer_paramsat the time of the optimizer initialization [{'params':['a'],'lr':0.6}]
+        # The value applied is 0.2 on the weight 'a'
+        training_params = {
+            'models': ['model1'],
+            'splits': [100, 0, 0],
+            'num_of_epochs': 40,
+            'lr': 0.5,
+            'lr_param': {'a': 0.1},
+            'optimizer_params': [{'params': ['a'], 'lr': 0.7}],
+            'optimizer_defaults': {'lr': 0.12}
+        }
+        optimizer_defaults = {
+            'alpha': 0.8
+        }
+        optimizer_params = [
+            {'params': ['a'], 'lr': 0.6},{'params': 'w', 'lr': 0.12, 'alpha': 0.02}
+        ]
+        optimizer = RMSprop(optimizer_defaults, optimizer_params)
+        test.trainModel(optimizer=optimizer, training_params=training_params, optimizer_defaults={'lr': 0.3},
+                        optimizer_params=[{'params': ['a'], 'lr': 1.0},{'params': ['b'], 'lr': 1.2}], lr_param={'a': 0.2})
+        self.assertEqual(['model1'], test.run_training_params['models'])
+        self.assertEqual('RMSprop', test.run_training_params['optimizer'])
+        self.assertEqual(40, test.run_training_params['num_of_epochs'])
+        self.assertEqual(round(56*100/100), test.run_training_params['n_samples_train'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_val'])
+        self.assertEqual(round(56*0/100), test.run_training_params['n_samples_test'])
+        self.assertEqual({'lr': 0.3}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'params': 'a', 'lr': 0.2},{'params': 'b', 'lr': 1.2}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(optimizer=optimizer, training_params=training_params, optimizer_defaults={'lr': 0.3}, optimizer_params=[{'params': ['a'], 'lr': 0.1},{'params': ['b'], 'lr': 0.2}])
+        self.assertEqual({'lr': 0.3}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'params': 'a', 'lr': 0.1},{'params': 'b', 'lr': 0.2}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(optimizer=optimizer, training_params=training_params, optimizer_defaults={'lr': 0.3})
+        self.assertEqual({'lr': 0.3}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'params': 'a', 'lr': 0.7}], test.run_training_params['optimizer_params'])
+
+        test.trainModel(optimizer=optimizer, training_params=training_params)
+        self.assertEqual({'lr': 0.12}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'params': 'a', 'lr': 0.7}], test.run_training_params['optimizer_params'])
+
+        del training_params['optimizer_defaults']
+        test.trainModel(optimizer=optimizer, training_params=training_params)
+        self.assertEqual({'alpha': 0.8, 'lr': 0.5}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'params': 'a', 'lr': 0.7}], test.run_training_params['optimizer_params'])
+
+        del training_params['optimizer_params']
+        test.trainModel(optimizer=optimizer, training_params=training_params)
+        self.assertEqual({'alpha': 0.8, 'lr': 0.5}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'lr': 0.6, 'params': 'a'}, {'alpha': 0.02, 'lr': 0.12, 'params': 'w'}], test.run_training_params['optimizer_params']) #???  {'a': 0.1}
+
+        test.trainModel(optimizer=optimizer)
+        self.assertEqual({'alpha': 0.8, 'lr': 0.001}, test.run_training_params['optimizer_defaults'])
+        self.assertEqual([{'params': 'a', 'lr': 0.6},{'params': 'w', 'lr': 0.12, 'alpha': 0.02}], test.run_training_params['optimizer_params'])
+
     
     def test_multimodel_with_loss_gain_and_lr_gain(self):
         ## Model1

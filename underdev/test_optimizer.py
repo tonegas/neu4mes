@@ -71,6 +71,7 @@ training_params = {
     'lr': 0.7
 }
 test.trainModel(training_params = training_params)
+
 # If I add a function parameter it has the priority
 # In this case apply train parameter but on a different model
 test.trainModel(models='model2', training_params = training_params)

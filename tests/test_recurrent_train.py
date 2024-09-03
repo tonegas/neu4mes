@@ -194,7 +194,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         rel_x = ClosedLoop(rel_x, x_state) 
         out = Output('out', rel_x)
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer = None, seed=42)
         test.addModel('out',out)
         test.neuralizeModel(0.01)
 

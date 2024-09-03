@@ -638,9 +638,9 @@ class Neu4mes:
         # Get the optimizer
         if type(optimizer) is str:
             if optimizer == 'SGD':
-                optimizer = SGD()
+                optimizer = SGD({},[])
             elif optimizer == 'Adam':
-                optimizer = Adam()
+                optimizer = Adam({},[])
         else:
             check(issubclass(type(optimizer), Optimizer), TypeError,
                   "The optimizer must be an Optimizer or str")
@@ -784,6 +784,11 @@ class Neu4mes:
         optimizer.add_defaults('weight_decay', weight_decay)
         optimizer.add_option_to_params('lr', lr_param)
         optimizer.add_option_to_params('weight_decay', weight_decay_param)
+        # if training_params is not None:
+        #     if 'lr_param' in training_params:
+        #         optimizer.add_option_to_params('lr', training_params['lr_param'])
+        #     if 'weight_decay_param' in training_params:
+        #         optimizer.add_option_to_params('weight_decay', training_params['weight_decay_param'])
 
         # Set default if the parameter is not set yet
         optimizer.add_defaults('lr', self.run_training_params['lr'], False)

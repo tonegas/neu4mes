@@ -3,7 +3,7 @@ import torch
 
 from neu4mes.utilis import check
 
-class Optimizer():
+class Optimizer:
     def __init__(self, name, optimizer_defaults = {}, optimizer_params = []):
         self.name = name
         self.optimizer_defaults = optimizer_defaults
