@@ -4,9 +4,9 @@ import numpy as np
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import NeuObj, Stream, merge
+from neu4mes.relation import NeuObj, Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check
+from neu4mes.utilis import check, merge
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -87,17 +87,17 @@ def rectangular(x, idx_channel, chan_centers):
     if idx_channel == 0:
         if num_channels != 1:
             width = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
-            act_fcn = torch.where(x < (chan_centers[idx_channel] + width), torch.tensor(1.0), torch.tensor(0.0))
+            act_fcn = torch.where(x < (chan_centers[idx_channel] + width), 1.0, 0.0)
         else:
             # In case the user only wants one channel
-            act_fcn = torch.tensor(1.0)
+            act_fcn = 1.0
     elif idx_channel != 0 and idx_channel == (num_channels - 1):
         width = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = torch.where(x >= chan_centers[idx_channel] - width, torch.tensor(1.0), torch.tensor(0.0))
+        act_fcn = torch.where(x >= chan_centers[idx_channel] - width, 1.0, 0.0)
     else:
         width_forward = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2  
         width_backward = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = torch.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), torch.tensor(1.0), torch.tensor(0.0))
+        act_fcn = torch.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), 1.0, 0.0)
   
     return act_fcn
 
@@ -124,6 +124,7 @@ def custom_function(func, x, idx_channel, chan_centers):
   
     return act_fcn
 '''
+
 def custom_function(func, x, idx_channel, chan_centers):
     act_fcn = func(x-chan_centers[idx_channel])
     return act_fcn
@@ -154,20 +155,24 @@ class Fuzzify_Layer(nn.Module):
                     print(f"An error occurred: {e}")
 
     def forward(self, x):
-        res = torch.empty((x.size(0), x.size(1), self.dimension), dtype=torch.float32)
+        #res = torch.empty((x.size(0), x.size(1), self.dimension), dtype=torch.float32)
+        res = torch.zeros_like(x).repeat(1,1,self.dimension)
 
         if self.function == 'Triangular':
             for i in range(len(self.centers)):
-                res[:, :, i:i+1] = triangular(x, i, self.centers)
+                #res[:, :, i:i+1] = triangular(x, i, self.centers)
+                slicing(res,i, triangular(x, i, self.centers))
         elif self.function == 'Rectangular':
             for i in range(len(self.centers)):
-                res[:, :, i:i+1] = rectangular(x, i, self.centers)
+                #res[:, :, i:i+1] = rectangular(x, i, self.centers)
+                slicing(res,i,rectangular(x, i, self.centers))
         else: ## Custom_function
             if self.n_func == 1:
                 # Retrieve the function object from the globals dictionary
                 function_to_call = globals()[self.name]
                 for i in range(len(self.centers)):
-                    res[:, :, i:i+1] = custom_function(function_to_call, x, i, self.centers)
+                    #res[:, :, i:i+1] = custom_function(function_to_call, x, i, self.centers)
+                    slicing(res,i,custom_function(function_to_call, x, i, self.centers))
             else: ## we have multiple functions
                 for i in range(len(self.centers)):
                     if i >= self.n_func:
@@ -175,13 +180,15 @@ class Fuzzify_Layer(nn.Module):
                     else:
                         func_idx = i
                     function_to_call = globals()[self.name[func_idx]]
-                    res[:, :, i:i+1] = custom_function(function_to_call, x, i, self.centers)
-
-        #if res.ndim == 2:
-        #    res = res.unsqueeze(1)  ## add the window dimension
+                    #res[:, :, i:i+1] = custom_function(function_to_call, x, i, self.centers)
+                    slicing(res,i,custom_function(function_to_call, x, i, self.centers))
         return res
 
-def createFuzzify(self, params):
-    return Fuzzify_Layer(params)
+@torch.fx.wrap
+def slicing(res, i, x):
+    res[:, :, i:i+1] = x
+
+def createFuzzify(self, *params):
+    return Fuzzify_Layer(params[0])
 
 setattr(Model, fuzzify_relation_name, createFuzzify)

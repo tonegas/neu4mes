@@ -2,12 +2,13 @@ import sys
 import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
+from torch.fx import symbolic_trace
 
 from neu4mes import *
 
 x = Input('x')
 F = Input('F')
-
+'''
 print("------------------------EXAMPLE 1------------------------")
 # Example 1
 # Here a fuzzify function is created with 5 membership functions in a range [1,5] of the input variable
@@ -135,3 +136,31 @@ example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[-9,-3.0,3.0,9.0]}))
 #
+'''
+print("------------------------EXAMPLE 9------------------------")
+# Example 3
+# Create 6 membership functions by dividing the range from 1, 6 with rectangular functions
+# centers are in [1,2,3,4,5,6] functions are 1 wide except the first and last
+# [-inf, 1.5] [1.5,2.5] [2.5,3.5] [3.5,4.5] [4.5,5.5] [5.5.inf]
+fuz = Fuzzify(6,[1,6], functions = 'Triangular')
+out = Output('out',fuz(x.last()))
+result_path = os.path.join(os.getcwd(), "results", "example1")
+example = Neu4mes(folder=result_path)
+example.addModel('out',out)
+example.neuralizeModel()
+print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]
+print(example({'x':[2.5]})) ## should give [0, 0, 1, 0, 0, 0]
+print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0, 0]
+trace = symbolic_trace(example.model)
+#print(dir(trace))
+#attributes = [line.replace('self.', '') for line in trace.code.split() if 'self.' in line]
+#print(attributes)
+#for i in attributes:
+#    print(f'{i} : {getattr(trace, i)}')
+
+file_name = example.exportTracer()
+example.importTracer(file_name=os.path.join(result_path, file_name))
+print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]
+print(example({'x':[2.5]})) ## should give [0, 0, 1, 0, 0, 0]
+print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0, 0]
+

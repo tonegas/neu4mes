@@ -1,5 +1,6 @@
 # Neu4mes
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  [![Travis-CI Status](https://app.travis-ci.com/tonegas/neu4mes.svg?branch=master)](https://travis-ci.org/tonegas/neu4mes)  [![Coverage Status](https://coveralls.io/repos/github/tonegas/neu4mes/badge.svg?branch=master)](https://coveralls.io/github/tonegas/neu4mes?branch=master)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0) [![Travis-CI Status](https://app.travis-ci.com/tonegas/neu4mes.svg?branch=master)](https://travis-ci.org/tonegas/neu4mes)  [![Coverage Status](https://coveralls.io/repos/github/tonegas/neu4mes/badge.svg?branch=master)](https://coveralls.io/github/tonegas/neu4mes?branch=master)
+
 <a name="readme-top"></a>
 ## Structured neural network framework for modeling and control mechanical system
 _Structured neural networks_ (SNNs) are a new neural networks concept. 
@@ -55,6 +56,9 @@ The realized neural controller will be exported using C language or ONNX, and it
         <li><a href="#parametersshape">Parameters</a></li>
         <li><a href="#paramfunshape">Parametric Function</a></li>
       </ul>
+    </li>
+    <li>
+      <a href="#license">License</a>
     </li>
   </ol>
 </details>
@@ -347,5 +351,11 @@ The Parametric functions take inputs and parameters as inputs
 Parameter dimensions are the same as defined by the parameters if the dimensions are not defined they will be equal to `[window = 1,dim = 1]`
 Dimensions of the inputs inside the parametric function are the same as those managed within the Pytorch framework equal to `[batch, window, dim]`
 Output dimensions must follow the same convention `[batch, window, dim]`
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<a name="license"></a>
+## License
+This project is released under the license [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

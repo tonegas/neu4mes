@@ -7,7 +7,8 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 # Create neu4mes structure
-vehicle = Neu4mes(visualizer=MPLVisulizer(),seed=0)
+result_path = os.path.join(os.getcwd(), "results", "example1")
+vehicle = Neu4mes(visualizer=MPLVisulizer(), seed=0, folder=result_path)
 
 # Dimensions of the layers
 n  = 25
@@ -23,7 +24,7 @@ acc = Input('acc')
 
 # Create neural network relations
 air_drag_force = Linear(b=True)(velocity.last()**2)
-breaking_force = -Relu(Fir(parameter_init = init_negexp, parameter_init_params={'size_index':0, 'first_value':0.01, 'lambda':3})(brake.sw(n)))
+breaking_force = -Relu(Fir(parameter_init = init_negexp, parameter_init_params={'size_index':0, 'first_value':0.005, 'lambda':3})(brake.sw(n)))
 gravity_force = Linear(W_init=init_lin, W_init_params={'size_index':1, 'first_value':-1, 'last_value':1})(altitude.last())
 fuzzi_gear = Fuzzify(6, range=[2,7], functions='Rectangular')(gear.last())
 local_model = LocalModel(input_function=lambda: Fir(parameter_init = init_negexp))
@@ -36,6 +37,7 @@ out = Output('accelleration', air_drag_force+breaking_force+gravity_force+engine
 vehicle.addModel('acc',[out])
 vehicle.addMinimize('acc_error', acc.last(), out, loss_function='rmse')
 vehicle.neuralizeModel(0.05)
+#vehicle.exportJSON()
 
 # Load the training and the validation dataset
 data_struct = ['vel','trq','brk','gear','alt','acc']
@@ -46,8 +48,21 @@ vehicle.loadData(name='validationset', source=data_folder, format=data_struct, s
 
 # Filter the data
 def filter_function(sample):
-   return np.all(sample['vel'] >= 1.).tolist()
+    return np.all(sample['vel'] >= 1.).tolist()
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, training_params={'num_of_epochs':400, 'val_batch_size':128, 'train_batch_size':128, 'learning_rate':0.00003})
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, training_params={'num_of_epochs':10, 'val_batch_size':128, 'train_batch_size':128, 'learning_rate':0.00003})
+
+## Neural network Predict
+sample = vehicle.get_random_samples(dataset='validationset', window=1)
+result = vehicle(sample, sampled=True)
+print('Predicted accelleration: ', result['accelleration'])
+print('True accelleration: ', sample['acc'])
+
+file_name = vehicle.exportTracer()
+vehicle.importTracer(file_name=file_name)
+
+result = vehicle(sample, sampled=True)
+print('Predicted accelleration: ', result['accelleration'])
+print('True accelleration: ', sample['acc'])

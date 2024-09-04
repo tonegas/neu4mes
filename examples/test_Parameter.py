@@ -38,8 +38,8 @@ print(example({'x':[1,2,3,4,6]}))
 print("------------------------EXAMPLE 3------------------------")
 # Example 3
 # Create two parameters and use them inside a parametric function the parameters are inizialized
-g = Parameter('g', dimensions=3, values=[4,5,6])
-t = Parameter('t', dimensions=3, values=[1,2,3])
+g = Parameter('gg', dimensions=3, values=[[4,5,6]])
+t = Parameter('tt', dimensions=3, values=[[1,2,3]])
 def fun(x, k, t):
     import torch
     return x+(k+t)
@@ -54,14 +54,14 @@ print(example({'x':[1,6,0]}))
 print("------------------------EXAMPLE 4------------------------")
 # Example 4
 # Create two parameters fo initializa a Fir and a Linear the two parameters are initialized.
-g = Parameter('g', dimensions=(4,1),values=[[[1],[2],[3],[4]]])
+g = Parameter('ggg', dimensions=(4,1),values=[[[1],[2],[3],[4]]])
 o = Parameter('o', sw=3, dimensions=2, values=[[2,3],[1,2],[1,2]])
-x = Input('x', dimensions=4)
+x = Input('xx', dimensions=4)
 y = Input('y')
 out = Output('out', Linear(W=g)(x.sw(3)))
 out2 = Output('out2', Fir(parameter=o)(y.sw(3)))
 example = Neu4mes()
 example.addModel('out12',[out,out2])
 example.neuralizeModel()
-print('result: ', example({'x':[[1,2,4,4],[1,2,4,4],[1,2,4,4]],'y':[1,2,4,2]}))
+print('result: ', example({'xx':[[1,2,4,4],[1,2,4,4],[1,2,4,4]],'y':[1,2,4,2]}))
 #

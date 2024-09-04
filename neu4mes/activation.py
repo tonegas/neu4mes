@@ -1,4 +1,3 @@
-import copy
 import torch.nn as nn
 
 from neu4mes.relation import Stream, ToStream, toStream

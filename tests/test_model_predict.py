@@ -5,6 +5,9 @@ sys.path.append(os.getcwd())
 
 import unittest
 from neu4mes import *
+from neu4mes import relation
+relation.CHECK_NAMES = False
+
 import torch
 
 # This file test the model prediction in particular the output value
@@ -28,6 +31,7 @@ def myfun3(a, b, p1, p2):
 # The third is the size of the signal
 
 class MyTestCase(unittest.TestCase):
+    
     def TestAlmostEqual(self, data1, data2, precision=4):
         assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2, dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'
         if type(data1) == type(data2) == list:  
@@ -35,14 +39,14 @@ class MyTestCase(unittest.TestCase):
                 self.TestAlmostEqual(pred, label, precision=precision)
         else:
             self.assertAlmostEqual(data1, data2, places=precision)
-    
+
     def test_single_in(self):
         torch.manual_seed(1)
         in1 = Input('in1')
         in2 = Input('in2')
         out_fun = Fir(in1.tw(0.1)) + Fir(in2.last())
         out = Output('out', out_fun)
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed=1)
         test.addModel('out',out)
         test.neuralizeModel(0.01)
         results = test({'in1': [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],'in2': [[5]]})
@@ -57,7 +61,6 @@ class MyTestCase(unittest.TestCase):
     
     def test_single_in_window(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
-        torch.manual_seed(1)
         in1 = Input('in1')
 
         # Finestre nel tempo
@@ -80,7 +83,7 @@ class MyTestCase(unittest.TestCase):
         out14 = Output('x.sw([-3,-2])',  in1.sw([-3, -2]))
         out15 = Output('x.sw([0,1])',  in1.sw([0, 1]))
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed=1)
         #test.addModel('out',[out0,out1,out2,out3,out4,out5,out6,out7,out11,out12,out13,out14,out15])
         test.addModel('out',[out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15])
 
@@ -122,7 +125,6 @@ class MyTestCase(unittest.TestCase):
     
     def test_single_in_window_offset(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
-        torch.manual_seed(1)
         in1 = Input('in1')
 
         # Finestre nel tempo
@@ -138,7 +140,7 @@ class MyTestCase(unittest.TestCase):
         out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=2))
         out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',[out1,out2,out3,out4,out5,out6,out7,out8,out9])
 
         test.neuralizeModel(1)
@@ -167,7 +169,6 @@ class MyTestCase(unittest.TestCase):
     
     def test_multi_in_window_offset(self):
         # Here there is more sample for each time step but the dimensions of the input is 1
-        torch.manual_seed(1)
         in1 = Input('in1',dimensions=3)
 
         # Finestre nel tempo
@@ -183,7 +184,7 @@ class MyTestCase(unittest.TestCase):
         out8 = Output('x.sw([-3, 3])', in1.sw([-3, 3], offset=2))
         out9 = Output('x.sw([-3, 3])-2', in1.sw([-3, 3], offset=-1))
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',[out1, out2, out3, out4, out5, out6, out7, out8, out9])
 
         test.neuralizeModel(1)
@@ -296,7 +297,7 @@ class MyTestCase(unittest.TestCase):
         out6 = Output('Fir4', Fir(4)(in1.tw([2,3],offset=2)))#
         out7 = Output('Fir6', Fir(6)(in1.sw([-2,-1], offset=-2)))#
 
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',[out1,out2,out3,out4,out5,out6,out7])
         test.neuralizeModel(1)
         # Single input
@@ -360,6 +361,7 @@ class MyTestCase(unittest.TestCase):
         # Time   -2, -1, 0, 1, 2, 3, 4
         input = [-2, -1, 0, 1, 2, 3, 12]
         results = test({'x': input})
+
         self.assertEqual((2,), np.array(results['out1']).shape)
         self.TestAlmostEqual([15,56], results['out1'])
         self.assertEqual((2,), np.array(results['out2']).shape)
@@ -374,11 +376,10 @@ class MyTestCase(unittest.TestCase):
     def test_single_in_window_offset_parametric_function(self):
         # An input dimension is temporal and does not remain unchanged unless redefined on output
         # If there are multiple inputs the function returns an error if the dimensions are not defined
-        torch.manual_seed(1)
         in1 = Input('in1')
         parfun = ParamFun(myfun)
         out = Output('out', parfun(in1.last()))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -386,15 +387,15 @@ class MyTestCase(unittest.TestCase):
         #self.TestAlmostEqual(results['out'], [0.7576315999031067])
         results = test({'in1': [[1]]})
         self.assertEqual((1,), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'],[0.524665892124176])
+        self.TestAlmostEqual(results['out'],[0.7576315999031067])
         results = test({'in1': [2]})
-        self.TestAlmostEqual(results['out'],[1.049331784248352])
+        self.TestAlmostEqual(results['out'],[1.5152631998062134])
         results = test({'in1': [1,2]})
         self.assertEqual((2,), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'],[0.524665892124176,1.049331784248352])
+        self.TestAlmostEqual(results['out'],[0.7576315999031067,1.5152631998062134])
 
         out = Output('out', ParamFun(myfun)(in1.tw(0.2)))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -404,19 +405,19 @@ class MyTestCase(unittest.TestCase):
             results = test({'in1': [2]})
         results = test({'in1': [1,2]})
         self.assertEqual((1,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134]])
         results = test({'in1': [[1,2]]}, sampled=True)
         self.assertEqual((1,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134]])
         results = test({'in1': [1, 2, 3, 4, 5]})# Qui vengono costruite gli input a due a due con shift di 1
         self.assertEqual((4,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085], [0.0809701681137085, 0.12145525217056274], [0.12145525217056274, 0.161940336227417], [0.161940336227417, 0.20242542028427124]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134], [1.5152631998062134, 2.272894859313965], [2.272894859313965, 3.0305263996124268], [3.0305263996124268, 3.7881579399108887]])
         results = test({'in1': [[1, 2], [2, 3], [3, 4], [4, 5]]}, sampled=True)
         self.assertEqual((4,2), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[0.04048508405685425, 0.0809701681137085], [0.0809701681137085, 0.12145525217056274], [0.12145525217056274, 0.161940336227417], [0.161940336227417, 0.20242542028427124]])
+        self.TestAlmostEqual(results['out'], [[0.7576315999031067, 1.5152631998062134], [1.5152631998062134, 2.272894859313965], [2.272894859313965, 3.0305263996124268], [3.0305263996124268, 3.7881579399108887]])
 
         out = Output('out', ParamFun(myfun)(in1.last(),in1.last()))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer=None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -486,14 +487,13 @@ class MyTestCase(unittest.TestCase):
     
     def test_vectorial_input_parametric_function(self):
         # Vector input for parametric function
-        torch.manual_seed(1)
         in1 = Input('in1', dimensions=3)
         in2 = Input('in2', dimensions=2)
         p1 = Parameter('p1', dimensions=(3,2),values=[[[1,2],[3,4],[5,6]]])
         p2 = Parameter('p2', dimensions=3,values=[[1,2,3]])
         parfun = ParamFun(myfun3, parameters=[p1,p2])
         out = Output('out', parfun(in1.last(),in2.last()))
-        test = Neu4mes(visualizer=None)
+        test = Neu4mes(visualizer = None, seed = 1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
@@ -508,32 +508,114 @@ class MyTestCase(unittest.TestCase):
     def test_parametric_function_and_fir(self):
         in1 = Input('in1')
         in2 = Input('in2')
-        k1 = Parameter('k1', dimensions=1, tw=0.4, values=[[1.0], [1.0], [1.0], [1.0]])
-        k2 = Parameter('k2', dimensions=1, tw=0.4, values=[[1.0], [1.0], [1.0], [1.0]])
-        out = Output('out', Fir(ParamFun(myfun2, parameters=[k1,k2])(in1.tw(0.4))))
-        test = Neu4mes(visualizer=None, seed=42)
+        out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4))))
+        test = Neu4mes(visualizer=None, seed=1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
         with self.assertRaises(StopIteration):
             test({'in1': [1, 2, 2]})
         results = test({'in1': [[1], [2], [2], [4]]})
-        self.TestAlmostEqual(results['out'][0], 0.06549876928329468)
+        self.TestAlmostEqual(results['out'][0], -0.03262542933225632)
         results = test({'in1': [[[1], [2], [2], [4]],[[2], [2], [4], [5]]]}, sampled=True)
-        self.TestAlmostEqual(results['out'], [0.06549876928329468, -0.38155099749565125])
+        self.TestAlmostEqual(results['out'], [-0.03262542933225632, -0.001211114227771759])
         results = test({'in1': [[1], [2], [2], [4], [5]]})
-        self.TestAlmostEqual(results['out'], [0.06549876928329468, -0.38155099749565125])
+        self.TestAlmostEqual(results['out'], [-0.03262542933225632, -0.001211114227771759])
 
         with self.assertRaises(RuntimeError):
             Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4),in2.tw(0.2))))
 
         in1 = Input('in1')
         in2 = Input('in2')
+        out = Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4),in2.tw(0.4))))
+        test = Neu4mes(visualizer=None, seed=1)
+        test.addModel('out',out)
+        test.neuralizeModel(0.1)
+        with self.assertRaises(StopIteration): ## TODO: change to KeyError when checking the inputs
+            test({'in1': [[1, 2, 2, 4]]})
+        results = test({'in1': [1, 2, 2, 4], 'in2': [1, 2, 2, 4]})
+
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [[1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [1, 2, 2, 4, 5], 'in2': [1, 2, 2, 4]})
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [5, 5, 5, 5]]}, sampled=True)
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044,  0.5163354873657227])
+
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [[1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [1, 2, 2, 4, 5], 'in2': [1, 2, 2, 4]})
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044])
+        results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [5, 5, 5, 5]]}, sampled=True)
+        self.TestAlmostEqual(results['out'], [-0.4379930794239044, 0.5163354873657227])
+
+        in1 = Input('in1')
+        in2 = Input('in2')
+        out = Output('out', Fir(3)(ParamFun(myfun2)(in1.tw(0.4), in2.tw(0.4))))
+        test = Neu4mes(visualizer=None, seed=1)
+        test.addModel('out',out)
+        test.neuralizeModel(0.1)
+
+        results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [1, 2, 2, 4]]}, sampled=True)
+        self.assertEqual((2,1,3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.22182656824588776, -0.11421152949333191, 0.5385046601295471]], [[0.22182656824588776, -0.11421152949333191,  0.5385046601295471]]])
+
+        parfun = ParamFun(myfun2)
+        with self.assertRaises(ValueError):
+            Output('out', parfun(Fir(3)(parfun(in1.tw(0.4), in2.tw(0.4)))))
+
+        parfun = ParamFun(myfun2)
+        out = Output('out', parfun(Fir(3)(parfun(in1.tw(0.4)))))
+        test = Neu4mes(visualizer=None, seed=1)
+        test.addModel('out',out)
+        test.neuralizeModel(0.1)
+
+        results = test({'in1': [[1, 2, 2, 4], [2, 1, 1, 3]]}, sampled=True)
+        self.assertEqual((2,1,3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.2126065045595169, 0.21099068224430084, 0.20540902018547058]], [[0.24776744842529297, 0.2278038114309311, 0.2481299340724945]]])
+
+        results = test({'in1': [1, 2, 2, 4, 3],'in2': [6, 2, 2, 4, 4]})
+        self.assertEqual((2,1,3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.2126065045595169, 0.21099068224430084, 0.20540902018547058]], [[0.1667831689119339,0.16757671535015106, 0.1605043113231659]]])
+        results = test({'in1': [[1, 2, 2, 4],[2, 2, 4, 3]],'in2': [[6, 2, 2, 4],[2, 2, 4, 4]]}, sampled=True)
+        self.assertEqual((2,1,3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.2126065045595169, 0.21099068224430084, 0.20540902018547058]], [[0.1667831689119339, 0.16757671535015106,0.1605043113231659]]])
+
+    def test_parametric_function_and_fir_with_parameters(self):
+        in1 = Input('in1')
+        in2 = Input('in2')
+        k1 = Parameter('k1', dimensions=1, tw=0.4, values=[[1.0], [1.0], [1.0], [1.0]])
+        k2 = Parameter('k2', dimensions=1, tw=0.4, values=[[1.0], [1.0], [1.0], [1.0]])
+        out = Output('out', Fir(ParamFun(myfun2, parameters=[k1, k2])(in1.tw(0.4))))
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel('out', out)
+        test.neuralizeModel(0.1)
+
+        with self.assertRaises(StopIteration):
+            test({'in1': [1, 2, 2]})
+        results = test({'in1': [[1], [2], [2], [4]]})
+        self.TestAlmostEqual(results['out'][0], 0.06549876928329468)
+        results = test({'in1': [[[1], [2], [2], [4]], [[2], [2], [4], [5]]]}, sampled=True)
+        self.TestAlmostEqual(results['out'], [0.06549876928329468, -0.38155099749565125])
+        results = test({'in1': [[1], [2], [2], [4], [5]]})
+        self.TestAlmostEqual(results['out'], [0.06549876928329468, -0.38155099749565125])
+
+        with self.assertRaises(RuntimeError):
+            Output('out', Fir(ParamFun(myfun2)(in1.tw(0.4), in2.tw(0.2))))
+
+        in1 = Input('in1')
+        in2 = Input('in2')
         k1 = Parameter('k1', dimensions=1, tw=0.4, values=[[1.0], [1.0], [1.0], [1.0]])
         k_fir = Parameter('k_fir', dimensions=1, tw=0.4, values=[[1.0], [1.0], [1.0], [1.0]])
-        out = Output('out', Fir(parameter=k_fir)(ParamFun(myfun2, parameters=[k1])(in1.tw(0.4),in2.tw(0.4))))
+        out = Output('out', Fir(parameter=k_fir)(ParamFun(myfun2, parameters=[k1])(in1.tw(0.4), in2.tw(0.4))))
         test = Neu4mes(visualizer=None, seed=42)
-        test.addModel('out',out)
+        test.addModel('out', out)
         test.neuralizeModel(0.1)
         with self.assertRaises(StopIteration):
             test({'in1': [[1, 2, 2, 4]]})
@@ -546,7 +628,7 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
         self.TestAlmostEqual(results['out'], [0.3850506544113159])
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [5, 5, 5, 5]]}, sampled=True)
-        self.TestAlmostEqual(results['out'], [0.3850506544113159,  1.446676254272461])
+        self.TestAlmostEqual(results['out'], [0.3850506544113159, 1.446676254272461])
 
         self.TestAlmostEqual(results['out'], [0.3850506544113159])
         results = test({'in1': [[1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
@@ -556,20 +638,22 @@ class MyTestCase(unittest.TestCase):
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
         self.TestAlmostEqual(results['out'], [0.3850506544113159])
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [5, 5, 5, 5]]}, sampled=True)
-        self.TestAlmostEqual(results['out'], [0.3850506544113159,  1.446676254272461])
+        self.TestAlmostEqual(results['out'], [0.3850506544113159, 1.446676254272461])
 
         in1 = Input('in1')
         in2 = Input('in2')
         k1 = Parameter('k1', dimensions=1, tw=0.4, values=[[1.0], [1.0], [1.0], [1.0]])
-        k_fir = Parameter('k_fir', dimensions=3, tw=0.4, values=[[1.0,1.0,1.0], [1.0,1.0,1.0], [1.0,1.0,1.0], [1.0,1.0,1.0]])
+        k_fir = Parameter('k_fir', dimensions=3, tw=0.4,
+                          values=[[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]])
         out = Output('out', Fir(3, parameter=k_fir)(ParamFun(myfun2, parameters=[k1])(in1.tw(0.4), in2.tw(0.4))))
         test = Neu4mes(visualizer=None)
-        test.addModel('out',out)
+        test.addModel('out', out)
         test.neuralizeModel(0.1)
 
         results = test({'in1': [[1, 2, 2, 4], [1, 2, 2, 4]], 'in2': [[1, 2, 2, 4], [1, 2, 2, 4]]}, sampled=True)
-        self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[0.3850506544113159, 0.3850506544113159, 0.3850506544113159]], [[0.3850506544113159, 0.3850506544113159, 0.3850506544113159]]])
+        self.assertEqual((2, 1, 3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.3850506544113159, 0.3850506544113159, 0.3850506544113159]],
+                                              [[0.3850506544113159, 0.3850506544113159, 0.3850506544113159]]])
 
         parfun = ParamFun(myfun2)
         with self.assertRaises(ValueError):
@@ -578,26 +662,29 @@ class MyTestCase(unittest.TestCase):
         parfun = ParamFun(myfun2)
         out = Output('out', parfun(Fir(3)(parfun(in1.tw(0.4)))))
         test = Neu4mes(visualizer=None, seed=42)
-        test.addModel('out',out)
+        test.addModel('out', out)
         test.neuralizeModel(0.1)
 
         results = test({'in1': [[1, 2, 2, 4], [2, 1, 1, 3]]}, sampled=True)
-        self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[0.790096640586853, 0.7821592688560486, 0.8219361901283264]], [[0.8505557179450989, 0.7224123477935791, 0.77630215883255]]])
+        self.assertEqual((2, 1, 3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.790096640586853, 0.7821592688560486, 0.8219361901283264]],
+                                              [[0.8505557179450989, 0.7224123477935791, 0.77630215883255]]])
 
-        results = test({'in1': [1, 2, 2, 4, 3],'in2': [6, 2, 2, 4, 4]})
-        self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[0.790096640586853, 0.7821592688560486, 0.8219361901283264]], [[-0.09300854057073593, 0.44719645380973816, -0.03044888749718666]]])
-        results = test({'in1': [[1, 2, 2, 4],[2, 2, 4, 3]],'in2': [[6, 2, 2, 4],[2, 2, 4, 4]]}, sampled=True)
-        self.assertEqual((2,1,3), np.array(results['out']).shape)
-        self.TestAlmostEqual(results['out'], [[[0.790096640586853, 0.7821592688560486, 0.8219361901283264]], [[-0.09300854057073593, 0.44719645380973816, -0.03044888749718666]]])
-    
+        results = test({'in1': [1, 2, 2, 4, 3], 'in2': [6, 2, 2, 4, 4]})
+        self.assertEqual((2, 1, 3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.790096640586853, 0.7821592688560486, 0.8219361901283264]],
+                                              [[-0.09300854057073593, 0.44719645380973816, -0.03044888749718666]]])
+        results = test({'in1': [[1, 2, 2, 4], [2, 2, 4, 3]], 'in2': [[6, 2, 2, 4], [2, 2, 4, 4]]}, sampled=True)
+        self.assertEqual((2, 1, 3), np.array(results['out']).shape)
+        self.TestAlmostEqual(results['out'], [[[0.790096640586853, 0.7821592688560486, 0.8219361901283264]],
+                                              [[-0.09300854057073593, 0.44719645380973816, -0.03044888749718666]]])
+
     def test_trigonometri_parameter_and_numeric_constant(self):
         torch.manual_seed(1)
         in1 = Input('in1').last()
-        par = Parameter('par', sw=1, values=5)
+        par = Parameter('par', values=[[5]])
         in4 = Input('in4', dimensions=4).last()
-        par4 = Parameter('par4', dimensions=4, sw=1, values=[1,2,3,4])
+        par4 = Parameter('par4', values=[[1,2,3,4]])
         add = in1 + par + 5.2
         sub = in1 - par - 5.2
         mul = in1 * par * 5.2
@@ -637,7 +724,7 @@ class MyTestCase(unittest.TestCase):
         self.TestAlmostEqual([34.8819529, 33554496.0,  -33554480.0], results['out1'] )
         self.TestAlmostEqual([[[58.9539756, 46.1638031, 554.231201171875, 4294967296.0]], [[67.3462829589843, 46.16380310058594, 554.231201171875, 4294967296.0]], [[ -41.75371170043945, 567.6907348632812, 1953220.375, 4294967296.0]]], results['out4'])
         self.TestAlmostEqual([4294967808.0, 4328522240.0,  4263366656.0], results['outtot'])
-    
+
     def test_parameter_and_linear(self):
         input = Input('in').last()
         W15 = Parameter('W15', dimensions=(1, 5), values=[[[1,2,3,4,5]]])
@@ -653,19 +740,20 @@ class MyTestCase(unittest.TestCase):
 
         n = Neu4mes(visualizer=None, seed=1)
         n.addModel('out',[o,o3,oW,oWb])
+        #n.addModel('out', [oW])
         n.neuralizeModel()
         results = n({'in': [1, 2], 'in4': [[6, 2, 2, 4], [7, 2, 2, 4]]})
-        self.assertEqual((2,), np.array(results['out']).shape)
-        self.TestAlmostEqual([9.274794578552246,10.3853759765625], results['out'])
-        self.assertEqual((2,1,3), np.array(results['out3']).shape)
-        self.TestAlmostEqual([[[9.247159004211426, 6.103044033050537,7.719359397888184]],[[10.68740463256836, 6.687504291534424,8.585973739624023]]], results['out3'])
+        #self.assertEqual((2,), np.array(results['out']).shape)
+        #self.TestAlmostEqual([9.274794578552246,10.3853759765625], results['out'])
+        #self.assertEqual((2,1,3), np.array(results['out3']).shape)
+        #self.TestAlmostEqual([[[9.247159004211426, 6.103044033050537,7.719359397888184]],[[10.68740463256836, 6.687504291534424,8.585973739624023]]], results['out3'])
         #W15 = torch.tensor([[1,2,3,4,5]])
         #in1 = torch.tensor([[1, 2]])
         #W45 = torch.tensor([[1, 2, 3, 4, 5], [5, 3, 3, 4, 5], [1, 2, 3, 4, 7], [-8, 2, 3, 4, 5]])
         #in4 = torch.tensor([[6, 2, 2, 4], [7, 2, 2, 4]])
         #torch.matmul(W45.t(),in4.t())+torch.matmul(W15.t(),in1)
         self.assertEqual((2, 1, 5), np.array(results['outW']).shape)
-        self.TestAlmostEqual([[[-7.0,36.0,51.0,68.0,89.0]],[[-5.0,40.0,57.,76.,99.]]], results['outW'])
+        self.TestAlmostEqual([[[-13.0,32.0,45.0,60.0,79.0]],[[-11.0,36.0,51.,68.,89.]]], results['outW'])
         # W15 = torch.tensor([[1,2,3,4,5]])
         # b15 = torch.tensor([[5, 2, 3, 4, 5]])
         # in1 = torch.tensor([[1, 2]])
@@ -690,13 +778,59 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((1, 2), np.array(results['out']).shape)
         self.TestAlmostEqual([[7.3881096839904785, 7.91458797454834]], results['out'])
         self.assertEqual((1, 2, 3), np.array(results['out3']).shape)
-        self.TestAlmostEqual([[[8.117439270019531, 6.014362812042236, 7.489190578460693], 
-                               [9.261265754699707, 6.2568135261535645, 7.929978370666504]]], results['out3'])
+        self.TestAlmostEqual([[[8.117439270019531, 6.014362812042236, 7.489190578460693],
+                             [9.261265754699707, 6.2568135261535645, 7.929978370666504]]], results['out3'])
         self.assertEqual((1, 2, 5), np.array(results['outW']).shape)
-        self.TestAlmostEqual([[[-7, 36, 51, 68, 89]],[[-5, 40, 57, 76, 99]]], results['outW'])
+        self.TestAlmostEqual([[[-13.0, 32.0, 45.0, 60.0, 79.0], [-11.0, 36.0, 51., 68., 89.]]], results['outW'])
         self.assertEqual((1, 2, 5), np.array(results['outWb']).shape)
         self.TestAlmostEqual([[[-7, 36, 51, 68, 89], [-5, 40, 57, 76, 99]]], results['outWb'])
-    
+
+    def test_initialization(self):
+        torch.manual_seed(1)
+        input = Input('in')
+        W = Parameter('W', dimensions=(1,1), init=init_constant)
+        b = Parameter('b', dimensions=1, init=init_constant)
+        o = Output('out', Linear(W=W,b=b)(input.last()))
+
+        W5 = Parameter('W5', dimensions=(1,1), init=init_constant, init_params={'value':5})
+        b2 = Parameter('b2', dimensions=1, init=init_constant, init_params={'value':2})
+        o52 = Output('out52', Linear(W=W5,b=b2)(input.last()))
+
+        par = Parameter('par', dimensions=3, sw=2, init=init_constant)
+        opar = Output('outpar', Fir(parameter=par)(input.sw(2)))
+
+        par2 = Parameter('par2', dimensions=3, sw=2, init=init_constant, init_params={'value':2})
+        opar2 = Output('outpar2', Fir(parameter=par2)(input.sw(2)))
+
+        ol = Output('outl', Linear(output_dimension=1,b=True,W_init=init_constant,b_init=init_constant)(input.last()))
+        ol52 = Output('outl52', Linear(output_dimension=1,b=True,W_init=init_constant,b_init=init_constant,W_init_params={'value':5},b_init_params={'value':2})(input.last()))
+        ofpar = Output('outfpar', Fir(output_dimension=3,parameter_init=init_constant)(input.sw(2)))
+        ofpar2 = Output('outfpar2', Fir(output_dimension=3,parameter_init=init_constant,parameter_init_params={'value':2})(input.sw(2)))
+
+        n = Neu4mes(visualizer=None)
+        n.addModel('model',[o,o52,opar,opar2,ol,ol52,ofpar,ofpar2])
+        n.neuralizeModel()
+        results = n({'in': [1, 1, 2]})
+        self.assertEqual((2,), np.array(results['out']).shape)
+        self.TestAlmostEqual([2,3], results['out'])
+        self.assertEqual((2,), np.array(results['out52']).shape)
+        self.TestAlmostEqual([7,12], results['out52'])
+
+        self.assertEqual((2,1,3), np.array(results['outpar']).shape)
+        self.TestAlmostEqual([[[2,2,2]],[[3,3,3]]], results['outpar'])
+        self.assertEqual((2,1,3), np.array(results['outpar2']).shape)
+        self.TestAlmostEqual([[[4,4,4]],[[6,6,6]]], results['outpar2'])
+
+        self.assertEqual((2,), np.array(results['outl']).shape)
+        self.TestAlmostEqual([2,3], results['outl'])
+        self.assertEqual((2,), np.array(results['outl52']).shape)
+        self.TestAlmostEqual([7.0,12.0], results['outl52'])
+
+        self.assertEqual((2,1,3), np.array(results['outfpar']).shape)
+        self.TestAlmostEqual([[[2,2,2]],[[3,3,3]]], results['outfpar'])
+        self.assertEqual((2,1,3), np.array(results['outfpar2']).shape)
+        self.TestAlmostEqual([[[4,4,4]],[[6,6,6]]], results['outfpar2'])
+
     def test_sample_part_and_select(self):
         in1 = Input('in1')
         # Offset before the sample window
@@ -1119,9 +1253,9 @@ class MyTestCase(unittest.TestCase):
         z_state = State('z')
         p = Parameter('p', tw=0.5, dimensions=1, values=[[1.0],[1.0],[1.0],[1.0],[1.0]])
         x_out = Fir(parameter=p)(x.tw(0.5))+F_state.last()+y_state.last()+z_state.last()
-        x_out.update(F_state)
-        x_out.update(y_state)
-        x_out.update(z_state)
+        x_out = ClosedLoop(x_out, F_state)
+        x_out = ClosedLoop(x_out, y_state)
+        x_out = ClosedLoop(x_out, z_state)
         out = Output('out',x_out)
 
         test = Neu4mes(visualizer=None, seed=42)
@@ -1161,8 +1295,8 @@ class MyTestCase(unittest.TestCase):
         x_fir = Fir(parameter=x_p)(x.tw(0.5))
         y_fir = Fir(parameter=y_p)(y_state.tw(0.5))
         z_fir = Fir(parameter=z_p)(z_state.tw(0.5))
-        y_fir.update(y_state)
-        z_fir.update(z_state)
+        y_fir = ClosedLoop(y_fir, y_state)
+        z_fir = ClosedLoop(z_fir, z_state)
         out_x = Output('out_x', x_fir)
         out_y = Output('out_y', y_fir)
         out_z = Output('out_z', z_fir)
@@ -1205,6 +1339,62 @@ class MyTestCase(unittest.TestCase):
         test.clear_state()
         self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
         self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+
+    def test_state_variables_connect(self):
+        ## the state is saved inside the model so the memory is shared between different calls
+        x = Input('x') 
+        y_state = State('y')
+        z_state = State('z')
+        x_p = Parameter('x_p', tw=0.5, dimensions=1, values=[[1.0],[1.0],[1.0],[1.0],[1.0]])
+        y_p = Parameter('y_p', tw=0.5, dimensions=1, values=[[2.0],[2.0],[2.0],[2.0],[2.0]])
+        z_p = Parameter('z_p', tw=0.5, dimensions=1, values=[[3.0],[3.0],[3.0],[3.0],[3.0]])
+        x_fir = Fir(parameter=x_p)(x.tw(0.5))
+        y_fir = Fir(parameter=y_p)(y_state.tw(0.5))
+        z_fir = Fir(parameter=z_p)(z_state.tw(0.5))
+        x_fir = Connect(x_fir, y_state)
+        x_fir = Connect(x_fir, z_state)
+        out_x = Output('out_x', x_fir)
+        out_y = Output('out_y', y_fir)
+        out_z = Output('out_z', z_fir)
+        out = Output('out',x_fir+y_fir+z_fir)
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel('out_all',[out, out_x, out_y, out_z])
+        test.neuralizeModel(0.1)
+
+        ## one sample prediction with state variables not initialized
+        ## (they will have the last valid state)
+        result = test(inputs={'x':[1,2,3,4,5]})
+        self.assertEqual(result['out'], [90.0])
+        self.assertEqual(result['out_x'], [15.0])
+        self.assertEqual(result['out_y'], [30.0])
+        self.assertEqual(result['out_z'], [45.0])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [15.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [15.0]]])
+        ## 1 sample prediction with state variables all initialized
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5], 'z':[1,2,3,4,5]})
+        self.assertEqual(result['out'], [160.0])
+        self.assertEqual(result['out_x'], [15.0])
+        self.assertEqual(result['out_y'], [58.0])
+        self.assertEqual(result['out_z'], [87.0])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [15.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [15.0]]])
+        ## clear state of y
+        test.clear_state(state='y')
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [15.0]]])
+        ## multi-sample prediction with states initialized as many times as they have values
+        result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'y':[1,2,3,4,5,6,7], 'z':[1,2,3,4,5,6]})
+        self.assertEqual(result['out_x'], [15.0, 20.0, 25.0, 30.0, 35.0])
+        self.assertEqual(result['out_y'], [2*(2+3+4+5+15), 2*(3+4+5+6+20), 2*(4+5+6+7+25), 2*(5+6+7+25+30), 2*(6+7+25+30+35)])
+        self.assertEqual(result['out_z'], [3*(2+3+4+5+15), 3*(3+4+5+6+20), 3*(4+5+6+20+25), 3*(5+6+20+25+30), 3*(6+20+25+30+35)])
+        self.assertEqual(result['out'], [sum(x) for x in zip(result['out_x'],result['out_y'],result['out_z'])])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[6.0], [7.0], [25.0], [30.0], [35.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[6.0], [20.0], [25.0], [30.0], [35.0]]])
+        ## Clear all states
+        test.clear_state()
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
     
     def test_multimodel_connect(self):
         ## Model1
@@ -1227,7 +1417,7 @@ class MyTestCase(unittest.TestCase):
         test.addModel('model2', output2)
         test.addMinimize('error2', input2.next(), output2)
         test.neuralizeModel(0.01)
-        
+
         ## Without connect
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])

@@ -11,16 +11,22 @@ from pprint import pprint
 from pprint import pformat
 import re
 import matplotlib.pyplot as plt
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+import io
 import json
 from torch.fx import symbolic_trace
 
-from neu4mes.relation import NeuObj, merge
+from neu4mes.input import closedloop_name, connect_name
+from neu4mes.relation import NeuObj, MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.relation import Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check, argmax_max, argmin_min
+from neu4mes.utilis import check, argmax_max, argmin_min, merge
+from neu4mes.export import plot_fuzzify, generate_training_report
 
 
 from neu4mes import LOG_LEVEL
@@ -50,7 +56,7 @@ class Neu4mes:
         # Inizialize the model definition
         self.stream_dict = {}
         self.minimize_dict = {}
-        self.model_def = NeuObj().json
+        self.update_state_dict = {}
 
         # Network Parametrs
         self.input_tw_backward, self.input_tw_forward = {}, {}
@@ -104,7 +110,7 @@ class Neu4mes:
         model_states = list(self.model_def['States'].keys())
         provided_inputs = list(inputs.keys())
         missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
-        extra_inputs = list(set(provided_inputs) - set(model_inputs))
+        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
 
         for key in model_states:
             if key in inputs.keys():
@@ -152,6 +158,10 @@ class Neu4mes:
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
+        ## Initialize the batch_size
+        self.model.batch_size = 1
+        ## Initialize the connect variables
+        self.model.connect = connect
         ## Cycle through all the samples provided
         self.model.batch_size = 1
         with torch.inference_mode():
@@ -166,7 +176,6 @@ class Neu4mes:
 
                     ## Collect the inputs
                     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
-
                     if key in model_inputs:
                         input_dim = self.model_def['Inputs'][key]['dim']
                     elif key in model_states:
@@ -186,8 +195,7 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(0)
 
                 ## Model Predict
-                if connect:
-                    self.model.connect = connect
+                if self.model.connect:
                     if i==0 or i%prediction_samples == 0:
                         self.model.clear_connect_variables()
                 result, _ = self.model(X)
@@ -238,14 +246,37 @@ class Neu4mes:
             print('The Dataset must first be loaded using <loadData> function!')
             return {}
 
+    def addConnect(self, stream_out, state_list_in):
+        from neu4mes.input import Connect
+        self.__update_state(stream_out, state_list_in, Connect)
+        self.__update_model()
+
+    def addClosedLoop(self, stream_out, state_list_in):
+        from neu4mes.input import ClosedLoop
+        self.__update_state(stream_out, state_list_in, ClosedLoop)
+        self.__update_model()
+
+    def __update_state(self, stream_out, state_list_in, UpdateState):
+        from neu4mes.input import  State
+        if type(state_list_in) is not list:
+            state_list_in = [state_list_in]
+        for state_in in state_list_in:
+            check(isinstance(stream_out, (Output, Stream)), TypeError,
+                  f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
+            check(type(state_in) is State, TypeError,
+                  f"The {state_in} must be a State and not a {type(state_in)}.")
+            if type(stream_out) is Output:
+                stream_name = self.model_def['Outputs'][stream_out.name]
+                stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
+            self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
 
     def addModel(self, name, stream_list):
-        if type(stream_list) is Output:
+        if isinstance(stream_list, (Output,Stream)):
             stream_list = [stream_list]
         if type(stream_list) is list:
             self.stream_dict[name] = copy.deepcopy(stream_list)
         else:
-            raise TypeError(f'json_model is type {type(stream_list)} but must be an Output or list of Output!')
+            raise TypeError(f'stream_list is type {type(stream_list)} but must be an Output or Stream or a list of them')
         self.__update_model()
 
     def removeModel(self, name_list):
@@ -275,27 +306,38 @@ class Neu4mes:
         self.visualizer.showaddMinimize(name)
 
     def __update_model(self):
-        self.model_def = copy.deepcopy(NeuObj().json)
+        self.model_def = copy.deepcopy(MAIN_JSON)
         for key, stream_list in self.stream_dict.items():
             for stream in stream_list:
                 self.model_def = merge(self.model_def, stream.json)
         for key, minimize in self.minimize_dict.items():
             self.model_def = merge(self.model_def, minimize['A'].json)
             self.model_def = merge(self.model_def, minimize['B'].json)
+        for key, update_state in self.update_state_dict.items():
+            self.model_def = merge(self.model_def, update_state.json)
 
 
-    def neuralizeModel(self, sample_time = 1):
+    def neuralizeModel(self, sample_time = 1, clear_model = False):
+        if self.model is not None and clear_model == False:
+            self.model_def_trained = copy.deepcopy(self.model_def)
+            for key,param in self.model.all_parameters.items():
+                self.model_def_trained['Parameters'][key]['values'] = param.tolist()
+                if 'init_fun' in self.model_def_trained['Parameters'][key]:
+                    del self.model_def_trained['Parameters'][key]['init_fun']
+            model_def = copy.deepcopy(self.model_def_trained)
+        else:
+            model_def = copy.deepcopy(self.model_def)
 
         check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
-        self.model_def["SampleTime"] = sample_time
-        #model_def_final = copy.deepcopy(self.model_def)
-        self.visualizer.showModel()
+        model_def["SampleTime"] = sample_time
+        self.visualizer.showModel(model_def)
 
-        check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
-        json_inputs = self.model_def['Inputs'] | self.model_def['States']
+        check(model_def['Inputs'] | model_def['States'] != {}, RuntimeError, "No model is defined!")
+        json_inputs = model_def['Inputs'] | self.model_def['States']
 
-        for key,value in self.model_def['States'].items():
-            check('update' in self.model_def['States'][key], RuntimeError, f'Update function is missing for state {key}. Call X.update({key}) on a Stream X.')
+        for key,value in model_def['States'].items():
+            check(closedloop_name in self.model_def['States'][key] or connect_name in self.model_def['States'][key],
+                  KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
 
         for key, value in json_inputs.items():
             self.input_tw_backward[key] = -value['tw'][0]
@@ -322,7 +364,7 @@ class Neu4mes:
 
         #self.visualizer.showModel()
         ## Build the network
-        self.model = Model(copy.deepcopy(self.model_def), self.minimize_dict, self.input_ns_backward, self.input_n_samples)
+        self.model = Model(model_def, self.minimize_dict, self.input_ns_backward, self.input_n_samples)
         self.visualizer.showBuiltModel()
         self.neuralized = True
 
@@ -489,7 +531,8 @@ class Neu4mes:
                 self.test_batch_size = 1
 
 
-    def resultAnalysis(self, name_data, XY_data, connect):
+    def resultAnalysis(self, name_data, XY_data):
+        import warnings
         with torch.inference_mode():
             self.performance[name_data] = {}
             self.prediction[name_data] = {}
@@ -504,7 +547,7 @@ class Neu4mes:
                 B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
                 aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
-            _, minimize_out = self.model(XY_data, connect)
+            _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A[key] = minimize_out[value['A'].name]
                 B[key] = minimize_out[value['B'].name]
@@ -523,16 +566,23 @@ class Neu4mes:
                 error_mean = np.mean(residual)
                 #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
                 #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
-                self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
-                self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                with warnings.catch_warnings(record=True) as w:
+                    self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+                    self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                    if w and np.var(A_np) == 0.0 and  np.var(B_np) == 0.0:
+                        self.performance[name_data][key]['fvu']['A'] = np.nan
+                        self.performance[name_data][key]['fvu']['B'] = np.nan
                 self.performance[name_data][key]['fvu']['total'] = np.mean([self.performance[name_data][key]['fvu']['A'],self.performance[name_data][key]['fvu']['B']]).item()
                 # Compute AIC
                 #normal_dist = norm(0, error_var ** 0.5)
                 #probability_of_residual = normal_dist.pdf(residual)
                 #log_likelihood_first = sum(np.log(probability_of_residual))
                 p1 = -len(residual)/2.0*np.log(2*np.pi)
-                p2 = -len(residual)/2.0*np.log(error_var)
-                p3 = -1/(2.0*error_var)*np.sum(residual**2)
+                with warnings.catch_warnings(record=True) as w:
+                    p2 = -len(residual)/2.0*np.log(error_var)
+                    p3 = -1 / (2.0 * error_var) * np.sum(residual ** 2)
+                    if w and p2 == np.float32(np.inf) and p3 == np.float32(-np.inf):
+                        p2 = p3 = 0.0
                 log_likelihood = p1+p2+p3
                 #print(f"{key} log likelihood second mode:{log_likelihood} = {p1}+{p2}+{p3} first mode: {log_likelihood_first}")
                 total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad) #TODO to be check the number is doubled
@@ -552,7 +602,7 @@ class Neu4mes:
 
     def trainModel(self, models=None,
                     train_dataset=None, validation_dataset=None, test_dataset=None, splits=[70,20,10],
-                    close_loop=None, step=1, prediction_samples=0,
+                    close_loop={}, step=1, prediction_samples=0,
                     shuffle_data=True, early_stopping=None,
                     lr_gain={}, minimize_gain={}, connect={},
                     training_params = {}):
@@ -712,7 +762,7 @@ class Neu4mes:
 
             ## Early-stopping
             if early_stopping:
-                if early_stopping(train_losses, val_losses):
+                if early_stopping(train_losses, val_losses, training_params):
                     self.visualizer.warning('Stopping the training..')
                     break
 
@@ -739,25 +789,121 @@ class Neu4mes:
         
         # TODO: adjust the result analysis with states variables
         '''
-        self.resultAnalysis(train_dataset, XY_train, connect)
+        self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
-            self.resultAnalysis(validation_dataset, XY_val, connect)
+            self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
-            self.resultAnalysis(test_dataset, XY_test, connect)
+            self.resultAnalysis(test_dataset, XY_test)
+            self.resultReport(XY_test, train_losses, val_losses)
         '''
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
+    
+    def resultReport(self, data, train_loss, val_loss):
+        # Specify the file name
+        file_name = datetime.now().strftime("%Y-%m-%d-%H-%M") + ".pdf"
+        # Combine the folder path and file name to form the complete file path
+        file_path = os.path.join(self.folder, file_name)
+        os.makedirs(self.folder, exist_ok=True)
+        # Create PDF
+        c = canvas.Canvas(file_path, pagesize=letter)
+        width, height = letter
+
+        with torch.inference_mode():
+            out, minimize_out = self.model(data)
         
+        for key, value in self.minimize_dict.items():
+            # Create loss plot
+            plt.figure(figsize=(10, 5))
+            plt.plot(train_loss[key], label='train loss')
+            if val_loss:
+                plt.plot(val_loss[key], label='validation loss')
+            plt.title(f'{key} Error Loss')
+            plt.xlabel('Epoch')
+            plt.ylabel('Loss')
+            plt.legend()
+            loss_plot_buffer = io.BytesIO()
+            plt.savefig(loss_plot_buffer, format='png')
+            loss_plot_buffer.seek(0)
+            plt.close()
+
+            # Add loss plot
+            c.drawString(50, height - 20, f'{key} Report')
+            c.drawImage(ImageReader(loss_plot_buffer), 70, height - 270, width=500, height=250)
+            
+            # Convert tensors to numpy arrays
+            name_a, name_b = value['A'].name, value['B'].name
+            if isinstance(minimize_out[value['A'].name], torch.Tensor):
+                y_pred = minimize_out[value['A'].name].squeeze().squeeze().detach().cpu().numpy()
+            if isinstance(minimize_out[value['B'].name], torch.Tensor):
+                y_true = minimize_out[value['B'].name].squeeze().squeeze().detach().cpu().numpy()
+            # Create the scatter plot
+            plt.figure(figsize=(10, 6))
+            plt.scatter(y_true, y_pred, alpha=0.5)
+            # Plot the perfect prediction line
+            min_val = min(y_true.min(), y_pred.min())
+            max_val = max(y_true.max(), y_pred.max())
+            plt.plot([min_val, max_val], [min_val, max_val], 'r--', lw=2)
+            # Customize the plot
+            plt.title(f"Predicted({name_a}) vs Real Values({name_b})")
+            # Add a text box with correlation coefficient
+            correlation = np.corrcoef(y_true, y_pred)[0, 1]
+            plt.text(0.05, 0.95, f'Correlation: {correlation:.2f}', transform=plt.gca().transAxes, verticalalignment='top')
+            pred_real_plot_buffer = io.BytesIO()
+            plt.savefig(pred_real_plot_buffer, format='png')
+            pred_real_plot_buffer.seek(0)
+            plt.close()
+
+            # Add predicted vs real values plot
+            c.drawImage(ImageReader(pred_real_plot_buffer), 70, height - 520, width=500, height=250)
+
+            # Create the scatter plot
+            plt.figure(figsize=(10, 6))
+            plt.plot(y_pred, label=name_a)
+            plt.plot(y_true, label=name_b)
+            # Customize the plot
+            plt.title(f"{key}: Predicted({name_a}) vs Real Values({name_b})")
+            plt.xlabel("Samples")
+            plt.ylabel("Values")
+            plt.legend()
+            plot_buffer = io.BytesIO()
+            plt.savefig(plot_buffer, format='png')
+            plot_buffer.seek(0)
+            plt.close()
+
+            # Add predicted vs real values plot
+            c.drawImage(ImageReader(plot_buffer), 70, height - 770, width=500, height=250)
+            c.showPage()
+        
+        for name, params in self.model_def['Functions'].items():
+            if 'Fuzzify' in name:
+                fig = plot_fuzzify(params=params)
+                fuzzy_buffer = io.BytesIO()
+                fig.savefig(fuzzy_buffer, format='png')
+                fuzzy_buffer.seek(0)
+
+                c.drawString(100, height - 50, f"fuzzy function : {name}")
+                c.drawImage(ImageReader(fuzzy_buffer), 50, height - 350, width=500, height=250)
+
+                c.showPage()
+
+        c.save()
+        print(f"Training report saved as {file_path}")
+            
+
+
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step) if shuffle else 0
+        ## Initialize the batch_size
+        self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
+        ## Initialize connect inputs
         if connect:
             self.model.connect = connect
-        self.model.batch_size = batch_size
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             ## Build the input tensor
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
@@ -766,7 +912,7 @@ class Neu4mes:
             horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
             for horizon_idx in range(prediction_samples):
                 ## Model Forward
-                if connect and horizon_idx==0:
+                if self.model.connect and horizon_idx==0:
                     self.model.clear_connect_variables()
                 out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
@@ -780,23 +926,18 @@ class Neu4mes:
                     for state_key in self.model_def['States'].keys():
                         if state_key in XY.keys():
                             del XY[state_key]
-
-                if close_loop or connect:
-                    ## Update the input with the recurrent prediction
-                    if horizon_idx != prediction_samples-1:
-                        for key in XY.keys():
-                            if close_loop:
-                                if key in close_loop.keys(): ## the variable is recurrent
-                                    dim = out[close_loop[key]].shape[1]  ## take the output time dimension
-                                    XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
-                                    XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
-                                    XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
-                                else: ## the variable is not recurrent
-                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                                    XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
-                            else: ## the variable is not recurrent
-                                XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                                XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
+                
+                ## Update the input with the recurrent prediction
+                if horizon_idx < prediction_samples -1:
+                    for key in XY.keys():
+                        if key in close_loop.keys(): ## the input is recurrent
+                            dim = out[close_loop[key]].shape[1]  ## take the output time dimension
+                            XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
+                            XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[close_loop[key]] ## substitute with the predicted value
+                            XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                        else: ## the input is not recurrent
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
+                            XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
             ## Calculate the total loss
@@ -808,6 +949,7 @@ class Neu4mes:
             ## Gradient Step
             if train:
                 self.optimizer.step()
+
         ## return the losses
         return aux_losses
     
@@ -815,6 +957,8 @@ class Neu4mes:
         if shuffle:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
+        ## Initialize the batch_size
+        self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
         self.model.batch_size = batch_size
@@ -902,32 +1046,68 @@ class Neu4mes:
         if not self.neuralized:
             self.visualizer.warning('Export Error: the model is not neuralized yet.')
             return
-        file_name = datetime.now().strftime("%Y-%m-%d-%H-%M") + ".txt"
+        #file_name = datetime.now().strftime("%Y_%m_%d") + ".py"
+        file_name = 'test.py'
         # Combine the folder path and file name to form the complete file path
         file_path = os.path.join(self.folder, file_name)
         # Ensure the directory exists, if not, create it
         os.makedirs(self.folder, exist_ok=True)
         # Get the symbolic tracer
-        trace = symbolic_trace(self.model)
+        with torch.no_grad():
+            trace = symbolic_trace(self.model)
+
+        attributes = [line for line in trace.code.split() if 'self.' in line]
+        print('attributes: ', attributes)
 
         with open(file_path, 'w') as file:
             file.write("import torch.nn as nn\n")
             file.write("import torch\n\n")
+
+            for name in self.model_def['Functions'].keys():
+                if 'Fuzzify' in name:
+                    file.write("def neu4mes_fuzzify_slicing(res, i, x):\n")
+                    file.write("    res[:, :, i:i+1] = x\n\n")
+                    break
+
             file.write("class TracerModel(torch.nn.Module):\n")
             file.write("    def __init__(self):\n")
             file.write("        super().__init__()\n")
-            file.write("        self.relation_forward = {}\n")
-            for key, value in self.model.relation_forward.items():
-                if hasattr(value, 'weights'):
-                    file.write(f"        self.relation_forward[\"{key}\"] = torch.nn.Parameter(torch.{value.weights.data}, requires_grad=True)\n")
-            file.write("        self.relation_forward = torch.nn.ParameterDict(self.relation_forward)")
+            file.write("        self.all_parameters = {}\n")
+            for attr in attributes:
+                if 'constant' in attr:
+                    file.write(f"        {attr} = torch.tensor({getattr(trace, attr.replace('self.', ''))})\n")
+                elif 'relation_forward' in attr:
+                    key = attr.split('.')[2]
+                    if 'Fir' in key or 'Linear' in key:
+                        param = self.model_def['Relations'][key][2] if 'weights' in attr.split('.')[3] else self.model_def['Relations'][key][3]
+                        file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{self.model.all_parameters[param].data}, requires_grad=True)\n")
+                elif 'all_parameters' in attr:
+                    key = attr.split('.')[-1]
+                    file.write(f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.{self.model.all_parameters[key].data}, requires_grad=True)\n")
+            #file.write("        self.relation_forward = {}\n")
+            #for key, value in self.model.relation_forward.items():
+            #    if hasattr(value, 'weights'):
+                    #file.write(f"        self.relation_forward[\"{key}\"] = Fir_Layer(torch.nn.Parameter(torch.{value.weights.data}, requires_grad=True))\n")
+            #        file.write(f"        self.relation_forward[\"{key}\"] = torch.nn.Parameter(torch.{value.weights.data}, requires_grad=True)\n")
+            file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
             #file.write(f"\t{trace.code}")
-            for line in trace.code.split("\n"):
-                file.write(f"    {line}\n")
-        print(f"The pytorch model has been exported to {file_path} as a TXT file.")
+            for line in trace.code.split("\n")[2:]:
+                if 'self.relation_forward' in line:
+                    if 'Fir' in name or 'Linear' in name:
+                        relation = line.split()[-1]
+                        key = relation.split('.')
+                        name = key[2]
+                        param = self.model_def['Relations'][name][2] if 'weights' in key[3] else self.model_def['Relations'][name][3]
+                        new_rel = f'self.all_parameters.{param}'
+                        file.write(f"    {line.replace(relation, new_rel)}\n")
+                    else:
+                        file.write(f"    {line}\n")
+                else:
+                    file.write(f"    {line}\n")
+        print(f"The pytorch model has been exported to {file_path} as a python file.")
         return file_name
 
-
+    '''
     def importTracer(self, file_name):
         # Define the file path for the Python code
         file_path = os.path.join(self.folder, file_name)
@@ -937,11 +1117,26 @@ class Neu4mes:
         # Execute the code (not safe but who cares)
         code += "self.model = TracerModel()"
         print('before exec: ', self.model)
-        try:
-            exec(code)
-        except:
-            raise KeyError
+        #try:
+        exec(code) 
+        #except: 
+        #    raise KeyError
         print('after exec: ', self.model)
+    '''
+
+    def importTracer(self, file_name):
+        import sys
+        import os
+        # Define the file path for the Python code
+        file_path = os.path.join(self.folder, file_name)
+        # Add the directory containing your file to sys.path
+        directory = os.path.dirname(file_path)
+        sys.path.insert(0, directory)
+        # Import the module by filename (without .py)
+        module_name = os.path.basename(file_path)[:-3]
+        module = __import__(module_name)
+
+        self.model = module.TracerModel()
         
         
 

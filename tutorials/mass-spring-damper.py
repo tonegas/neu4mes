@@ -31,7 +31,8 @@ next_x = Output('next_x', displacement_x(x.tw(0.2))+force_x(F.last()))
 next_dx = Output('next_dx', displacement_dx(x.tw(0.2))+force_dx(F.last()))
 
 # Add the neural models to the neu4mes structure
-mass_spring_damper = Neu4mes(visualizer=MPLVisulizer())
+result_path = os.path.join(os.getcwd(), "results", "example1")
+mass_spring_damper = Neu4mes(visualizer=MPLVisulizer(), folder=result_path)
 mass_spring_damper.addModel('position_model',next_x)
 mass_spring_damper.addModel('velocity_model',next_dx)
 
@@ -51,19 +52,11 @@ data_folder = './tutorials/datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(name='mass_spring_dataset', source=data_folder, format=data_struct, delimiter=';')
 
 #Neural network train not reccurent training
-params = {'num_of_epochs': 100,
+params = {'num_of_epochs': 30,
           'train_batch_size': 128, 
           'val_batch_size':128, 
           'test_batch_size':1, 
           'learning_rate':0.001}
-
-'''
-def early_stop(train_losses, val_losses):
-    for loss_name, loss_value in train_losses.items():
-        if sum(loss_value[-10:]) > 0.08:
-            return False
-    return True
-'''
 
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 
@@ -72,8 +65,13 @@ mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 #vis.set_n4m(mass_spring_damper)
 #vis.showOneResult("validation")
 
+params = {'num_of_epochs': 20,
+          'train_batch_size': 128, 
+          'val_batch_size':128, 
+          'test_batch_size':1, 
+          'learning_rate':0.0001}
 #Neural network train not reccurent training
-#mass_spring_damper.trainModel(splits=[70,20,10], training_params =  {'learning_rate':0.0001}, close_loop={'x':'x[k+1]'}, prediction_samples=10)
+#mass_spring_damper.trainModel(splits=[70,20,10], training_params = params, close_loop={'x':'next_x'}, prediction_samples=10)
 
 # Add visualizer and show the results on the loaded dataset
 #vis.showOneResult("validation")

@@ -6,6 +6,10 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 from neu4mes import *
+from neu4mes import relation
+
+relation.CHECK_NAMES = False
+
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
 class Neu4mesTrainingTest(unittest.TestCase):
@@ -353,7 +357,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[0.20872743427753448],[0.20891857147216797],[0.20914430916309357],[0.20934967696666718],[0.20958690345287323]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
 
-        test.neuralizeModel(0.01)
+        test.neuralizeModel(0.01, clear_model=True)
         ## Train only model2
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
@@ -361,7 +365,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21510866284370422], [0.21509192883968353], [0.21507103741168976], [0.21505486965179443], [0.21503786742687225]])
         
-        test.neuralizeModel(0.01)
+        test.neuralizeModel(0.01, clear_model=True)
         ## Train both models
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
@@ -369,7 +373,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[0.2097606211900711],[0.20982888340950012],[0.20994682610034943],[0.21001523733139038],[0.21013548970222473]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21503083407878876],[0.2150345891714096],[0.21503330767154694],[0.21502918004989624],[0.21503430604934692]])
 
-        test.neuralizeModel(0.01)
+        test.neuralizeModel(0.01, clear_model=True)
         ## Train both models but set the gain of a to zero and the gain of b to double
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
@@ -377,7 +381,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21878866851329803],[0.21873562037944794],[0.2186843752861023],[0.2186216115951538],[0.21856670081615448]])
 
-        test.neuralizeModel(0.01)
+        test.neuralizeModel(0.01, clear_model=True)
         ## Train both models but set the minimize gain of error1 to zero and the minimize gain of error2 to double
         self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
         self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])

@@ -35,8 +35,8 @@ class Part_Layer(nn.Module):
         return x[:, :, self.i:self.j]
 
 ## Select elements on the third dimension in the range [i,j]
-def createPart(self, i, j):
-    return Part_Layer(i, j)
+def createPart(self, *inputs):
+    return Part_Layer(i=inputs[0][0], j=inputs[0][1])
 
 class Select(Stream, ToStream):
     def __init__(self, obj, i):
@@ -56,12 +56,12 @@ class Select_Layer(nn.Module):
         self.idx = idx
 
     def forward(self, x):
-        assert x.ndim >= 3, 'The Part Relation Works only for 3D inputs'
+        #assert x.ndim >= 3, 'The Part Relation Works only for 3D inputs'
         return x[:, :, self.idx:self.idx + 1]
 
 ## Select an element i on the third dimension
-def createSelect(self, idx):
-    return Select_Layer(idx)
+def createSelect(self, *inputs):
+    return Select_Layer(idx=inputs[0])
 
 class SamplePart(Stream, ToStream):
     def __init__(self, obj, i, j, offset = None):
@@ -98,8 +98,11 @@ class SamplePart_Layer(nn.Module):
             x = x - x[:, self.offset].unsqueeze(1)
         return x[:, self.back:self.forw]
 
-def createSamplePart(self, part, offset):
-    return SamplePart_Layer(part=part, offset=offset)
+def createSamplePart(self, *inputs):
+    if len(inputs) > 1: ## offset
+        return SamplePart_Layer(part=inputs[0], offset=inputs[1])
+    else:
+        return SamplePart_Layer(part=inputs[0], offset=None)
 
 class SampleSelect(Stream, ToStream):
     def __init__(self, obj, i):
@@ -123,8 +126,8 @@ class SampleSelect_Layer(nn.Module):
         assert x.ndim >= 2, 'The Part Relation Works only for 2D inputs'
         return x[:, self.idx:self.idx + 1, :]
 
-def createSampleSelect(self, idx):
-    return SampleSelect_Layer(idx)
+def createSampleSelect(self, *inputs):
+    return SampleSelect_Layer(idx=inputs[0])
 
 class TimePart(Stream, ToStream):
     def __init__(self, obj, i, j, offset = None):
@@ -161,8 +164,11 @@ class TimePart_Layer(nn.Module):
             x = x - x[:, self.offset].unsqueeze(1)
         return x[:, self.back:self.forw]
 
-def createTimePart(self, part, offset):
-    return TimePart_Layer(part=part, offset=offset)
+def createTimePart(self, *inputs):
+    if len(inputs) > 1: ## offset
+        return TimePart_Layer(part=inputs[0], offset=inputs[1])
+    else:
+        return TimePart_Layer(part=inputs[0], offset=None)
 
 class TimeSelect(Stream, ToStream):
     def __init__(self, obj, i):

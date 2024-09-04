@@ -1,15 +1,17 @@
-def mean_stopping(train_losses, val_losses, training_params):
+def mean_stopping(train_losses, val_losses, params):
+    tol = params['tol'] if 'tol' in params.keys() else 0.001
     if val_losses:
         for (train_loss_name, train_loss_value), (val_loss_name, val_loss_value) in zip(train_losses.items(), val_losses.items()):
-            if abs(train_loss_value[-1] - val_loss_value[-1]) < training_params['tol']:
+            if abs(train_loss_value[-1] - val_loss_value[-1]) < tol:
                 return True
     else:
         for loss_name, loss_value in train_losses.items():
-            if loss_value[-1] < training_params['tol']:
+            if loss_value[-1] < tol:
                 return True
     return False
 
-def standard_stop(train_losses, val_losses, n=10):
+def standard_early_stopping(train_losses, val_losses, params):
+    n = params['tol'] if 'tol' in params.keys() else 10
     if val_losses:
         for (_, train_loss_value), (_, val_loss_value) in zip(train_losses.items(), val_losses.items()):
             if (len(train_loss_value) <= n) and (len(val_loss_value) <= n):
@@ -33,4 +35,3 @@ def standard_stop(train_losses, val_losses, n=10):
                 
     return True
             
-
