@@ -81,9 +81,9 @@ class Neu4mes:
             'num_of_epochs': 100,
             'train_batch_size' : 128, 'val_batch_size' : 1, 'test_batch_size' : 1,
             'optimizer' : 'Adam',
-            'lr' : 0.001, 'lr_param' : {}, 'weight_decay' : None, 'weight_decay_param' : {},
-            'optimizer_params' : [],
-            'optimizer_defaults' : {}
+            'lr' : 0.001, 'lr_param' : {}, #'weight_decay' : None, 'weight_decay_param' : {},
+            'optimizer_params' : [], 'add_optimizer_params' : [],
+            'optimizer_defaults' : {}, 'add_optimizer_defaults' : {}
         }
 
         # Optimizer
@@ -615,11 +615,13 @@ class Neu4mes:
             self.run_training_params['test_batch_size'] = self.run_training_params['n_samples_test']
         return self.run_training_params['train_batch_size'], self.run_training_params['val_batch_size'], self.run_training_params['test_batch_size']
 
-    def __inizilize_optimizer(self, optimizer, training_params, optimizer_params, optimizer_defaults, models):
+    def __inizilize_optimizer(self, optimizer, optimizer_params, optimizer_defaults, add_optimizer_params, add_optimizer_defaults, models, lr, lr_param):
         # Get optimizer and initialization parameters
         optimizer = copy.deepcopy(self.__get_parameter(optimizer=optimizer))
         optimizer_params = copy.deepcopy(self.__get_parameter(optimizer_params=optimizer_params))
         optimizer_defaults = copy.deepcopy(self.__get_parameter(optimizer_defaults=optimizer_defaults))
+        add_optimizer_params = copy.deepcopy(self.__get_parameter(add_optimizer_params=add_optimizer_params))
+        add_optimizer_defaults = copy.deepcopy(self.__get_parameter(add_optimizer_defaults=add_optimizer_defaults))
 
         ## Get params to train
         models = self.__get_parameter(models=models)
@@ -647,14 +649,35 @@ class Neu4mes:
 
         optimizer.set_params_to_train(all_parameters, params_to_train)
 
-        if training_params is not None:
-             if 'lr_param' in training_params:
-                 optimizer.add_option_to_params('lr', training_params['lr_param'])
+        optimizer.add_defaults('lr', self.run_training_params['lr'])
+        optimizer.add_option_to_params('lr', self.run_training_params['lr_param'])
 
         if optimizer_defaults != {}:
             optimizer.set_defaults(optimizer_defaults)
         if optimizer_params != []:
             optimizer.set_params(optimizer_params)
+
+        for key, value in add_optimizer_defaults.items():
+            optimizer.add_defaults(key, value)
+
+        add_optimizer_params = optimizer.unfold(add_optimizer_params)
+        for param in add_optimizer_params:
+            par = param['params']
+            del param['params']
+            for key, value in param.items():
+                optimizer.add_option_to_params(key, {par:value})
+
+        # Modify the parameter
+        optimizer.add_defaults('lr', lr)
+        # optimizer.add_defaults('weight_decay', weight_decay)
+        optimizer.add_option_to_params('lr', lr_param)
+        # optimizer.add_option_to_params('weight_decay', weight_decay_param)
+
+        # Set default if the parameter is not set yet
+        #optimizer.add_defaults('lr', self.run_training_params['lr'], False)
+        # optimizer.add_defaults('weight_decay', self.run_training_params['weight_decay'], False)
+        #optimizer.add_option_to_params('lr', self.run_training_params['lr_param'], False)
+        # optimizer.add_option_to_params('weight_decay', self.run_training_params['weight_decay_param'], False)
 
         return optimizer
 
@@ -667,10 +690,10 @@ class Neu4mes:
                     num_of_epochs = None,
                     train_batch_size = None, val_batch_size = None, test_batch_size = None,
                     optimizer = None,
-                    lr = None, lr_param = None, weight_decay = None, weight_decay_param = None,
-                    optimizer_params = None,
-                    optimizer_defaults = None,
-                    training_params = None
+                    lr = None, lr_param = None, #weight_decay = None, weight_decay_param = None,
+                    optimizer_params = None, optimizer_defaults = None,
+                    training_params = None,
+                    add_optimizer_params = None, add_optimizer_defaults = None
                    ):
         # def trainModel(self, train_parameters = None, optimizer_parameters = None, **kwargs):
         check(self.data_loaded, RuntimeError, 'There is no data loaded! The Training will stop.')
@@ -781,23 +804,7 @@ class Neu4mes:
         train_batch_size, val_batch_size, test_batch_size = self.__get_batch_sizes(train_batch_size, val_batch_size, test_batch_size)
 
         ## Define the optimizer
-        optimizer = self.__inizilize_optimizer(optimizer, training_params, optimizer_params, optimizer_defaults, models)
-
-        # Modify the parameter
-        optimizer.add_defaults('lr', lr)
-        optimizer.add_defaults('weight_decay', weight_decay)
-        optimizer.add_option_to_params('lr', lr_param)
-        optimizer.add_option_to_params('weight_decay', weight_decay_param)
-
-        #     if 'weight_decay_param' in training_params:
-        #         optimizer.add_option_to_params('weight_decay', training_params['weight_decay_param'])
-
-        # Set default if the parameter is not set yet
-        optimizer.add_defaults('lr', self.run_training_params['lr'], False)
-        optimizer.add_defaults('weight_decay', self.run_training_params['weight_decay'], False)
-        optimizer.add_option_to_params('lr', self.run_training_params['lr_param'], False )
-        optimizer.add_option_to_params('weight_decay', self.run_training_params['weight_decay_param'], False)
-
+        optimizer = self.__inizilize_optimizer(optimizer, optimizer_params, optimizer_defaults, add_optimizer_params, add_optimizer_defaults, models, lr, lr_param)
         self.run_training_params['optimizer'] = optimizer.name
         self.run_training_params['optimizer_params'] = optimizer.optimizer_params
         self.run_training_params['optimizer_defaults'] = optimizer.optimizer_defaults
@@ -821,9 +828,9 @@ class Neu4mes:
         # Clean the dict of the training parameter
         del self.run_training_params['minimize_gain']
         del self.run_training_params['lr']
-        del self.run_training_params['weight_decay']
+        #del self.run_training_params['weight_decay']
         del self.run_training_params['lr_param']
-        del self.run_training_params['weight_decay_param']
+        #del self.run_training_params['weight_decay_param']
         if not recurrent_train:
             del self.run_training_params['connect']
             del self.run_training_params['closed_loop']
@@ -890,11 +897,10 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-
         self.resultAnalysis(train_dataset, XY_train)
-        if self.n_samples_val > 0:
+        if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val)
-        if self.n_samples_test > 0:
+        if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test)
 
 
