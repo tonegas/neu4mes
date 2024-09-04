@@ -615,7 +615,7 @@ class Neu4mes:
             self.run_training_params['test_batch_size'] = self.run_training_params['n_samples_test']
         return self.run_training_params['train_batch_size'], self.run_training_params['val_batch_size'], self.run_training_params['test_batch_size']
 
-    def __inizilize_optimizer(self, optimizer, optimizer_params, optimizer_defaults, models):
+    def __inizilize_optimizer(self, optimizer, training_params, optimizer_params, optimizer_defaults, models):
         # Get optimizer and initialization parameters
         optimizer = copy.deepcopy(self.__get_parameter(optimizer=optimizer))
         optimizer_params = copy.deepcopy(self.__get_parameter(optimizer_params=optimizer_params))
@@ -646,6 +646,10 @@ class Neu4mes:
                   "The optimizer must be an Optimizer or str")
 
         optimizer.set_params_to_train(all_parameters, params_to_train)
+
+        if training_params is not None:
+             if 'lr_param' in training_params:
+                 optimizer.add_option_to_params('lr', training_params['lr_param'])
 
         if optimizer_defaults != {}:
             optimizer.set_defaults(optimizer_defaults)
@@ -777,16 +781,14 @@ class Neu4mes:
         train_batch_size, val_batch_size, test_batch_size = self.__get_batch_sizes(train_batch_size, val_batch_size, test_batch_size)
 
         ## Define the optimizer
-        optimizer = self.__inizilize_optimizer(optimizer, optimizer_params, optimizer_defaults, models)
+        optimizer = self.__inizilize_optimizer(optimizer, training_params, optimizer_params, optimizer_defaults, models)
 
         # Modify the parameter
         optimizer.add_defaults('lr', lr)
         optimizer.add_defaults('weight_decay', weight_decay)
         optimizer.add_option_to_params('lr', lr_param)
         optimizer.add_option_to_params('weight_decay', weight_decay_param)
-        # if training_params is not None:
-        #     if 'lr_param' in training_params:
-        #         optimizer.add_option_to_params('lr', training_params['lr_param'])
+
         #     if 'weight_decay_param' in training_params:
         #         optimizer.add_option_to_params('weight_decay', training_params['weight_decay_param'])
 

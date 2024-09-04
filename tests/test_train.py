@@ -704,7 +704,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         del training_params['optimizer_params']
         test.trainModel(optimizer=optimizer, training_params=training_params)
         self.assertEqual({'alpha': 0.8, 'lr': 0.5}, test.run_training_params['optimizer_defaults'])
-        self.assertEqual([{'lr': 0.6, 'params': 'a'}, {'alpha': 0.02, 'lr': 0.12, 'params': 'w'}], test.run_training_params['optimizer_params']) #???  {'a': 0.1}
+        self.assertEqual([{'lr': 0.1, 'params': 'a'}, {'alpha': 0.02, 'lr': 0.12, 'params': 'w'}], test.run_training_params['optimizer_params'])
 
         test.trainModel(optimizer=optimizer)
         self.assertEqual({'alpha': 0.8, 'lr': 0.001}, test.run_training_params['optimizer_defaults'])
