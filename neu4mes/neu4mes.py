@@ -308,6 +308,9 @@ class Neu4mes:
 
 
     def neuralizeModel(self, sample_time = 1, clear_model = False):
+        check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
+        self.model_def["SampleTime"] = sample_time
+
         if self.model is not None and clear_model == False:
             self.model_def_trained = copy.deepcopy(self.model_def)
             for key,param in self.model.all_parameters.items():
@@ -317,9 +320,6 @@ class Neu4mes:
             model_def = copy.deepcopy(self.model_def_trained)
         else:
             model_def = copy.deepcopy(self.model_def)
-
-        check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
-        model_def["SampleTime"] = sample_time
         self.visualizer.showModel(model_def)
 
         check(model_def['Inputs'] | model_def['States'] != {}, RuntimeError, "No model is defined!")
@@ -775,13 +775,13 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        '''
+
         self.resultAnalysis(train_dataset, XY_train)
         if self.n_samples_val > 0:
             self.resultAnalysis(validation_dataset, XY_val)
         if self.n_samples_test > 0:
             self.resultAnalysis(test_dataset, XY_test)
-        '''
+
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
