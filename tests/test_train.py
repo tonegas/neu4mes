@@ -21,6 +21,14 @@ def funOut(x, w):
     return x / w
 
 class Neu4mesTrainingTest(unittest.TestCase):
+    def TestAlmostEqual(self, data1, data2, precision=4):
+        assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2, dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'
+        if type(data1) == type(data2) == list:
+            for pred, label in zip(data1, data2):
+                self.TestAlmostEqual(pred, label, precision=precision)
+        else:
+            self.assertAlmostEqual(data1, data2, places=precision)
+
     def test_network_mass_spring_damper(self):
         x = Input('x')  # Position
         F = Input('F')  # Force
@@ -790,7 +798,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output1 = Output('out', Linear(W=W,b=b)(input1.last()))
 
-        test = Neu4mes(visualizer=None,seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', output1)
         test.addMinimize('error', target.last(), output1)
         test.neuralizeModel()
@@ -819,7 +827,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output2 = Output('out2', Linear(W=W,b=b)(fir_out))
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', [output1,output2])
         test.addMinimize('error', target.last(), output2)
         test.neuralizeModel()
@@ -865,7 +873,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output2 = Output('out2', Linear(W=W,b=b)(inout.last()))
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', [output1,output2])
         test.addMinimize('error', target.last(), output2)
         test.addConnect(output1, inout)
@@ -935,7 +943,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output2 = Output('out2', Linear(W=W,b=b)(inout.last()))
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model1', output1)
         test.addModel('model2', output2)
         test.addMinimize('error', target.last(), output2)
@@ -987,7 +995,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output2 = Output('out2', Linear(W=W,b=b)(inout.last()))
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', [output1,output2])
         test.addMinimize('error', target.last(), output2)
         test.neuralizeModel()
@@ -1056,7 +1064,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output2 = Output('out2', Linear(W=W,b=b)(inout.last()))
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model1', output1)
         test.addModel('model2', output2)
         test.addMinimize('error', target.last(), output2)
@@ -1108,23 +1116,23 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output2 = Output('out2', Linear(W=W,b=b)(inout.last()))
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', [output1,output2])
         test.addMinimize('error', target.last(), output2)
         test.addConnect(output1, inout)
         test.neuralizeModel()
         self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1]}))
 
-        dataset = {'in1': [0,2,7], 'out1': [3,4,5]}
+        dataset = {'in1': [0,2,7,1], 'out1': [3,4,5,1]}
         test.loadData(name='dataset2', source=dataset)
 
         self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
         test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, prediction_samples=0)
-        self.assertListEqual([[[-11.666666984558105]]], test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[-11.666666984558105]], test.model.all_parameters['a'].data.numpy().tolist())
+        self.assertListEqual([[[-9.0]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
         with self.assertRaises(ValueError):
             test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, prediction_samples=10)
         with self.assertRaises(ValueError):
@@ -1133,10 +1141,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=2)
-        self.assertListEqual([[[-11.666666984558105]]], test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[1.0000001192092896]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[-11.666666984558105]], test.model.all_parameters['a'].data.numpy().tolist())
+        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=3)
+        self.assertListEqual([[[-9.0]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
 
     def test_training_values_fir_train_connect_linear_more_prediction(self):
         NeuObj.reset_count()
@@ -1156,16 +1164,16 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel()
         self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1]},connect={'inout': 'out1'}))
 
-        dataset = {'in1': [0,2,7], 'out1': [3,4,5]}
+        dataset = {'in1': [0,2,7,1], 'out1': [3,4,5,1]}
         test.loadData(name='dataset2', source=dataset)
 
         self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
         test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, prediction_samples=0, connect={'inout': 'out1'})
-        self.assertListEqual([[[-11.666666984558105]]], test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[-11.666666984558105]], test.model.all_parameters['a'].data.numpy().tolist())
+        self.assertListEqual([[[-9.0]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
         with self.assertRaises(ValueError):
             test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, prediction_samples=10, connect={'inout': 'out1'})
         with self.assertRaises(ValueError):
@@ -1174,10 +1182,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=2, connect={'inout': 'out1'})
-        self.assertListEqual([[[-11.666666984558105]]], test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[1.0000001192092896]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[-11.666666984558105]], test.model.all_parameters['a'].data.numpy().tolist())
+        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=3, connect={'inout': 'out1'})
+        self.assertListEqual([[[-9.0]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
 
     # def test_multimodel_with_loss_gain_and_lr_gain(self):
     #     ## Model1
@@ -1209,42 +1217,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
     #     ## Train only model1
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-    #
-    #     # Massimo livello di configurazione il livello è come pytorch
-    #     # oppure posso anche crearmi il mio ottimizzatore
-    #     # Quando optimizer è un optimizer
-    #     opt_params = {
-    #         'lr': 0.1
-    #     }
-    #     opt_params_per_parameter = {
-    #         'a': {'lr':0.1, 'weight_decay':0}
-    #     }
-    #     opt = Optimizer(opt_params, opt_params_per_parameter)
-    #     test.trainModel(models='model1', splits=[100, 0, 0], optimizer=opt, train_parameters=params)
-    #
-    #     #livello intermadio vorrei poter aggiungere dei parametriche non sono presenti di default dentro l'ottimizzare
-    #
-    #     # Livello di configurazione base
-    #     # Voglio una configurazione abbastanza specifica anche per parametro
-    #     # Quando optimizer è una stringa
-    #     test.trainModel(models='model1', splits=[100, 0, 0], optimizer='SGD', lr = 0.5, lr_param={'a':0.1}, weight_decay=0, weight_decay_gain={'a':.1}, num_of_epochs= 100)
-    #
-    #     # Vorrei che fosse facile aggiungere un altro ottimizzatore
-    #
-    #     params['lr'] = 0.1
-    #     params['lr_gain'] = {'a':0.1}
-    #     test.trainModel(models='model1', splits=[100, 0, 0], training_params=params)
-    #
-    #     # Così passo direttamente i parametri all'ottimizzatore???
-    #     test.trainModel(models='model1', splits=[100, 0, 0], optimizer_params=params)
-    #
-    #     training_params = {},
-    #
-    #     optimizer = torch.optim.Adam,
-    #     lr_gain = {},
-    #     optimizer_params = {}
-    #
-    #     test.trainModel(models='model1', splits=[100,0,0], optimizer=torch.optim.SGD, training_params=params, optimizer_params=optimizer_params)
+    #     test.trainModel(models='model1', splits=[100,0,0])
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[0.20872743427753448],[0.20891857147216797],[0.20914430916309357],[0.20934967696666718],[0.20958690345287323]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #
@@ -1252,7 +1225,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
     #     ## Train only model2
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-    #     test.trainModel(models='model2', splits=[100,0,0], training_params=params)
+    #     test.trainModel(models='model2', splits=[100,0,0])
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21510866284370422], [0.21509192883968353], [0.21507103741168976], [0.21505486965179443], [0.21503786742687225]])
     #
@@ -1260,7 +1233,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
     #     ## Train both models
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-    #     test.trainModel(models=['model1','model2'], splits=[100,0,0], training_params=params)
+    #     test.trainModel(models=['model1','model2'], splits=[100,0,0])
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[0.2097606211900711],[0.20982888340950012],[0.20994682610034943],[0.21001523733139038],[0.21013548970222473]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21503083407878876],[0.2150345891714096],[0.21503330767154694],[0.21502918004989624],[0.21503430604934692]])
     #
@@ -1268,7 +1241,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
     #     ## Train both models but set the gain of a to zero and the gain of b to double
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-    #     test.trainModel(models=['model1','model2'], splits=[100,0,0], training_params=params, lr_gain={'a':0, 'b':2})
+    #     test.trainModel(models=['model1','model2'], splits=[100,0,0], lr_param={'a':0, 'b':2})
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21878866851329803],[0.21873562037944794],[0.2186843752861023],[0.2186216115951538],[0.21856670081615448]])
     #
@@ -1276,7 +1249,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
     #     ## Train both models but set the minimize gain of error1 to zero and the minimize gain of error2 to double
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-    #     train_loss, _, _ = test.trainModel(models=['model1','model2'], splits=[100,0,0], training_params=params, minimize_gain={'error1':0, 'error2':2})
+    #     train_loss, _, _ = test.trainModel(models=['model1','model2'], splits=[100,0,0], minimize_gain={'error1':0, 'error2':2})
     #     self.assertListEqual(train_loss['error1'], [0.0 for i in range(test.num_of_epochs)])
     #     self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
     #     self.assertListEqual(train_loss['error2'], [3894.033935546875, 1339.185546875, 182.2778778076172, 68.74202728271484, 359.0768127441406, 499.3464050292969, 368.579345703125, 146.50833129882812, 16.411840438842773, 18.409034729003906,
