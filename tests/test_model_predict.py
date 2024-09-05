@@ -10,7 +10,12 @@ relation.CHECK_NAMES = False
 
 import torch
 
+# 25 Tests
 # This file test the model prediction in particular the output value
+# Dimensions
+# The first dimension must indicate the time dimension i.e. how many time samples I asked for
+# The second dimension indicates the output time dimension for each sample.
+# The third is the size of the signal
 
 def myfun(x, P):
     return x*P
@@ -24,11 +29,6 @@ def myfun3(a, b, p1, p2):
     at = torch.transpose(a[:, :, 0:2],1,2)
     bt = torch.transpose(b, 1, 2)
     return torch.matmul(p1,at+bt)+p2.t()
-
-# Dimensions
-# The first dimension must indicate the time dimension i.e. how many time samples I asked for
-# The second dimension indicates the output time dimension for each sample.
-# The third is the size of the signal
 
 class MyTestCase(unittest.TestCase):
     
@@ -1169,7 +1169,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((2, 3), np.array(results['in_S4']).shape)
         self.TestAlmostEqual([[-1, 0, 2],[-2, 0, -6]], results['in_S4'])
     
-    def test_recurrent_training(self):
+    def test_closed_loop(self):
         ## the memory is not shared between different calls
         x = Input('x') 
         F = Input('F')
@@ -1199,7 +1199,7 @@ class MyTestCase(unittest.TestCase):
         result = test(inputs={'x':[1,2,3,4,5], 'F':[1,2,3]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [16.0])
 
-    def test_recurrent_training_complex(self):
+    def test_closed_loop_complex(self):
         ## the memory is not shared between different calls
         x = Input('x') 
         y = Input('y')
@@ -1245,7 +1245,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
     
-    def test_state_variables(self):
+    def test_state_closed_loop(self):
         ## the state is saved inside the model so the memory is shared between different calls
         x = Input('x') 
         F_state = State('F')
@@ -1284,7 +1284,7 @@ class MyTestCase(unittest.TestCase):
         result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1,2,3], 'y':[2,3], 'z':[3]})
         self.assertEqual(result['out'], [21.0, 46.0, 120.0, 390.0, 1205.0])
     
-    def test_state_variables_complex(self):
+    def test_state_closed_loop_complex(self):
         ## the state is saved inside the model so the memory is shared between different calls
         x = Input('x') 
         y_state = State('y')
@@ -1340,7 +1340,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
         self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
 
-    def test_state_variables_connect(self):
+    def test_state_connect(self):
         ## the state is saved inside the model so the memory is shared between different calls
         x = Input('x') 
         y_state = State('y')
@@ -1396,7 +1396,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
         self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
     
-    def test_multimodel_connect(self):
+    def test_state_connect_complex(self):
         ## Model1
         input1 = Input('in1')
         a = Parameter('a', dimensions=1, tw=0.05, values=[[1],[1],[1],[1],[1]])
@@ -1446,6 +1446,40 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 69.0])
         self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[4.], [5.], [30.]]])
+
+    def test_recurrent_one_state_variable(self):
+        x = Input('x')
+        x_state = State('x_state')
+        p = Parameter('p', dimensions=1, sw=1, values=[[1.0]])
+        rel_x = Fir(parameter=p)(x_state.last())
+        rel_x = ClosedLoop(rel_x, x_state)
+        out = Output('out', rel_x)
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel('out',out)
+        test.addMinimize('pos_x', x.next(), out)
+        test.neuralizeModel(0.01)
+
+        result = test(inputs={'x': [2], 'x_state':[1]})
+        self.assertEqual(test.model.states['x_state'], torch.tensor(result['out']))
+        result = test(inputs={'x': [2]})
+        self.assertEqual(test.model.states['x_state'], torch.tensor(1.0))
+
+    def test_recurrent_only_state_variables(self):
+        x_state = State('x_state')
+        p = Parameter('p', dimensions=1, tw=0.03, values=[[1.0], [1.0], [1.0]])
+        rel_x = Fir(parameter=p)(x_state.tw(0.03))
+        rel_x = ClosedLoop(rel_x, x_state)
+        out = Output('out', rel_x)
+
+        test = Neu4mes(visualizer = None, seed=42)
+        test.addModel('out',out)
+        test.neuralizeModel(0.01)
+
+        result = test(inputs={'x_state':[1, 2, 3]})
+        self.assertEqual(test.model.states['x_state'].numpy().tolist(), [[[2.],[3.],[6.]]])
+        result = test()
+        self.assertEqual(test.model.states['x_state'].numpy().tolist(), [[[3.],[6.],[11.]]])
 
 if __name__ == '__main__':
     unittest.main()

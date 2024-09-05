@@ -10,6 +10,7 @@ relation.CHECK_NAMES = False
 
 logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
 
+# 13 Tests
 # This file tests the dimensions of the inputs in particular:
 # The dimensions for each input
 # input_tw_backward, input_tw_forward
@@ -198,7 +199,6 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual(6, test.max_samples_backward)
         self.assertEqual(-1, test.max_samples_forward)
         self.assertEqual(5, test.max_n_samples)  # 5 samples
-
 
     def test_network_building_tw_positive(self):
         input1 = Input('in1')

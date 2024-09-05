@@ -14,6 +14,7 @@ relation.CHECK_NAMES = False
 log = logging.getLogger(__name__)
 log.setLevel(logging.CRITICAL)
 
+# 17 Tests
 # This file test the data loading in particular:
 # The shape and the value of the inputs
 
@@ -21,6 +22,7 @@ import os
 train_folder = os.path.join(os.path.dirname(__file__), 'data/')
 val_folder = os.path.join(os.path.dirname(__file__), 'val_data/')
 test_folder = os.path.join(os.path.dirname(__file__), 'test_data/')
+
 
 class Neu4mesCreateDatasetTest(unittest.TestCase):
     
@@ -356,60 +358,6 @@ class Neu4mesCreateDatasetTest(unittest.TestCase):
 
         self.assertEqual((4,1,1),test.data['dataset']['out'].shape)
         self.assertEqual([[[7]],[[9]],[[11]],[[13]]],test.data['dataset']['out'].tolist())
-
-    def test_build_multi_dataset_custom(self):
-        input1 = Input('in1')
-        output = Input('out')
-        rel1 = Fir(input1.tw(0.05))
-        rel2 = Fir(input1.tw([-0.01,0.02]))
-        rel3 = Fir(input1.tw([-0.05,0.01]))
-        fun = Output('out',rel1+rel2+rel3)
-
-        test = Neu4mes(visualizer=None)
-        test.addModel('fun',fun)
-        test.addMinimize('out', output.z(-1), 'fun',fun)
-        test.neuralizeModel(0.01)
-
-        train_data_x = np.array(range(10))
-        val_data_x = np.array(range(10,20))
-        test_data_x = np.array(range(20,30))
-        data_a = 2
-        data_b = -3
-        train_dataset = {'in1': train_data_x, 'out': (data_a*train_data_x) + data_b}
-        val_dataset = {'in1': val_data_x, 'out': (data_a*val_data_x) + data_b}
-        test_dataset = {'in1': test_data_x, 'out': (data_a*test_data_x) + data_b}
-        
-        test.loadData(name='train_dataset', source=train_dataset)
-        test.loadData(name='val_dataset', source=val_dataset)
-        test.loadData(name='test_dataset', source=test_dataset)
-
-        self.assertEqual(3, test.n_datasets)
-
-        self.assertEqual((4,7,1),test.data['train_dataset']['in1'].shape)
-        self.assertEqual([[[0],[1],[2],[3],[4],[5],[6]],
-                        [[1],[2],[3],[4],[5],[6],[7]],
-                        [[2],[3],[4],[5],[6],[7],[8]],
-                        [[3],[4],[5],[6],[7],[8],[9]]],
-                        test.data['train_dataset']['in1'].tolist())
-        self.assertEqual((4,7,1),test.data['val_dataset']['in1'].shape)
-        self.assertEqual([[[10],[11],[12],[13],[14],[15],[16]],
-                        [[11],[12],[13],[14],[15],[16],[17]],
-                        [[12],[13],[14],[15],[16],[17],[18]],
-                        [[13],[14],[15],[16],[17],[18],[19]]],
-                        test.data['val_dataset']['in1'].tolist())
-        self.assertEqual((4,7,1),test.data['test_dataset']['in1'].shape)
-        self.assertEqual([[[20],[21],[22],[23],[24],[25],[26]],
-                        [[21],[22],[23],[24],[25],[26],[27]],
-                        [[22],[23],[24],[25],[26],[27],[28]],
-                        [[23],[24],[25],[26],[27],[28],[29]]],
-                        test.data['test_dataset']['in1'].tolist())
-
-        self.assertEqual((4,1,1),test.data['train_dataset']['out'].shape)
-        self.assertEqual([[[7]],[[9]],[[11]],[[13]]],test.data['train_dataset']['out'].tolist())
-        self.assertEqual((4,1,1),test.data['val_dataset']['out'].shape)
-        self.assertEqual([[[27]],[[29]],[[31]],[[33]]],test.data['val_dataset']['out'].tolist())
-        self.assertEqual((4,1,1),test.data['test_dataset']['out'].shape)
-        self.assertEqual([[[47]],[[49]],[[51]],[[53]]],test.data['test_dataset']['out'].tolist())
 
     def test_build_multi_dataset_custom(self):
         input1 = Input('in1')
