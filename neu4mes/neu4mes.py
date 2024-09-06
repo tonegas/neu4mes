@@ -75,7 +75,7 @@ class Neu4mes:
             'num_of_epochs': 100,
             'train_batch_size' : 128, 'val_batch_size' : 1, 'test_batch_size' : 1,
             'optimizer' : 'Adam',
-            'lr' : 0.001, 'lr_param' : {}, #'weight_decay' : None, 'weight_decay_param' : {},
+            'lr' : 0.001, 'lr_param' : {},
             'optimizer_params' : [], 'add_optimizer_params' : [],
             'optimizer_defaults' : {}, 'add_optimizer_defaults' : {}
         }
