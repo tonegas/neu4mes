@@ -9,10 +9,6 @@ import pandas as pd
 from scipy.stats import norm
 import random
 import os
-from pprint import pprint
-from pprint import pformat
-import re
-import matplotlib.pyplot as plt
 
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import NeuObj, MAIN_JSON
@@ -95,7 +91,11 @@ class Neu4mes:
         self.prediction = {}
 
 
-    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples=1):
+    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = 0):
+        inputs = copy.deepcopy(inputs)
+        closed_loop = copy.deepcopy(closed_loop)
+        connect = copy.deepcopy(connect)
+
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
         closed_loop_windows = {}
@@ -141,10 +141,10 @@ class Neu4mes:
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         else:
             if provided_inputs:
-                min_dim_ind, min_dim  = argmin_min([closed_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
-                max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+prediction_samples-1 for key in provided_inputs])
+                min_dim_ind, min_dim  = argmin_min([closed_loop_windows[key]+prediction_samples for key in provided_inputs])
+                max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+prediction_samples for key in provided_inputs])
             else:
-                min_dim = max_dim = prediction_samples
+                min_dim = max_dim = prediction_samples + 1
 
         window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
@@ -201,7 +201,7 @@ class Neu4mes:
 
                 ## Model Predict
                 if self.model.connect:
-                    if i==0 or i%prediction_samples == 0:
+                    if i==0 or i%(prediction_samples+1) == 0:
                         self.model.clear_connect_variables()
                 result, _ = self.model(X)
 
@@ -385,6 +385,7 @@ class Neu4mes:
             self.visualizer.warning(f'Dataset named {name} already loaded! overriding the existing one..')
         self.data[name] = {}
 
+        num_of_samples = []
         if type(source) is str: ## we have a directory path containing the files
             ## collect column indexes
             format_idx = {}
@@ -434,13 +435,9 @@ class Neu4mes:
                     self.data[name][key] += [data[i-back:i+forw] for i in range(self.max_samples_backward, len(df)-self.max_samples_forward+1)]
 
             ## Stack the files
-            self.num_of_samples[name] = None
             for key in format_idx.keys():
                 self.data[name][key] = np.stack(self.data[name][key])
-
-            ## save the number of samples
-            if self.num_of_samples[name] is None:
-                self.num_of_samples[name] = list(self.data[name].values())[0].shape[0]
+                num_of_samples.append(self.data[name][key].shape[0])
 
         elif type(source) is dict:  ## we have a crafted dataset
             self.file_count = 1
@@ -459,7 +456,6 @@ class Neu4mes:
                     self.data[name][key].append(source[key][idx + (self.max_samples_backward - back):idx + (self.max_samples_backward + forw)])
 
             ## Stack the files
-            self.num_of_samples[name] = None
             for key in model_inputs:
                 if key not in source.keys():
                     continue
@@ -468,8 +464,12 @@ class Neu4mes:
                     self.data[name][key] = np.expand_dims(self.data[name][key], axis=-1)
                 if self.data[name][key].ndim > 3:
                     self.data[name][key] = np.squeeze(self.data[name][key], axis=1)
-                if self.num_of_samples[name] is None:
-                    self.num_of_samples[name] = self.data[name][key].shape[0]
+                num_of_samples.append(self.data[name][key].shape[0])
+
+        # Check dim of the samples
+        check(len(set(num_of_samples)) == 1, ValueError,
+              f"The number of the sample of the dataset {name} are not the same for all input in the dataset")
+        self.num_of_samples[name] = num_of_samples[0]
 
         ## Set the Loaded flag to True
         self.data_loaded = True
@@ -842,6 +842,19 @@ class Neu4mes:
             if n_samples_val > 0:
                 val_losses[key] = []
 
+        # Check the needed keys are in the datasets
+        keys = set(self.model_def['Inputs'].keys())
+        keys |= {value['A'].name for value in self.minimize_dict.values()}|{value['B'].name for value in self.minimize_dict.values()}
+        keys -= set(self.model_def['Relations'].keys())
+        keys -= set(self.model_def['States'].keys())
+        keys -= set(self.model_def['Outputs'].keys())
+        if 'connect' in self.run_training_params:
+            keys -= set(self.run_training_params['connect'].keys())
+        if 'closed_loop' in self.run_training_params:
+            keys -= set(self.run_training_params['closed_loop'].keys())
+        check(set(keys).issubset(set(XY_train.keys())), KeyError, f"Not all the mandatory keys {keys} are present in the training dataset {set(XY_train.keys())}.")
+
+        # Show the training params
         self.visualizer.showTrainParams()
         check((n_samples_train - train_batch_size - prediction_samples + 1) > 0, ValueError, f"The number of available sample are (n_samples_train - train_batch_size - prediction_samples + 1) = {(n_samples_train - train_batch_size - prediction_samples + 1)}.")
 

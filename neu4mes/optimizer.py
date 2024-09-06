@@ -6,8 +6,8 @@ from neu4mes.utilis import check
 class Optimizer:
     def __init__(self, name, optimizer_defaults = {}, optimizer_params = []):
         self.name = name
-        self.optimizer_defaults = optimizer_defaults
-        self.optimizer_params = self.unfold(optimizer_params)
+        self.optimizer_defaults = copy.deepcopy(optimizer_defaults)
+        self.optimizer_params = self.unfold(copy.deepcopy(optimizer_params))
         self.all_params = None
         self.params_to_train = None
 

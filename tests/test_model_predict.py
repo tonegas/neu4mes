@@ -1234,13 +1234,13 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out_neg'], [-15.0])
         ## three sample prediction with both close loops
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=2)
         self.assertEqual(result['out'], [0.0, 30.0, 58.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
         ## three sample prediction with both close loops but y gets initialized for 3 steps
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=3)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=2)
         self.assertEqual(result['out'], [0.0, 9.0, 31.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
@@ -1424,25 +1424,25 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(results['out2'], [21.0, 29.0, 37.0, 45.0])
 
         ## connect out1 to in3 for 4 samples
-        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=4, connect={'in3':'out1'})
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=3, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 105.0])
         self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
 
         ## connect out1 to in3 for 3 samples
-        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=3, connect={'in3':'out1'})
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=2, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 60.0])
         self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[0.], [0.], [30.]]])
 
         ## connect out1 to in3 for 4 samples (initialize in3 with data)
-        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=4, connect={'in3':'out1'})
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=3, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 105.0])
         self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
 
         ## connect out1 to in3 for 3 samples (initialize in3 with data)
-        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=3, connect={'in3':'out1'})
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=2, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 69.0])
         self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[4.], [5.], [30.]]])
