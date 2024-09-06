@@ -8,7 +8,10 @@ from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 # 13 Tests
 # This file tests the dimensions of the inputs in particular:

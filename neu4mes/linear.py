@@ -9,11 +9,16 @@ from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.utilis import check, merge
 
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
     def __init__(self, output_dimension:int|None = None, W_init:None = None, W_init_params:None = None, b_init:None = None, b_init_params:None = None,
                  W:Parameter|None|str = None, b:bool|str|Parameter|None = None, dropout:int = 0):
+
         self.relation_name = linear_relation_name
         self.W_init = W_init
         self.W_init_params = W_init_params

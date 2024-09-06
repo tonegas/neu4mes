@@ -9,8 +9,6 @@ from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
-
 # 11 Tests
 # This file tests the dimensions and the of the element created in the pytorch environment
 

@@ -12,9 +12,9 @@ COLOR_BOLD_SEQ = "\033[1;%dm"
 BOLD_SEQ = "\033[1m"
 
 COLORS = {
-    logging.WARNING: YELLOW,
-    logging.INFO: WHITE,
     logging.DEBUG: MAGENTA,
+    logging.INFO: WHITE,
+    logging.WARNING: YELLOW,
     logging.CRITICAL: RED,
     logging.ERROR: RED
 }

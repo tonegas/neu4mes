@@ -4,7 +4,6 @@ from pprint import pformat
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
-
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 

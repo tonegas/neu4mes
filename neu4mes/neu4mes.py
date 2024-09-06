@@ -24,14 +24,12 @@ from neu4mes.model import Model
 from neu4mes.utilis import check, argmax_max, argmin_min, merge
 from neu4mes.optimizer import Optimizer, SGD, Adam
 
-
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
 log = logging.getLogger(__name__)
-log.setLevel(max(logging.ERROR, LOG_LEVEL))
+log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 class Neu4mes:
-    name = None
     def __init__(self, visualizer = 'Standard', seed=None):
 
         # Visualizer
