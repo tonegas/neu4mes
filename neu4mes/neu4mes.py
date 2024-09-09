@@ -720,6 +720,8 @@ class Neu4mes:
         elif self.model_def['States']: ## if we have state variables we have to do the recurrent train
             self.visualizer.warning(f"Recurrent train: update States variables {list(self.model_def['States'].keys())} for {prediction_samples} samples")
         else:
+            self.visualizer.warning(
+                f"The value of the prediction_samples={prediction_samples} is not used in not recursive network.")
             recurrent_train = False
         self.run_training_params['recurrent_train'] = recurrent_train
 

@@ -202,8 +202,8 @@ class Model(nn.Module):
                         for state in [key for key, value in self.states_updates.items() if value == relation]:
                             shift = result_dict[relation].shape[1]
                             self.states[state] = torch.roll(self.states[state], shifts=-shift, dims=1)
-                            self.states[state][:, -shift:, :] = result_dict[relation].detach() ## TODO: detach??
-                            self.states[state].requires_grad = False
+                            self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
+                            #self.states[state].requires_grad = False
                     elif relation in self.states_connect.values():
                         for state in [key for key, value in self.states_connect.items() if value == relation]:
                             shift = result_dict[relation].shape[1]
