@@ -91,7 +91,7 @@ class Neu4mes:
         self.prediction = {}
 
 
-    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = 0):
+    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = None):
         inputs = copy.deepcopy(inputs)
         closed_loop = copy.deepcopy(closed_loop)
         connect = copy.deepcopy(connect)
@@ -140,13 +140,16 @@ class Neu4mes:
                 min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         else:
+            ps = 0 if prediction_samples is None else prediction_samples
             if provided_inputs:
-                min_dim_ind, min_dim  = argmin_min([closed_loop_windows[key]+prediction_samples for key in provided_inputs])
-                max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+prediction_samples for key in provided_inputs])
+                min_dim_ind, min_dim  = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
+                max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
             else:
-                min_dim = max_dim = prediction_samples + 1
+                min_dim = max_dim = ps + 1
 
         window_dim = min_dim
+        if prediction_samples == None:
+            prediction_samples = window_dim
         check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
@@ -720,8 +723,9 @@ class Neu4mes:
         elif self.model_def['States']: ## if we have state variables we have to do the recurrent train
             self.visualizer.warning(f"Recurrent train: update States variables {list(self.model_def['States'].keys())} for {prediction_samples} samples")
         else:
-            self.visualizer.warning(
-                f"The value of the prediction_samples={prediction_samples} is not used in not recursive network.")
+            if prediction_samples != 0:
+                self.visualizer.warning(
+                    f"The value of the prediction_samples={prediction_samples} is not used in not recursive network.")
             recurrent_train = False
         self.run_training_params['recurrent_train'] = recurrent_train
 

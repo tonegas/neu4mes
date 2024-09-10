@@ -191,7 +191,7 @@ class Model(nn.Module):
                                         self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=False)
                                     result_dict[connect_in] = self.connect_variables[connect_in].clone()
                                 else: ## update connect variable
-                                    result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-relation_size, dims=1)
+                                    result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)#relation_size, dims=1)
                                 result_dict[connect_in][:, -relation_size:, :] = result_dict[relation].clone() 
                                 self.connect_variables[connect_in] = result_dict[connect_in].clone()
                             ## add the new input
@@ -201,13 +201,13 @@ class Model(nn.Module):
                     if relation in self.states_updates.values():
                         for state in [key for key, value in self.states_updates.items() if value == relation]:
                             shift = result_dict[relation].shape[1]
-                            self.states[state] = torch.roll(self.states[state], shifts=-shift, dims=1)
+                            self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)#shifts=-shift, dims=1)
                             self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
                             #self.states[state].requires_grad = False
                     elif relation in self.states_connect.values():
                         for state in [key for key, value in self.states_connect.items() if value == relation]:
                             shift = result_dict[relation].shape[1]
-                            self.states[state] = torch.roll(self.states[state], shifts=-shift, dims=1)
+                            self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
                             self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
                             #self.states[state].requires_grad = False
                             available_keys.add(state)

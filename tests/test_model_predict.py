@@ -1481,6 +1481,113 @@ class MyTestCase(unittest.TestCase):
         result = test()
         self.assertEqual(test.model.states['x_state'].numpy().tolist(), [[[3.],[6.],[11.]]])
 
+    def test_recurrent_connect_predict_order_of_values_same_window(self):
+        NeuObj.reset_count()
+        input1 = Input('in1',dimensions=2)
+        W = Parameter('W', values=[[[-1],[-5]]])
+        b = Parameter('b', values=[[1]])
+        lin_out = Linear(W=W, b=b)(input1.sw(2))
+        output1 = Output('out1', lin_out)
+
+        inout = Input('inout')
+        a = Parameter('a', values=[[4],[5]])
+        output2 = Output('out2', Fir(parameter=a)(inout.sw(2)))
+        output3 = Output('out3', Fir(parameter=a)(lin_out))
+
+        test = Neu4mes(seed=42)
+        test.addModel('model', [output1,output2,output3])
+        test.neuralizeModel()
+        # [[1,2],[2,3]]*[-1,-5] = [[1*-1+2*-5=-11],[2*-1+3*-5=-17]]+[1] = [-10,-16] -> [-10,-16]*[4,5] -> [-16*5+-10*4=-120] <------
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3':[-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[-10,-16]}))
+        self.assertEqual({'out1': [[-10.0,-16.0]], 'out2': [-120.0], 'out3':[-120.0]}, test({'in1': [[1.0,2.0],[2.0,3.0]]},connect={'inout': 'out1'}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[-30,-30]}, connect={'inout': 'out1'}))
+
+    def test_recurrent_connect_predict_order_of_values_bigger_window(self):
+        NeuObj.reset_count()
+        input1 = Input('in1',dimensions=2)
+        W = Parameter('W', values=[[[-1],[-5]]])
+        b = Parameter('b', values=[[1]])
+        lin_out = Linear(W=W, b=b)(input1.sw(2))
+        output1 = Output('out1', lin_out)
+
+        inout = Input('inout')
+        a = Parameter('a', values=[[4], [5]])
+        output2 = Output('out2', Fir(parameter=a)(inout.sw(2)))
+        a_big = Parameter('ab', values=[[1], [2], [3], [4], [5]])
+        output3 = Output('out3', Fir(parameter=a_big)(inout.sw(5)))
+        output4 = Output('out4', Fir(parameter=a)(lin_out))
+
+        test = Neu4mes(seed=42)
+        test.addModel('model', [output1,output2,output3,output4])
+        test.neuralizeModel()
+        # [[1,2],[2,3]]*[-1,-5] = [[1*-1+2*-5=-11],[2*-1+3*-5=-17]]+[1] = [-10,-16] -> [-10,-16]*[4,5] -> [-16*5+-10*4=-120] <------
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-10,-16]}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
+                        test({'in1': [[1.0, 2.0], [2.0, 3.0]]}, connect={'inout': 'out1'}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
+                        test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-30,-30]}, connect={'inout': 'out1'}))
+        # [[1,2],[2,3]]*[-1,-5] = [[1*-1+2*-5=-11],[2*-1+3*-5=-17]]+[1]
+        # [[2,3],[1,2]]*[-1,-5] = [[2*-1+3*-5=-17],[1*-1+2*-5=-11]]+[1]
+        # out2 # = [[-10,-16],[-16,-10]] -> 1) [-10,-16]*[4,5] -> [-16*5+-10*4=-120]             2) [-16,-10]*[4,5] -> [-16*4+-10*5=-114] -> [-120,-114]
+        # out3 # = [[-10,-16],[-16,-10]] -> 1) [0,0,0,-10,-16]*[1,2,3,4,5] -> [-16*5+-10*4=-120] 2) [0,0,-10,-16,-10]*[1,2,3,4,5] -> [-10*3+-16*4+-10*5 = -144] -> [-120,-144]
+        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0, -10.0]], 'out2': [-120.0,-114.0], 'out3': [-120.0,-144], 'out4': [-120.0,-114.0]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0], [1.0,2.0]]},
+                              connect={'inout': 'out1'}))
+
+    def test_recurrent_connect_order_of_values_same_window(self):
+        NeuObj.reset_count()
+        input1 = Input('in1',dimensions=2)
+        W = Parameter('W', values=[[[-1],[-5]]])
+        b = Parameter('b', values=[[1]])
+        lin_out = Linear(W=W, b=b)(input1.sw(2))
+        output1 = Output('out1', lin_out)
+
+        inout = State('inout')
+        a = Parameter('a', values=[[4],[5]])
+        output2 = Output('out2', Fir(parameter=a)(inout.sw(2)))
+        output3 = Output('out3', Fir(parameter=a)(lin_out))
+
+        test = Neu4mes(seed=42)
+        test.addModel('model', [output1,output2,output3])
+        test.addConnect(output1,inout)
+        test.neuralizeModel()
+        # [[1,2],[2,3]]*[-1,-5] = [[1*-1+2*-5=-11],[2*-1+3*-5=-17]]+[1] = [-10,-16] -> [-10,-16]*[4,5] -> [-16*5+-10*4=-120] <------
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3':[-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[-10,-16]}))
+        self.assertEqual({'out1': [[-10.0,-16.0]], 'out2': [-120.0], 'out3':[-120.0]}, test({'in1': [[1.0,2.0],[2.0,3.0]]}))
+
+    def test_recurrent_connect_order_of_values_bigger_window(self):
+        NeuObj.reset_count()
+        input1 = Input('in1',dimensions=2)
+        W = Parameter('W', values=[[[-1],[-5]]])
+        b = Parameter('b', values=[[1]])
+        lin_out = Linear(W=W, b=b)(input1.sw(2))
+        output1 = Output('out1', lin_out)
+
+        inout = State('inout')
+        a = Parameter('a', values=[[4], [5]])
+        a_big = Parameter('ab', values=[[1], [2], [3], [4], [5]])
+        output2 = Output('out2', Fir(parameter=a)(inout.sw(2)))
+        output3 = Output('out3', Fir(parameter=a_big)(inout.sw(5)))
+        output4 = Output('out4', Fir(parameter=a)(lin_out))
+
+        test = Neu4mes(seed=42)
+        test.addModel('model', [output1,output2,output3,output4])
+        test.addConnect(output1, inout)
+        test.neuralizeModel()
+        # [[1,2],[2,3]]*[-1,-5] = [[1*-1+2*-5=-11],[2*-1+3*-5=-17]]+[1] = [-10,-16] -> [-10,-16]*[4,5] -> [-16*5+-10*4=-120] <------
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]]}))
+        test.clear_state()
+        # out2 # = [[-10,-16]] -> 1) [-10,-16]*[4,5] -> [-16*5+-10*4=-120]
+        # out3 # = [[-10,-16]] -> 1) [0,0,-10,-10,-16]*[1,2,3,4,5] -> [-10*3+-16*5+-10*4=-150]
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-150.0], 'out4': [-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-10,-16]}))
+        test.clear_state()
+
+        # out2 # = [[-10,-16],[-16,-10]] -> 1) [-10,-16]*[4,5] -> [-16*5+-10*4=-120]             2) [-16,-10]*[4,5] -> [-16*4+-10*5=-114] -> [-120,-114]
+        # out3 # = [[-10,-16],[-16,-10]] -> 1) [0,0,0,-10,-16]*[1,2,3,4,5] -> [-16*5+-10*4=-120] 2) [0,0,-10,-16,-10]*[1,2,3,4,5] -> [-10*3+-16*4+-10*5 = -144] -> [-120,-144]
+        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0, -10.0]], 'out2': [-120.0,-114.0], 'out3': [-120.0,-144], 'out4': [-120.0,-114.0]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0], [1.0,2.0]]}))
+
 if __name__ == '__main__':
     unittest.main()
 
