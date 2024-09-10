@@ -273,6 +273,8 @@ class Neu4mes:
                   f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
             check(type(state_in) is State, TypeError,
                   f"The {state_in} must be a State and not a {type(state_in)}.")
+            check(stream_out.dim['dim'] == state_in.dim['dim'], ValueError,
+                  f"The dimension of {stream_out.name} is not equal to the dimension of {state_in.name} ({stream_out.dim['dim']}!={state_in.dim['dim']}).")
             if type(stream_out) is Output:
                 stream_name = self.model_def['Outputs'][stream_out.name]
                 stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
