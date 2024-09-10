@@ -1,94 +1,142 @@
-import torch.nn as nn
+import sys
+import os
 import torch
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.relation_forward = {}
-        self.relation_forward['Fir12'] = nn.Parameter() 
-        self.relation_
-        self.relation_forward = nn.ParameterDict(self.relation_forward)
+from neu4mes import *
 
-    def forward(self, kwargs):
-        getitem = kwargs['torque']
-        getitem_1 = getitem[(slice(None, None, None), slice(0, 1, None))];  getitem = None
-        size = getitem_1.size(0)
-        relation_forward_fir12_weights = self.relation_forward.Fir12.weights
-        size_1 = relation_forward_fir12_weights.size(1)
-        squeeze = getitem_1.squeeze(-1);  getitem_1 = None
-        matmul = torch.matmul(squeeze, relation_forward_fir12_weights);  squeeze = relation_forward_fir12_weights = None
-        view = matmul.view(size, 1, size_1);  matmul = size = size_1 = None
-        getitem_2 = kwargs['theta']
-        getitem_3 = getitem_2[(slice(None, None, None), slice(0, 10, None))];  getitem_2 = None
-        size_2 = getitem_3.size(0)
-        relation_forward_fir9_weights = self.relation_forward.Fir9.weights
-        size_3 = relation_forward_fir9_weights.size(1)
-        squeeze_1 = getitem_3.squeeze(-1);  getitem_3 = None
-        matmul_1 = torch.matmul(squeeze_1, relation_forward_fir9_weights);  squeeze_1 = relation_forward_fir9_weights = None
-        view_1 = matmul_1.view(size_2, 1, size_3);  matmul_1 = size_2 = size_3 = None
-        getitem_4 = kwargs['theta']
-        getitem_5 = getitem_4[(slice(None, None, None), slice(0, 10, None))];  getitem_4 = None
-        sin = torch.sin(getitem_5);  getitem_5 = None
-        size_4 = sin.size(0)
-        relation_forward_fir6_weights = self.relation_forward.Fir6.weights
-        size_5 = relation_forward_fir6_weights.size(1)
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        matmul_2 = torch.matmul(squeeze_2, relation_forward_fir6_weights);  squeeze_2 = relation_forward_fir6_weights = None
-        view_2 = matmul_2.view(size_4, 1, size_5);  matmul_2 = size_4 = size_5 = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        matmul_2 = torch.matmul(squeeze_2, relation_forward_fir6_weights);  squeeze_2 = relation_forward_fir6_weights = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        matmul_2 = torch.matmul(squeeze_2, relation_forward_fir6_weights);  squeeze_2 = relation_forward_fir6_weights = None
-        view_2 = matmul_2.view(size_4, 1, size_5);  matmul_2 = size_4 = size_5 = None
-        add = torch.add(view_2, view_1);  view_2 = view_1 = None
-        add_1 = torch.add(add, view);  add = view = None
-        getitem_6 = kwargs['omega_target'];  kwargs = None
-        getitem_7 = getitem_6[(slice(None, None, None), slice(0, 1, None))];  getitem_6 = None
-        return ({'omega': add_1}, {'SamplePart17': getitem_7, 'omega': add_1})
+# Create neu4mes structure
+result_path = os.path.join(os.getcwd(), "results")
+test = Neu4mes(seed=0, workspace=result_path)
+
+example = 3
+
+## Test Parameter, FuzzyFy, ParamFun
+if example == 1:
+    data_x = np.arange(10,20,0.01)
+    data_y = np.arange(20,30,0.01)
+    a,b = -3.0, 5.0
+    dataset = {'x': data_x, 'y': data_y, 'z':a*data_x+b*data_y}
+
+    x = Input('x')
+    y = Input('y')
+    z = Input('z')
+
+    ## create the relations
+    def myFun(K1,p1):
+        return K1*p1
+
+    K_x = Parameter('k_x', dimensions=1, tw=1)
+    K_y = Parameter('k_y', dimensions=1, tw=1)
+    w = Parameter('w', dimensions=1, tw=1)
+    t = Parameter('t', dimensions=1, tw=1)
+    w_5 = Parameter('w_5', dimensions=1, tw=5)
+    t_5 = Parameter('t_5', dimensions=1, tw=5)
+    parfun_x = ParamFun(myFun, parameters = [K_x])
+    parfun_y = ParamFun(myFun, parameters = [K_y])
+    fir_w = Fir(parameter=w_5)(x.tw(5))
+    fir_t = Fir(parameter=t_5)(y.tw(5))
+    time_part = TimePart(x.tw(5),i=1,j=3)
+    sample_select = SampleSelect(x.sw(5),i=1)
+
+    def fuzzyfun(x):
+        return torch.tan(x)
+    fuzzy = Fuzzify(output_dimension=4, range=[0,4], functions=fuzzyfun)(x.tw(1))
+
+    out = Output('out', parfun_x(x.tw(1))+parfun_y(y.tw(1)))
+    out2 = Output('out2', Add(w,x.tw(1))+Add(t,y.tw(1)))
+    out3 = Output('out3', Add(fir_w, fir_t))
+    out4 = Output('out4', Linear(output_dimension=1)(fuzzy))
+    out5 = Output('out5', Fir(time_part)+Fir(sample_select))
+
+    test.addModel('model',[out,out2,out3,out4,out5])
+    test.addMinimize('error', z.last(), out, loss_function='rmse')
+    test.neuralizeModel()
+    test.loadData(name='dataset', source=dataset)
+
+    test.exportJSON()
+
+    params = {'num_of_epochs': 100,
+            'train_batch_size': 8, 
+            'val_batch_size': 8, 
+            'test_batch_size': 1, 
+            'learning_rate': 0.01}
+    test.trainModel(training_params=params)
+
+    ## Neural network Predict
+    sample = test.get_random_samples(dataset='dataset', window=1)
+    result = test(sample, sampled=True)
+    print('Predicted z: ', result['out'])
+    print('True z: ', sample['z'])
+    print(f'parameters a = {test.model.all_parameters.k_x} : b = {test.model.all_parameters.k_y}')
+
+    test.exportTracer()
+
+    file_path = os.path.join(test.folder_path, 'tracer_model.py')
+    test.importTracer(file_path=file_path)
+
+    result = test(sample, sampled=True)
+    print('Predicted z: ', result['out'])
+    print('True z: ', sample['z'])
+    print(f'parameters a = {test.model.all_parameters.k_x} : b = {test.model.all_parameters.k_y}')
+
+elif example == 2:  ## Test Close Loop
+    data_x = np.arange(10,20,0.01)
+    data_y = np.arange(20,30,0.01)
+    dataset = {'x': data_x, 'y': data_y}
+
+    x = Input('x')
+    y = Input('y')
+
+    out = Output('out', Fir(x.last())+Fir(y.last()))
+
+    test.addModel('model',[out])
+    test.addMinimize('error', x.next(), out, loss_function='rmse')
+    test.neuralizeModel(clear_model=True)
+    test.loadData(name='dataset', source=dataset)
+
+    test.exportJSON()
+
+    params = {'num_of_epochs': 20,
+            'train_batch_size': 1, 
+            'val_batch_size': 1, 
+            'test_batch_size': 1, 
+            'learning_rate': 0.01}
+    test.trainModel(training_params=params, close_loop={'x':'out'})
+    test.exportTracer()
+
+elif example == 3: ## Test State Variables
+    data_x = np.arange(10,20,0.01)
+    data_y = np.arange(20,30,0.01)
+    a,b = -3.0, 5.0
+    dataset = {'x': data_x, 'y': data_y, 'z':a*data_x+b*data_y}
+
+    x = Input('x') 
+    y = Input('y')
+    z = Input('z')
+    x_state = State('x_state')
+    y_state = State('y_state')
+    x_out = Fir(x_state.tw(0.5))
+    y_out = Fir(y_state.tw(0.5))
+
+    out = Output('out',x_out+y_out)
+
+    result_path = os.path.join(os.getcwd(), "results")
+    test = Neu4mes(seed=0, workspace=result_path)
+    test.addClosedLoop(x_out, x_state)
+    test.addClosedLoop(y_out, y_state)
+    test.addModel('model', out)
+    test.addMinimize('error', out, z.last())
+
+    test.neuralizeModel(0.1)
+    test.exportJSON()
+    test.loadData('dataset', source=dataset)
     
-    def forward(self, torque, theta, omega_target):
-        getitem = torque
-        getitem_1 = getitem[(slice(None, None, None), slice(0, 1, None))];  getitem = None
-        size = getitem_1.size(0)
-        relation_forward_fir12_weights = self.relation_forward.Fir12.weights
-        size_1 = relation_forward_fir12_weights.size(1)
-        squeeze = getitem_1.squeeze(-1);  getitem_1 = None
-        matmul = torch.matmul(squeeze, relation_forward_fir12_weights);  squeeze = relation_forward_fir12_weights = None
-        view = matmul.view(size, 1, size_1);  matmul = size = size_1 = None
-        getitem_2 = theta
-        getitem_3 = getitem_2[(slice(None, None, None), slice(0, 10, None))];  getitem_2 = None
-        size_2 = getitem_3.size(0)
-        relation_forward_fir9_weights = self.relation_forward.Fir9.weights
-        size_3 = relation_forward_fir9_weights.size(1)
-        squeeze_1 = getitem_3.squeeze(-1);  getitem_3 = None
-        matmul_1 = torch.matmul(squeeze_1, relation_forward_fir9_weights);  squeeze_1 = relation_forward_fir9_weights = None
-        view_1 = matmul_1.view(size_2, 1, size_3);  matmul_1 = size_2 = size_3 = None
-        getitem_4 = theta
-        getitem_5 = getitem_4[(slice(None, None, None), slice(0, 10, None))];  getitem_4 = None
-        sin = torch.sin(getitem_5);  getitem_5 = None
-        size_4 = sin.size(0)
-        relation_forward_fir6_weights = self.relation_forward.Fir6.weights
-        size_5 = relation_forward_fir6_weights.size(1)
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        matmul_2 = torch.matmul(squeeze_2, relation_forward_fir6_weights);  squeeze_2 = relation_forward_fir6_weights = None
-        view_2 = matmul_2.view(size_4, 1, size_5);  matmul_2 = size_4 = size_5 = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        matmul_2 = torch.matmul(squeeze_2, relation_forward_fir6_weights);  squeeze_2 = relation_forward_fir6_weights = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        squeeze_2 = sin.squeeze(-1);  sin = None
-        matmul_2 = torch.matmul(squeeze_2, relation_forward_fir6_weights);  squeeze_2 = relation_forward_fir6_weights = None
-        view_2 = matmul_2.view(size_4, 1, size_5);  matmul_2 = size_4 = size_5 = None
-        add = torch.add(view_2, view_1);  view_2 = view_1 = None
-        add_1 = torch.add(add, view);  add = view = None
-        getitem_6 = omega_target;  kwargs = None
-        getitem_7 = getitem_6[(slice(None, None, None), slice(0, 1, None))];  getitem_6 = None
-        return (add_1, getitem_7, add_1)
+    params = {'num_of_epochs':20, 
+          'train_batch_size': 1, 
+          'val_batch_size':1, 
+          'test_batch_size':1, 
+          'learning_rate':0.01}
+    test.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
+    test.exportTracer()

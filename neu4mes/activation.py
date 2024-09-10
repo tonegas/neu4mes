@@ -3,6 +3,7 @@ import torch.nn as nn
 from neu4mes.relation import Stream, ToStream, toStream
 from neu4mes.model import Model
 from neu4mes.utilis import check
+import torch
 
 relu_relation_name = 'ReLU'
 tanh_relation_name = 'Tanh'
@@ -32,11 +33,23 @@ class ELU(Stream, ToStream):
         super().__init__(elu_relation_name + str(Stream.count),obj.json,obj.dim)
         self.json['Relations'][self.name] = [elu_relation_name,[obj.name]]
 
-def createTanh(self, *input):
-    return nn.Tanh()
+class Tanh_Layer(nn.Module):
+    def __init__(self,):
+        super(Tanh_Layer, self).__init__()
+    def forward(self, x):
+        return torch.tanh(x)
 
+def createTanh(self, *input):
+    return Tanh_Layer()
+
+class ReLU_Layer(nn.Module):
+    def __init__(self,):
+        super(ReLU_Layer, self).__init__()
+    def forward(self, x):
+        return torch.relu(x)
+    
 def createRelu(self, *input):
-    return nn.ReLU()
+    return ReLU_Layer()
 
 def createELU(self, *input):
     return nn.ELU()

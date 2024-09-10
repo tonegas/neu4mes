@@ -31,8 +31,8 @@ next_x = Output('next_x', displacement_x(x.tw(0.2))+force_x(F.last()))
 next_dx = Output('next_dx', displacement_dx(x.tw(0.2))+force_dx(F.last()))
 
 # Add the neural models to the neu4mes structure
-result_path = os.path.join(os.getcwd(), "results", "example1")
-mass_spring_damper = Neu4mes(visualizer=MPLVisulizer(), folder=result_path)
+result_path = os.path.join(os.getcwd(), "results")
+mass_spring_damper = Neu4mes(visualizer=MPLVisulizer(), workspace=result_path)
 mass_spring_damper.addModel('position_model',next_x)
 mass_spring_damper.addModel('velocity_model',next_dx)
 
@@ -52,27 +52,42 @@ data_folder = './tutorials/datasets/mass-spring-damper/data/'
 mass_spring_damper.loadData(name='mass_spring_dataset', source=data_folder, format=data_struct, delimiter=';')
 
 #Neural network train not reccurent training
-params = {'num_of_epochs': 30,
+params = {'num_of_epochs': 100,
           'train_batch_size': 128, 
           'val_batch_size':128, 
           'test_batch_size':1, 
           'learning_rate':0.001}
-
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 
-# Add visualizer and show the results on the loaded dataset
-#vis = MPLVisulizer()
-#vis.set_n4m(mass_spring_damper)
-#vis.showOneResult("validation")
+## Make predictions
+sample = mass_spring_damper.get_random_samples(dataset='mass_spring_dataset', window=200)
+result = mass_spring_damper(sample, sampled=True)
+true_position = [pos[-1].item() for pos in sample['x']]
+true_velocity = [vel.squeeze().item() for vel in sample['dx']]
+pred_position = result['next_x']
+pred_velocity = result['next_dx']
 
+## Plot predictions
+import matplotlib.pyplot as plt
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
+axes[0].plot(true_position, label='True Position', marker='o')
+axes[0].plot(pred_position, label='Predicted Position', marker='x')
+axes[0].set_xlabel('Time')
+axes[0].set_ylabel('Position')
+axes[0].set_title('Position Inference')
+axes[1].plot(true_velocity, label='True Velocity', marker='o')
+axes[1].plot(pred_velocity, label='Predicted Velocity', marker='x')
+axes[1].set_xlabel('Time')
+axes[1].set_ylabel('Velocity')
+axes[1].set_title('Velocity Inference')
+plt.tight_layout()
+plt.show()
+
+## Recurrent training
 params = {'num_of_epochs': 20,
           'train_batch_size': 128, 
           'val_batch_size':128, 
           'test_batch_size':1, 
           'learning_rate':0.0001}
-#Neural network train not reccurent training
-#mass_spring_damper.trainModel(splits=[70,20,10], training_params = params, close_loop={'x':'next_x'}, prediction_samples=10)
-
-# Add visualizer and show the results on the loaded dataset
-#vis.showOneResult("validation")
+mass_spring_damper.trainModel(splits=[70,20,10], training_params = params, close_loop={'x':'next_x'}, prediction_samples=10)
 

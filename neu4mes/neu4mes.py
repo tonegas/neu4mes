@@ -26,7 +26,7 @@ from neu4mes.output import Output
 from neu4mes.relation import Stream
 from neu4mes.model import Model
 from neu4mes.utilis import check, argmax_max, argmin_min, merge
-from neu4mes.export import plot_fuzzify, generate_training_report
+from neu4mes.export import plot_fuzzify, generate_training_report, model_to_python, model_to_onnx, model_to_python_onnx
 
 
 from neu4mes import LOG_LEVEL
@@ -36,7 +36,7 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
 class Neu4mes:
     name = None
-    def __init__(self, visualizer = 'Standard', seed=None, folder=None):
+    def __init__(self, visualizer = 'Standard', seed=None, workspace=None):
 
         # Visualizer
         if visualizer == 'Standard':
@@ -91,7 +91,11 @@ class Neu4mes:
         self.prediction = {}
 
         # Export parameters
-        self.folder = folder
+        self.workspace = workspace
+        os.makedirs(self.workspace, exist_ok=True)
+        self.folder = 'neu4mes_'+datetime.now().strftime("%Y_%m_%d_%H_%M")
+        self.folder_path = os.path.join(self.workspace, self.folder)
+        os.makedirs(self.folder_path, exist_ok=True)
                 
 
     def __call__(self, inputs={}, sampled=False, close_loop={}, connect={}, prediction_samples=1):
@@ -796,16 +800,20 @@ class Neu4mes:
             self.resultAnalysis(test_dataset, XY_test)
             self.resultReport(XY_test, train_losses, val_losses)
         '''
+        if self.n_samples_test > 0:
+            self.ExportReport(XY_test, train_losses, val_losses)
+        elif self.n_samples_val > 0:
+            self.ExportReport(XY_val, train_losses, val_losses)
+        
 
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
     
-    def resultReport(self, data, train_loss, val_loss):
-        # Specify the file name
-        file_name = datetime.now().strftime("%Y-%m-%d-%H-%M") + ".pdf"
+    def ExportReport(self, data, train_loss, val_loss):
+        file_name = "report.pdf"
         # Combine the folder path and file name to form the complete file path
-        file_path = os.path.join(self.folder, file_name)
-        os.makedirs(self.folder, exist_ok=True)
+        file_path = os.path.join(self.folder_path, file_name)
+        
         # Create PDF
         c = canvas.Canvas(file_path, pagesize=letter)
         width, height = letter
@@ -889,10 +897,8 @@ class Neu4mes:
                 c.showPage()
 
         c.save()
-        print(f"Training report saved as {file_path}")
+        self.visualizer.warning(f"Training report saved as {file_name}")
             
-
-
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, close_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
@@ -992,7 +998,58 @@ class Neu4mes:
         else:
             self.visualizer.warning('The model does not have state variables!')
 
+
     '''
+    def exportONNX(self, tracer_path):
+        # Step 1: Define the mapping dictionary
+        trace_mapping = {}
+        forward = 'def forward(self,'
+        dummy_inputs = []
+        input_names = []
+        for key, item in self.model_def['Inputs'].items():
+            value = f'kwargs[\'{key}\']'
+            trace_mapping[value] = key
+            forward = forward + f' {key},'
+            input_names.append(key)
+            window_size = self.input_n_samples[key]
+            dummy_inputs.append(torch.randn(size=(1, window_size, item['dim'])))
+        forward = forward + '):'
+        output_names = [name for name in self.model_def['Outputs'].keys()]
+        dummy_inputs = tuple(dummy_inputs)
+
+        # Step 2: Open and read the file
+        with open(tracer_path, 'r') as file:
+            file_content = file.read()
+
+        file_content = file_content.replace('def forward(self, kwargs):', forward)
+
+        # Step 3: Perform the substitution
+        for key, value in trace_mapping.items():
+            file_content = file_content.replace(key, value)
+
+        # Step 4: Write the modified content back to a new file
+        onnx_path = tracer_path.replace('.py','_onnx.py')
+        with open(onnx_path, 'w') as file:
+            file.write(file_content)
+
+        # Step 5: Import the compatible tracer
+        self.importTracer(onnx_path)
+
+        self.model.eval()
+
+        onnx_path = tracer_path.replace('.py','.onnx')
+        torch.onnx.export(
+                    self.model,                            # The model to be exported
+                    dummy_inputs,                          # Tuple of inputs to match the forward signature
+                    onnx_path,                             # File path to save the ONNX model
+                    export_params=True,                    # Store the trained parameters in the model file
+                    opset_version=12,                      # ONNX version to export to (you can use 11 or higher)
+                    do_constant_folding=True,              # Optimize constant folding for inference
+                    input_names=input_names,               # Name each input as they will appear in ONNX
+                    output_names=output_names,             # Name the output
+                    )
+    
+    
     def exportModel(self):
         import io
         import onnx
@@ -1002,10 +1059,7 @@ class Neu4mes:
         for name, value in self.model_def['Inputs'].items():
             window_size = self.input_n_samples[name]
             features[name] = torch.randn(size=(1, window_size, value['dim']))
-        print('features: ', features)
-        torch_out, torch_min = self.model(features)
-        print("torch_out:", torch_out)
-        print("torch_min:", torch_min)
+        #torch_out, torch_min = self.model(features)
 
         f = io.BytesIO()
         #torch.onnx.export(self.model, {"x": features}, f)
@@ -1028,107 +1082,41 @@ class Neu4mes:
             return
         self.model.load_state_dict(torch.load(path))
 
+
     def exportJSON(self,):
         # Specify the JSON file name
-        file_name = datetime.now().strftime("%Y-%m-%d-%H-%M") + ".json"
+        file_name = "model.json"
         # Combine the folder path and file name to form the complete file path
-        file_path = os.path.join(self.folder, file_name)
-        # Ensure the directory exists, if not, create it
-        os.makedirs(self.folder, exist_ok=True)
+        file_path = os.path.join(self.folder_path, file_name)
         # Export the dictionary as a JSON file
         with open(file_path, 'w') as json_file:
             pformat(self.model_def, width=80).strip().splitlines()
             json_file.write(pformat(self.model_def, width=80).strip().replace('\'', '\"'))
-            #json.dump(self.model_def, json_file, indent=4)  # 'indent=4' is optional, it makes the file more readable
-        print(f"The model definition has been exported to {file_path} as a JSON file.")
+        self.visualizer.warning(f"The model definition has been exported to {file_name} as a JSON file.")
+        return file_path
+
 
     def exportTracer(self,):
         if not self.neuralized:
             self.visualizer.warning('Export Error: the model is not neuralized yet.')
             return
-        #file_name = datetime.now().strftime("%Y_%m_%d") + ".py"
-        file_name = 'test.py'
-        # Combine the folder path and file name to form the complete file path
-        file_path = os.path.join(self.folder, file_name)
-        # Ensure the directory exists, if not, create it
-        os.makedirs(self.folder, exist_ok=True)
-        # Get the symbolic tracer
-        with torch.no_grad():
-            trace = symbolic_trace(self.model)
 
-        attributes = [line for line in trace.code.split() if 'self.' in line]
-        print('attributes: ', attributes)
+        ## Export to python file
+        python_path = model_to_python(self.model_def, self.model, folder_path=self.folder_path)
+        ## Export to python file (onnx compatible)
+        python_onnx_path = model_to_python_onnx(self.model_def, tracer_path=python_path)
+        ## Export to onnx file
+        self.importTracer(python_onnx_path)
+        self.model.eval()
+        onnx_path = model_to_onnx(self.model, self.model_def, self.input_n_samples, python_path)
 
-        with open(file_path, 'w') as file:
-            file.write("import torch.nn as nn\n")
-            file.write("import torch\n\n")
+        self.visualizer.warning(f"The pytorch model has been exported to {self.folder}.")
+        return python_path, python_onnx_path, onnx_path
 
-            for name in self.model_def['Functions'].keys():
-                if 'Fuzzify' in name:
-                    file.write("def neu4mes_fuzzify_slicing(res, i, x):\n")
-                    file.write("    res[:, :, i:i+1] = x\n\n")
-                    break
 
-            file.write("class TracerModel(torch.nn.Module):\n")
-            file.write("    def __init__(self):\n")
-            file.write("        super().__init__()\n")
-            file.write("        self.all_parameters = {}\n")
-            for attr in attributes:
-                if 'constant' in attr:
-                    file.write(f"        {attr} = torch.tensor({getattr(trace, attr.replace('self.', ''))})\n")
-                elif 'relation_forward' in attr:
-                    key = attr.split('.')[2]
-                    if 'Fir' in key or 'Linear' in key:
-                        param = self.model_def['Relations'][key][2] if 'weights' in attr.split('.')[3] else self.model_def['Relations'][key][3]
-                        file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{self.model.all_parameters[param].data}, requires_grad=True)\n")
-                elif 'all_parameters' in attr:
-                    key = attr.split('.')[-1]
-                    file.write(f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.{self.model.all_parameters[key].data}, requires_grad=True)\n")
-            #file.write("        self.relation_forward = {}\n")
-            #for key, value in self.model.relation_forward.items():
-            #    if hasattr(value, 'weights'):
-                    #file.write(f"        self.relation_forward[\"{key}\"] = Fir_Layer(torch.nn.Parameter(torch.{value.weights.data}, requires_grad=True))\n")
-            #        file.write(f"        self.relation_forward[\"{key}\"] = torch.nn.Parameter(torch.{value.weights.data}, requires_grad=True)\n")
-            file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
-            #file.write(f"\t{trace.code}")
-            for line in trace.code.split("\n")[2:]:
-                if 'self.relation_forward' in line:
-                    if 'Fir' in name or 'Linear' in name:
-                        relation = line.split()[-1]
-                        key = relation.split('.')
-                        name = key[2]
-                        param = self.model_def['Relations'][name][2] if 'weights' in key[3] else self.model_def['Relations'][name][3]
-                        new_rel = f'self.all_parameters.{param}'
-                        file.write(f"    {line.replace(relation, new_rel)}\n")
-                    else:
-                        file.write(f"    {line}\n")
-                else:
-                    file.write(f"    {line}\n")
-        print(f"The pytorch model has been exported to {file_path} as a python file.")
-        return file_name
-
-    '''
-    def importTracer(self, file_name):
-        # Define the file path for the Python code
-        file_path = os.path.join(self.folder, file_name)
-        # Read the Python code from the file
-        with open(file_path, 'r') as file:
-            code = file.read()
-        # Execute the code (not safe but who cares)
-        code += "self.model = TracerModel()"
-        print('before exec: ', self.model)
-        #try:
-        exec(code) 
-        #except: 
-        #    raise KeyError
-        print('after exec: ', self.model)
-    '''
-
-    def importTracer(self, file_name):
+    def importTracer(self, file_path):
         import sys
         import os
-        # Define the file path for the Python code
-        file_path = os.path.join(self.folder, file_name)
         # Add the directory containing your file to sys.path
         directory = os.path.dirname(file_path)
         sys.path.insert(0, directory)

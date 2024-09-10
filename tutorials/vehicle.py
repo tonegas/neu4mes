@@ -7,8 +7,8 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 # Create neu4mes structure
-result_path = os.path.join(os.getcwd(), "results", "example1")
-vehicle = Neu4mes(visualizer=MPLVisulizer(), seed=0, folder=result_path)
+workspace = os.path.join(os.getcwd(), "results")
+vehicle = Neu4mes(visualizer=MPLVisulizer(), seed=0, workspace=workspace)
 
 # Dimensions of the layers
 n  = 25
@@ -37,7 +37,7 @@ out = Output('accelleration', air_drag_force+breaking_force+gravity_force+engine
 vehicle.addModel('acc',[out])
 vehicle.addMinimize('acc_error', acc.last(), out, loss_function='rmse')
 vehicle.neuralizeModel(0.05)
-#vehicle.exportJSON()
+vehicle.exportJSON()
 
 # Load the training and the validation dataset
 data_struct = ['vel','trq','brk','gear','alt','acc']
@@ -52,7 +52,11 @@ def filter_function(sample):
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, training_params={'num_of_epochs':10, 'val_batch_size':128, 'train_batch_size':128, 'learning_rate':0.00003})
+params = {'num_of_epochs':300, 
+          'val_batch_size':128, 
+          'train_batch_size':128, 
+          'learning_rate':0.00003}
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', training_params=params)
 
 ## Neural network Predict
 sample = vehicle.get_random_samples(dataset='validationset', window=1)
@@ -61,8 +65,10 @@ print('Predicted accelleration: ', result['accelleration'])
 print('True accelleration: ', sample['acc'])
 
 file_name = vehicle.exportTracer()
-vehicle.importTracer(file_name=file_name)
+#vehicle.exportONNX(file_name)
 
-result = vehicle(sample, sampled=True)
-print('Predicted accelleration: ', result['accelleration'])
-print('True accelleration: ', sample['acc'])
+## Import the tracer model
+#vehicle.importTracer(file_name=file_name)
+#result = vehicle(sample, sampled=True)
+#print('Predicted accelleration: ', result['accelleration'])
+#print('True accelleration: ', sample['acc'])

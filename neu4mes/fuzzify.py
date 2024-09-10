@@ -150,7 +150,8 @@ class Fuzzify_Layer(nn.Module):
             if self.name not in ['Triangular', 'Rectangular']: ## custom function
                 ## Add the function to the globals
                 try:
-                    exec(self.function, globals())
+                    code = 'import torch\n@torch.fx.wrap\n' + self.function
+                    exec(code, globals())
                 except Exception as e:
                     print(f"An error occurred: {e}")
 

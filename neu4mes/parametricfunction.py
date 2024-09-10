@@ -164,7 +164,8 @@ class Parametric_Layer(nn.Module):
         self.params = params
         ## Add the function to the globals
         try:
-            exec(func['code'], globals())
+            code = 'import torch\n@torch.fx.wrap\n' + func['code']
+            exec(code, globals())
         except Exception as e:
             print(f"An error occurred: {e}")
 
