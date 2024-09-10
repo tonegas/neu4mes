@@ -24,10 +24,10 @@ acc = Input('acc')
 
 # Create neural network relations
 air_drag_force = Linear(b=True)(velocity.last()**2)
-breaking_force = -Relu(Fir(parameter_init = init_negexp, parameter_init_params={'size_index':0, 'first_value':0.005, 'lambda':3})(brake.sw(n)))
-gravity_force = Linear(W_init=init_lin, W_init_params={'size_index':1, 'first_value':-1, 'last_value':1})(altitude.last())
+breaking_force = -Relu(Fir(parameter_init = init_negexp, parameter_init_params={'size_index':0, 'first_value':0.002, 'lambda':3})(brake.sw(n)))
+gravity_force = Linear(W_init=init_constant, W_init_params={'value':0}, dropout=0.1, W='grav')(altitude.last())
 fuzzi_gear = Fuzzify(6, range=[2,7], functions='Rectangular')(gear.last())
-local_model = LocalModel(input_function=lambda: Fir(parameter_init = init_negexp))
+local_model = LocalModel(input_function=lambda: Fir(parameter_init = init_negexp, parameter_init_params={'size_index':0, 'first_value':0.002, 'lambda':3}))
 engine_force = local_model(torque.sw(n), fuzzi_gear)
 
 # Create neural network output
@@ -37,7 +37,6 @@ out = Output('accelleration', air_drag_force+breaking_force+gravity_force+engine
 vehicle.addModel('acc',[out])
 vehicle.addMinimize('acc_error', acc.last(), out, loss_function='rmse')
 vehicle.neuralizeModel(0.05)
-vehicle.exportJSON()
 
 # Load the training and the validation dataset
 data_struct = ['vel','trq','brk','gear','alt','acc']
@@ -52,11 +51,7 @@ def filter_function(sample):
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
-params = {'num_of_epochs':300, 
-          'val_batch_size':128, 
-          'train_batch_size':128, 
-          'learning_rate':0.00003}
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', training_params=params)
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=[{'params':'grav','weight_decay': 0.1}], add_optimizer_defaults={'weight_decay': 0.00001}, training_params={'num_of_epochs':300, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003})
 
 ## Neural network Predict
 sample = vehicle.get_random_samples(dataset='validationset', window=1)

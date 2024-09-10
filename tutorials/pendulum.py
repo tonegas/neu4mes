@@ -4,6 +4,8 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 
+from torch.fx import symbolic_trace
+
 from neu4mes import *
 from neu4mes.visualizer import MPLVisulizer
 

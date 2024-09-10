@@ -9,8 +9,7 @@ from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-logging.getLogger("neu4mes.neu4mes").setLevel(logging.CRITICAL)
-
+# 11 Tests
 # This file tests the dimensions and the of the element created in the pytorch environment
 
 class Neu4mesNetworkBuildingTest(unittest.TestCase):
@@ -80,9 +79,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual({'in2': 8} , test.input_n_samples)
         
         list_of_dimensions = {'Fir3':[5,1], 'Fir6':[4,1], 'Fir9':[6,1], 'Fir12':[3,1], 'Fir15':[3,1]}
-        for  (key, value) in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
+        for  key, value in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
             self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
-
 
     def test_network_building_tw3(self):
         input2 = Input('in2')
@@ -99,7 +97,6 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
-
     def test_network_building_tw_with_offest(self):
         Stream.reset_count()
         input2 = Input('in2')
@@ -114,7 +111,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         list_of_dimensions = {'Fir3':[5,1], 'Fir6':[6,1], 'Fir9':[6,1], 'Fir12':[6,1]}
-        for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
+        for key, value in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
             self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
 
     def test_network_building_tw_negative(self):
@@ -145,7 +142,6 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         for ind, (key, value) in enumerate({k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items()):
             self.assertEqual(list_of_dimensions[ind],list(value.weights.shape))
 
-
     def test_network_building_sw_with_offset(self):
         Stream.reset_count()
         input2 = Input('in2')
@@ -162,7 +158,6 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         list_of_dimensions = {'Fir3':[5,1], 'Fir6':[6,1], 'Fir9':[6,1], 'Fir12':[6,1]}
         for key, value in {k:v for k,v in test.model.relation_forward.items() if 'Fir' in k}.items():
             self.assertEqual(list_of_dimensions[key],list(value.weights.shape))
-
 
     def test_network_building_sw_and_tw(self):
         input2 = Input('in2')
