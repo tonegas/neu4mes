@@ -41,7 +41,6 @@ vehicle.addModel('acc',[out_acc,out_vel])
 vehicle.addMinimize('vel_error', velocity.next(), out_vel, loss_function='rmse')
 vehicle.neuralizeModel(0.05)
 vehicle.neuralizeModel(0.05)
-vehicle.neuralizeModel(0.05)
 
 # Load the training and the validation dataset
 data_struct = ['vel','trq','brk','gear','alt','acc']

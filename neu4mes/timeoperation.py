@@ -2,9 +2,8 @@ import torch.nn as nn
 import torch
 
 from neu4mes.relation import NeuObj, AutoToStream, Stream
-from neu4mes.utilis import check
-from neu4mes.input import Input, State
-from neu4mes.model import Model
+from neu4mes.utilis import merge
+
 
 # Binary operators
 int_relation_name = 'Int'
