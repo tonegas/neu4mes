@@ -460,7 +460,6 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual({'out1': [[-10.0, -16.0],[-16.0, -10.0]], 'out2': [-120.0,-114.0], 'out3': [-120.0,-144], 'out4': [-120.0,-114.0]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0], [1.0,2.0]]}))
 
-## TODO to be finished
     def test_recurrent_closed_loop_order_of_values_bigger_window(self):
         NeuObj.reset_count()
         input1 = State('in1',dimensions=2)
@@ -479,17 +478,17 @@ class MyTestCase(unittest.TestCase):
         test.addClosedLoop(output1, input2)
         test.addClosedLoop(output2, input1)
         test.neuralizeModel()
-        # out1 # [[1.0, 2.0], [2.0, 3.0]] * [[[-1],[-5]]] + [[1]] = [[[1*-1+2*-5+1,2*-1+3*-5+1]]] = [[[-10,-16]]]
-        # out2 # [-10,-16] * [4] = [-40]
-        #self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-40.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'in2':[-10,-16,-5,2,3]}))
-        #test.clear_state()
-        # out1 # [[2.0, 3.0],[-10.0,-16.0]] * [[[-1],[-5]]] + [[1]] = [[[2*-1+3*-5+1,-10*-1+-16*-5+1]]] = [[[-16,91]]]
-        # out1 # [[-10.0,-16.0],[-16.0,91.0]] * [[[-1],[-5]]] + [[1]] = [[[2*-1+3*-5+1,-10*-1+-16*-5+1]]] = [[[-16,91]]]
-        # out1 # [-10,-16] * [4] = [-40]
-        #self.assertEqual({'out1': [[-10.0,-16.0],[-16.0,91.0],[-10.0,-16.0]], 'out2': [-40.0,1,1]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'in2':[-10,-16,-5,2,3]}, prediction_samples=2))
-
-        # self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0]},
-        #                  test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[-30,-30]}, connect={'inout': 'out1'}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=0))
+        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=1))
+        self.assertEqual({'out1': [[465.0,1291.0]], 'out2': [[[2230.0, 3102.0]]]},
+                         test())
+        test.clear_state()
+        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0],[465.0,1291.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]],[[2230.0, 3102.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=2))
 
 if __name__ == '__main__':
     unittest.main()

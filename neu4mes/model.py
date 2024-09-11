@@ -197,21 +197,24 @@ class Model(nn.Module):
                             ## add the new input
                             available_keys.add(connect_in)
 
-                    ## Update the state if necessary
-                    if relation in self.states_updates.values():
-                        for state in [key for key, value in self.states_updates.items() if value == relation]:
-                            shift = result_dict[relation].shape[1]
-                            self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)#shifts=-shift, dims=1)
-                            self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
-                            #self.states[state].requires_grad = False
-                    elif relation in self.states_connect.values():
+                    ## Update connect state if necessary
+                    if relation in self.states_connect.values():
                         for state in [key for key, value in self.states_connect.items() if value == relation]:
                             shift = result_dict[relation].shape[1]
                             self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
                             self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
                             #self.states[state].requires_grad = False
                             available_keys.add(state)
-                        
+
+            ## Update closed loop state if necessary
+            for relation in self.relations.keys():
+                if relation in self.states_updates.values():
+                    for state in [key for key, value in self.states_updates.items() if value == relation]:
+                        shift = result_dict[relation].shape[1]
+                        self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)  # shifts=-shift, dims=1)
+                        self.states[state][:, -shift:, :] = result_dict[relation]  # .detach() ## TODO: detach??
+                        # self.states[state].requires_grad = False
+
         ## Return a dictionary with all the outputs final values
         output_dict = {key: result_dict[value] for key, value in self.outputs.items()}
         ## Return a dictionary with the minimization relations
