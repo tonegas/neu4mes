@@ -170,7 +170,7 @@ class TextVisualizer(Visualizer):
             self.__paramjson("num of epochs:", par['num_of_epochs'])
             if par['shuffle_data']:
                 self.__param('shuffle data:', str(par['shuffle_data']))
-            if 'early_stopping' in par:
+            if par['early_stopping']:
                 self.__param('early stopping:', par['early_stopping'])
                 self.__paramjson('early stopping params:', par['early_stopping_params'])
 

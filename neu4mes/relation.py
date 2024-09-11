@@ -20,34 +20,6 @@ MAIN_JSON = {
 CHECK_NAMES = True
 NeuObj_names = []
 
-def merge(source, destination, main = True):
-    if main:
-        log.debug("Merge Source")
-        log.debug("\n"+pformat(source))
-        log.debug("Merge Destination")
-        log.debug("\n"+pformat(destination))
-        result = copy.deepcopy(destination)
-    else:
-        result = destination
-    for key, value in source.items():
-        if isinstance(value, dict):
-            # get node or create one
-            node = result.setdefault(key, {})
-            merge(value, node, False)
-        else:
-            if key in result and type(result[key]) is list:
-                if key == 'tw' or key == 'sw':
-                    if result[key][0] > value[0]:
-                        result[key][0] = value[0]
-                    if result[key][1] < value[1]:
-                        result[key][1] = value[1]
-            else:
-                result[key] = value
-    if main == True:
-        log.debug("Merge Result")
-        log.debug("\n" + pformat(result))
-    return result
-
 def toStream(obj):
     from neu4mes.parameter import Parameter
     obj = Stream(obj, MAIN_JSON, {}) if type(obj) in (int,float) else obj
@@ -60,7 +32,7 @@ class NeuObj():
     @classmethod
     def reset_count(self):
         NeuObj.count = 0
-    def __init__(self, name, json = {}, dim = 0):
+    def __init__(self, name = '', json = {}, dim = 0):
         NeuObj.count += 1
         if CHECK_NAMES == True:
             check(name not in NeuObj_names, NameError, f"The name {name} is already used change the name of NeuObj.")
@@ -109,14 +81,32 @@ class Stream(Relation):
         self.json = copy.deepcopy(json)
         self.dim = dim
 
-    def update(self, obj):
-        from neu4mes.input import State, Input
-        from neu4mes.output import Output
-        check(type(obj) is State, TypeError,
-              f"The {obj} must be a State and not a {type(obj)}.")
-        check(not isinstance(self, (Input,Output)), TypeError,
-              f"The {self.name} is a {type(self)} but must be a type of Stream.")
-        self.json['States'][obj.name]['update'] = self.name
+    def tw(self, tw, offset = None):
+        from neu4mes.input import State, Connect
+        from neu4mes.utilis import merge
+        s = State(self.name+"_state",dimensions=self.dim['dim'])
+        if type(tw) == int:
+            out_connect = Connect(self, s)
+            win_state = s.tw(tw, offset)
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), win_state.dim,0 )
+
+    def sw(self, sw, offset = None):
+        from neu4mes.input import State, Connect
+        from neu4mes.utilis import merge
+        s = State(self.name+"_state",dimensions=self.dim['dim'])
+        if type(sw) == int:
+            out_connect = Connect(self, s)
+            win_state = s.sw(sw, offset)
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), win_state.dim,0 )
+
+    def z(self, delay):
+        from neu4mes.input import State, Connect
+        from neu4mes.utilis import merge
+        s = State(self.name + "_state",dimensions=self.dim['dim'])
+        if type(delay) == int and delay > 0:
+            out_connect = Connect(self, s)
+            win_state = s.z(delay)
+            return Stream(win_state.name, merge(win_state.json, out_connect.json), win_state.dim,0 )
 
 
 class ToStream():

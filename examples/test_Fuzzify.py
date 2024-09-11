@@ -120,3 +120,18 @@ example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[-9,-3.0,3.0,9.0]}))
 #
+
+print("------------------------EXAMPLE 8------------------------")
+# Example 8
+## In this example we create one custom tangent function with 4 centers,
+def fun(x):
+    import torch
+    return torch.tan(x)
+
+fuz = Fuzzify(range=[-15.0, 15.0], centers=[-5, -2, 1, 4], functions=fun)
+out = Output('out', fuz(x.last()))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel()
+print(example({'x':[-9,-3.0,3.0,9.0]}))
+#

@@ -5,8 +5,10 @@ sys.path.append(os.getcwd())
 
 import unittest, logging
 from neu4mes import *
+from neu4mes import relation
 relation.CHECK_NAMES = False
 
+# 9 Tests
 # This test file tests the json, in particular
 # the dimensions that are propagated through the relations
 # and the structure of the json itself

@@ -20,9 +20,11 @@ LOG_LEVEL = logging.DEBUG
 
 from neu4mes.neu4mes import Neu4mes
 
-from neu4mes.relation import ToStream, Stream, NeuObj, merge, MAIN_JSON
-from neu4mes.input import Input, State
+from neu4mes.relation import ToStream, Stream, NeuObj, MAIN_JSON
+from neu4mes.input import Input, State, Connect, ClosedLoop
 from neu4mes.output import Output
+
+from neu4mes.optimizer import Optimizer, SGD, Adam
 
 from neu4mes.activation import Relu, Tanh
 from neu4mes.fir import Fir

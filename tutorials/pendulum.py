@@ -4,6 +4,8 @@ import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
 
+from torch.fx import symbolic_trace
+
 from neu4mes import *
 from neu4mes.visualizer import MPLVisulizer
 
@@ -33,10 +35,11 @@ data_folder = './tutorials/datasets/pendulum/data/'
 pendolum.loadData(name='pendulum_dataset', source=data_folder, format=data_struct, delimiter=';')
 
 # Neural network train
-params = {'learning_rate':0.001, 'train_batch_size':32, 'val_batch_size':32, 'num_of_epochs':50}
+params = {'lr':0.001, 'train_batch_size':32, 'val_batch_size':32, 'num_of_epochs':30}
 pendolum.trainModel(splits=[70,20,10], training_params=params)
 
 ## Neural network Predict
 sample = pendolum.get_random_samples(dataset='pendulum_dataset', window=1)
-print('Predicted omega: ', pendolum(sample, sampled=True))
-print('True omega: ', sample['omega'])
+result = pendolum(sample, sampled=True)
+print('Predicted omega: ', result['omega'])
+print('True omega: ', sample['omega_target'])

@@ -4,17 +4,21 @@ import inspect
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import NeuObj, Stream, AutoToStream, merge
-from neu4mes.input import Input
+from neu4mes.relation import NeuObj, Stream, AutoToStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
-from neu4mes.utilis import check
-from neu4mes.visualizer import Visualizer
+from neu4mes.utilis import check, merge
+
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
     def __init__(self, output_dimension:int|None = None, W_init:None = None, W_init_params:None = None, b_init:None = None, b_init_params:None = None,
-                 W:Parameter|None = None, b:bool|Parameter|None = None, dropout:int = 0):
+                 W:Parameter|None|str = None, b:bool|str|Parameter|None = None, dropout:int = 0):
+
         self.relation_name = linear_relation_name
         self.W_init = W_init
         self.W_init_params = W_init_params
@@ -92,7 +96,7 @@ class Linear(NeuObj, AutoToStream):
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname, self.dropout]
         return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
-
+'''
 class Linear_Layer(nn.Module):
     def __init__(self, weights, bias, dropout):
         super(Linear_Layer, self).__init__()
@@ -108,8 +112,26 @@ class Linear_Layer(nn.Module):
             x = self.dropout(x)
         x = self.lin(x)
         return x
+'''
+class Linear_Layer(nn.Module):
+    def __init__(self, weights, bias=None, dropout=0):
+        super(Linear_Layer, self).__init__()
+        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
+        self.weights = weights[0]
+        self.bias = bias
 
-def createLinear(self, weights, bias, dropout):
-    return Linear_Layer(weights, bias, dropout)
+    def forward(self, x):
+        # x is expected to be of shape [batch, window, input_dimension]
+        # Using torch.einsum for batch matrix multiplication
+        y = torch.einsum('bwi,io->bwo', x, self.weights)  # y will have shape [batch, window, output_features]
+        if self.bias is not None:
+            y += self.bias  # Add bias
+        # Add dropout if necessary
+        if self.dropout:
+            y = self.dropout(y)
+        return y
+
+def createLinear(self, *inputs):
+    return Linear_Layer(weights=inputs[0], bias=inputs[1], dropout=inputs[2])
 
 setattr(Model, linear_relation_name, createLinear)

@@ -6,6 +6,7 @@ from neu4mes.utilis import check
 
 relu_relation_name = 'ReLU'
 tanh_relation_name = 'Tanh'
+elu_relation_name = 'ELU'
 
 class Relu(Stream, ToStream):
     def __init__(self, obj:Stream) -> Stream:
@@ -23,11 +24,23 @@ class Tanh(Stream, ToStream):
         super().__init__(tanh_relation_name + str(Stream.count),obj.json,obj.dim)
         self.json['Relations'][self.name] = [tanh_relation_name,[obj.name]]
 
+class ELU(Stream, ToStream):
+    def __init__(self, obj:Stream) -> Stream:
+        obj = toStream(obj)
+        check(type(obj) is Stream,TypeError,
+              f"The type of {obj} is {type(obj)} and is not supported for Tanh operation.")
+        super().__init__(elu_relation_name + str(Stream.count),obj.json,obj.dim)
+        self.json['Relations'][self.name] = [elu_relation_name,[obj.name]]
+
 def createTanh(self, *input):
     return nn.Tanh()
 
 def createRelu(self, *input):
     return nn.ReLU()
 
+def createELU(self, *input):
+    return nn.ELU()
+
 setattr(Model, relu_relation_name, createRelu)
 setattr(Model, tanh_relation_name, createTanh)
+setattr(Model, elu_relation_name, createELU)

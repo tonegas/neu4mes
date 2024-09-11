@@ -4,9 +4,9 @@ import numpy as np
 import torch.nn as nn
 import torch
 
-from neu4mes.relation import NeuObj, Stream, merge
+from neu4mes.relation import NeuObj, Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check
+from neu4mes.utilis import check, merge
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -16,7 +16,7 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 fuzzify_relation_name = 'Fuzzify'
 
 class Fuzzify(NeuObj):
-    def __init__(self, output_dimension:int|None = None, range:list|None = None, centers:list|None = None, functions:str = 'Triangular'):
+    def __init__(self, output_dimension:int|None = None, range:list|None = None, centers:list|None = None, functions = 'Triangular'):
         self.relation_name = fuzzify_relation_name
         super().__init__('F' + fuzzify_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {}
@@ -181,7 +181,7 @@ class Fuzzify_Layer(nn.Module):
         #    res = res.unsqueeze(1)  ## add the window dimension
         return res
 
-def createFuzzify(self, params):
-    return Fuzzify_Layer(params)
+def createFuzzify(self, *params):
+    return Fuzzify_Layer(params[0])
 
 setattr(Model, fuzzify_relation_name, createFuzzify)
