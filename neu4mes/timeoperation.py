@@ -1,35 +1,27 @@
 import torch.nn as nn
+import torch
 
-from neu4mes.relation import Stream, ToStream, toStream
+from neu4mes.relation import NeuObj, AutoToStream, Stream
+from neu4mes.utilis import check, merge
+from neu4mes.input import Input, State
 from neu4mes.model import Model
-from neu4mes.utilis import check
 
+# Binary operators
 int_relation_name = 'Int'
-diff_relation_name = 'Diff'
-
-class Int(Stream, ToStream):
-    def __init__(self, obj:Stream) -> Stream:
-        obj = toStream(obj)
-        check(type(obj) is Stream, TypeError,
-              f"The type of {obj} is {type(obj)} and is not supported for Int operation.")
-        super().__init__(int_relation_name + str(Stream.count),obj.json,obj.dim)
-        self.json['Relations'][self.name] = [int_relation_name,[obj.name]]
-
-class Diff(Stream, ToStream):
-    def __init__(self, obj:Stream) -> Stream:
-        obj = toStream(obj)
-        check(type(obj) is Stream,TypeError,
-              f"The type of {obj} is {type(obj)} and is not supported for Diff operation.")
-        super().__init__(diff_relation_name + str(Stream.count),obj.json,obj.dim)
-        self.json['Relations'][self.name] = [diff_relation_name,[obj.name]]
-
-def createTanh(self, *input):
-    return nn.Tanh()
-
-def createRelu(self, *input):
-    return nn.ReLU()
-
-setattr(Model, relu_relation_name, createRelu)
-setattr(Model, tanh_relation_name, createTanh)
 
 
+class Int(NeuObj, AutoToStream):
+    def __init__(self, method:str = 'ForwardEuler'):
+        self.method = method
+        super().__init__(int_relation_name + str(NeuObj.count))
+
+    def __call__(self, obj:Stream) -> Stream:
+        from neu4mes.input import State, ClosedLoop
+        from neu4mes.parameter import Parameter
+        from neu4mes.initializer import init_constant
+        s = State(self.name + "_last", dimensions=obj.dim['dim'])
+        if self.method == 'ForwardEuler':
+            DT = Parameter('DT',dimensions=obj.dim['dim'],init=init_constant,init_params={'value':'DT'})
+            new_s = s.last() + obj * DT
+        out_connect = ClosedLoop(new_s, s)
+        return Stream(new_s.name, merge(new_s.json, out_connect.json), new_s.dim, 1)

@@ -68,6 +68,9 @@ class Model(nn.Module):
                 values = np.zeros(param_size)
                 for indexes in product(*(range(v) for v in param_size)):
                     if 'params' in param_data['init_fun']:
+                        for key,value in param_data['init_fun']['params'].items():
+                            if type(value) is str and value == 'DT':
+                                param_data['init_fun']['params'][key] = self.sample_time
                         values[indexes] = function_to_call(indexes, param_size, param_data['init_fun']['params'])
                     else:
                         values[indexes] = function_to_call(indexes, param_size)

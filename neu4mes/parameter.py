@@ -17,8 +17,10 @@ class Parameter(NeuObj, Stream):
             if tw is not None:
                 check(sw is None, ValueError, "If tw is set sw must be None")
                 self.dim['tw'] = tw
-            if sw is not None:
+            elif sw is not None:
                 self.dim['sw'] = sw
+            else:
+                self.dim['sw'] = 1
 
             # deepcopy dimention information inside Parameters
             self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
