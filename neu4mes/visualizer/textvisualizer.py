@@ -171,7 +171,8 @@ class TextVisualizer(Visualizer):
             if par['shuffle_data']:
                 self.__param('shuffle data:', str(par['shuffle_data']))
             if par['early_stopping']:
-                self.__param('shuffle early_stopping:', par['early_stopping'])
+                self.__param('early stopping:', par['early_stopping'])
+                self.__paramjson('early stopping params:', par['early_stopping_params'])
 
             self.__paramjson('minimize:', par['minimize'])
 
@@ -181,10 +182,10 @@ class TextVisualizer(Visualizer):
                 self.__paramjson("closed loop:", par['closed_loop'])
                 self.__paramjson("connect:", par['connect'])
 
-            self.__paramjson("optimizer:", par['optimizer'])
-            self.__paramjson("optimizer_defaults:",self.n4m.run_training_params['optimizer_defaults'])
+            self.__param("optimizer:", par['optimizer'])
+            self.__paramjson("optimizer defaults:",self.n4m.run_training_params['optimizer_defaults'])
             if self.n4m.run_training_params['optimizer_params'] is not None:
-                self.__paramjson("optimizer_params:", self.n4m.run_training_params['optimizer_params'])
+                self.__paramjson("optimizer params:", self.n4m.run_training_params['optimizer_params'])
 
             self.__line()
 

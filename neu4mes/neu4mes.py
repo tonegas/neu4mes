@@ -70,7 +70,8 @@ class Neu4mes:
             'models' : None,
             'train_dataset' : None, 'validation_dataset' : None, 'test_dataset' : None, 'splits' : [70, 20, 10],
             'closed_loop' : {}, 'connect' : {}, 'step' : 1, 'prediction_samples' : 0,
-            'shuffle_data' : True, 'early_stopping' : None,
+            'shuffle_data' : True,
+            'early_stopping' : None, 'early_stopping_params' : {},
             'minimize_gain' : {},
             'num_of_epochs': 100,
             'train_batch_size' : 128, 'val_batch_size' : 1, 'test_batch_size' : 1,
@@ -687,7 +688,8 @@ class Neu4mes:
                     models=None,
                     train_dataset = None, validation_dataset = None, test_dataset = None, splits = None,
                     closed_loop = None, connect = None, step = None, prediction_samples = None,
-                    shuffle_data = None, early_stopping=  None,
+                    shuffle_data = None,
+                    early_stopping = None, early_stopping_params = None,
                     minimize_gain = None,
                     num_of_epochs = None,
                     train_batch_size = None, val_batch_size = None, test_batch_size = None,
@@ -733,6 +735,9 @@ class Neu4mes:
 
         ## Get early stopping
         early_stopping = self.__get_parameter(early_stopping = early_stopping)
+        if early_stopping:
+            self.run_training_params['early_stopping'] = early_stopping.__name__
+        early_stopping_params = self.__get_parameter(early_stopping_params = early_stopping_params)
 
         # Get dataset for training
         shuffle_data = self.__get_parameter(shuffle_data = shuffle_data)
@@ -843,6 +848,10 @@ class Neu4mes:
             del self.run_training_params['step']
             del self.run_training_params['prediction_samples']
 
+        if early_stopping is None:
+            del self.run_training_params['early_stopping']
+            del self.run_training_params['early_stopping_params']
+
         ## Create the train, validation and test loss dictionaries
         train_losses, val_losses, test_losses = {}, {}, {}
         for key in self.minimize_dict.keys():
@@ -894,7 +903,7 @@ class Neu4mes:
 
             ## Early-stopping
             if early_stopping:
-                if early_stopping(train_losses, val_losses, training_params):
+                if early_stopping(train_losses, val_losses, early_stopping_params):
                     self.visualizer.warning('Stopping the training..')
                     break
 
