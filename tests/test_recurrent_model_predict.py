@@ -399,6 +399,20 @@ class MyTestCase(unittest.TestCase):
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]]}, connect={'inout': 'out1'}))
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-30,-30]}, connect={'inout': 'out1'}))
+        with self.assertRaises(StopIteration):
+            self.assertEqual({}, test())
+        with self.assertRaises(StopIteration):
+            self.assertEqual({}, test(prediction_samples=0))
+        with self.assertRaises(StopIteration):
+            self.assertEqual({}, test(prediction_samples=4))
+
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [9.0], 'out3': [9.0], 'out4': [9.0]},
+                        test(connect={'inout': 'out1'}))
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [9.0], 'out3': [9.0], 'out4': [9.0]},
+                        test(connect={'inout': 'out1'},prediction_samples=0))
+        self.assertEqual({'out1': [[1.0, 1.0],[1.0, 1.0]], 'out2': [9.0,9.0], 'out3': [9.0,12.0], 'out4': [9.0,9.0]},
+                        test(connect={'inout': 'out1'},prediction_samples=1))
+
         # [[1,2],[2,3]]*[-1,-5] = [[1*-1+2*-5=-11],[2*-1+3*-5=-17]]+[1]
         # [[2,3],[1,2]]*[-1,-5] = [[2*-1+3*-5=-17],[1*-1+2*-5=-11]]+[1]
         # out2 # = [[-10,-16],[-16,-10]] -> 1) [-10,-16]*[4,5] -> [-16*5+-10*4=-120]             2) [-16,-10]*[4,5] -> [-16*4+-10*5=-114] -> [-120,-114]
@@ -482,10 +496,10 @@ class MyTestCase(unittest.TestCase):
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}))
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=0))
+
         self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=1))
-        self.assertEqual({'out1': [[465.0,1291.0]], 'out2': [[[2230.0, 3102.0]]]},
-                         test())
+        self.assertEqual({'out1': [[465.0,1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test())
         test.clear_state()
         self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0],[465.0,1291.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]],[[2230.0, 3102.0]]]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=2))
@@ -510,15 +524,22 @@ class MyTestCase(unittest.TestCase):
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, closed_loop={'in1':'out2', 'in2':'out1'}))
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=0, closed_loop={'in1':'out2', 'in2':'out1'}))
-
         self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=1, closed_loop={'in1':'out2', 'in2':'out1'}))
-
-        # self.assertEqual({'out1': [[465.0,1291.0]], 'out2': [[[2230.0, 3102.0]]]},
-        #                  test())
-        # test.clear_state()
-        # self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0],[465.0,1291.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]],[[2230.0, 3102.0]]]},
-        #                  test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=2))
+        with self.assertRaises(StopIteration):
+             self.assertEqual({'out1': [[465.0, 1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test())
+        with self.assertRaises(StopIteration):
+             self.assertEqual({'out1': [[465.0, 1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test(prediction_samples=0))
+        with self.assertRaises(StopIteration):
+             self.assertEqual({'out1': [[465.0, 1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test(prediction_samples=3))
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [[[0.0, 0.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'}))
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [[[0.0, 0.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=0))
+        self.assertEqual({'out1': [[1.0, 1.0],[1.0,1.0]], 'out2': [[[0.0, 0.0]],[[9.0,13.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=1))
+        self.assertEqual({'out1': [[1.0, 1.0],[1.0,1.0],[1.0,-73.0]], 'out2': [[[0.0, 0.0]],[[9.0,13.0]],[[12.0,18.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=2))
 
 if __name__ == '__main__':
     unittest.main()

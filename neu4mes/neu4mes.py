@@ -99,6 +99,13 @@ class Neu4mes:
 
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
+        model_inputs = list(self.model_def['Inputs'].keys())
+        model_states = list(self.model_def['States'].keys())
+        provided_inputs = list(inputs.keys())
+        missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
+        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
+
+        # Closed loop inputs
         closed_loop_windows = {}
         for close_in, close_out in closed_loop.items():
             check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
@@ -107,22 +114,16 @@ class Neu4mes:
                 closed_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
             else:
                 closed_loop_windows[close_in] = 1
-
-        for connect_in, connect_out in connect.items():
-            check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
-            check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
-
-        model_inputs = list(self.model_def['Inputs'].keys())
-        model_states = list(self.model_def['States'].keys())
-        provided_inputs = list(inputs.keys())
-        missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
-        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
-
         for key in model_states:
             if key in inputs.keys():
                 closed_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
             else:
                 closed_loop_windows[key] = 1
+
+        # Connect inputs checks
+        for connect_in, connect_out in connect.items():
+            check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
+            check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
 
         ## Ignoring extra inputs if not necessary
         if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
@@ -130,7 +131,8 @@ class Neu4mes:
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
-        non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(model_states) - set(connect.keys()))
+        non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(connect.keys()) - set(model_states))
+        recurrent_inputs = set(closed_loop.keys())|set(connect.keys())|set(model_states)
 
         ## Determine the Maximal number of samples that can be created
         if non_recurrent_inputs:
@@ -141,17 +143,20 @@ class Neu4mes:
                 min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         else:
-            ps = 0 if prediction_samples is None else prediction_samples
-            if provided_inputs:
-                min_dim_ind, min_dim  = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
-                max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+            if recurrent_inputs:
+                ps = 0 if prediction_samples is None else prediction_samples
+                if provided_inputs:
+                    min_dim_ind, min_dim = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
+                    max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+                else:
+                    min_dim = max_dim = ps + 1
             else:
-                min_dim = max_dim = ps + 1
+                min_dim = max_dim = 0
 
         window_dim = min_dim
         if prediction_samples == None:
             prediction_samples = window_dim
-        check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
+        check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
@@ -161,7 +166,7 @@ class Neu4mes:
         if missing_inputs:
             self.visualizer.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
             for key in missing_inputs:
-                inputs[key] = np.zeros(shape=(window_dim, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
+                inputs[key] = np.zeros(shape=(self.input_n_samples[key]+window_dim-1, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
 
         result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
@@ -213,7 +218,7 @@ class Neu4mes:
                 for close_in, close_out in closed_loop.items():
                     if i >= closed_loop_windows[close_in]-1:
                         dim = result[close_out].shape[1]  ## take the output time dimension
-                        X[close_in] = torch.roll(X[close_in], shifts=-dim, dims=1) ## Roll the time window
+                        X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
                         X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
 
                 ## Append the prediction of the current sample to the result dictionary
