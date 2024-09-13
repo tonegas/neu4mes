@@ -56,7 +56,7 @@ params = {'num_of_epochs': 100,
 # Add visualizer and show the results on the loaded dataset
 #vis = MPLVisulizer()
 #vis.set_n4m(mass_spring_damper)
-#vis.showOneResult("validation")
+#vis.showResult("validation")
 
 params = {'num_of_epochs': 100,
           'train_batch_size': 128, 
@@ -67,5 +67,5 @@ params = {'num_of_epochs': 100,
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params, closed_loop={'x':'x[k+1]'}, prediction_samples=10)
 
 # Add visualizer and show the results on the loaded dataset
-#vis.showOneResult("validation")
+#vis.showResult("validation")
 

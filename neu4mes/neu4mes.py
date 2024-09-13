@@ -933,12 +933,14 @@ class Neu4mes:
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
         self.resultAnalysis(train_dataset, XY_train)
+        self.visualizer.showResults(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val)
+            self.visualizer.showResults(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test)
+            self.visualizer.showResults(test_dataset)
 
-        self.visualizer.showResults()
         return train_losses, val_losses, test_losses
 
 
@@ -984,7 +986,7 @@ class Neu4mes:
                     for key in XY.keys():
                         if key in closed_loop.keys(): ## the input is recurrent
                             dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
-                            XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1) ## Roll the time window
                             XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
                             XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
                         else: ## the input is not recurrent

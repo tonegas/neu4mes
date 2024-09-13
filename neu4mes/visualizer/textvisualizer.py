@@ -189,7 +189,7 @@ class TextVisualizer(Visualizer):
 
             self.__line()
 
-    def showOneResult(self, name_data = None):
+    def showResult(self, name_data):
         eng = lambda val: np.format_float_scientific(val, precision=3)
         if self.verbose >= 1:
             loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.minimize_dict.items())])
