@@ -1,15 +1,12 @@
+# Extern packages
 import copy
-import inspect
-
 import torch
-from torch.export import export
-
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
 import random
 import os
 
+# Neu4mes packages
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import NeuObj, MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer

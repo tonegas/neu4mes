@@ -1,9 +1,9 @@
 import copy
-from pprint import pformat
+
+from neu4mes.utilis import check
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
-from neu4mes.utilis import check
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 

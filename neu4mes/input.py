@@ -1,13 +1,8 @@
 import copy
 
-import numpy as np
-
-from neu4mes.output import Output
 from neu4mes.relation import NeuObj, Stream, ToStream
 from neu4mes.utilis import check, merge
 from neu4mes.part import SamplePart, TimePart
-
-
 
 class InputState(NeuObj, Stream):
     def __init__(self, json_name, name, dimensions:int = 1):
