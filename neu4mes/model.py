@@ -142,6 +142,7 @@ class Model(nn.Module):
         available_states = [key for key in self.state_model.keys() if key not in self.states_connect.keys()] ## remove connected states
         available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.constants) + available_states)
 
+        '''
         ## Initialize State variables if necessary
         for state in self.state_model.keys():
             if state in kwargs.keys(): ## the state variable must be initialized with the dataset values
@@ -150,7 +151,7 @@ class Model(nn.Module):
             elif self.batch_size > self.states[state].shape[0]:
                 self.states[state] = self.states[state].repeat(self.batch_size, 1, 1)
                 self.states[state].requires_grad = False
-
+        '''
         ## Forward pass through the relations
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs
             for relation in self.relations.keys():
@@ -233,6 +234,16 @@ class Model(nn.Module):
             for key, value in self.state_model.items():
                 window_size = self.input_n_samples[key]
                 self.states[key] = torch.zeros(size=(1, window_size, value['dim']), dtype=torch.float32, requires_grad=False)
+
+    def update_state(self, state, value=None, batch=1):
+        if state in self.states.keys():
+            if value is not None:
+                self.states[state] = value.clone()
+                self.states[state].requires_grad = False
+            else:
+                if batch > self.states[state].shape[0]:
+                    window_size = self.input_n_samples[state]
+                    self.states[state] = torch.zeros(size=(batch, window_size, self.state_model[state]['dim']), dtype=torch.float32, requires_grad=False)
     
     def clear_connect_variables(self, name=None):
         if name is None:
@@ -242,6 +253,9 @@ class Model(nn.Module):
                 del self.connect_variables[name]
             else:
                 raise KeyError
+            
+    def update_connect_variables(self, name, value):
+        self.connect_variables[name] = value.clone()
     
 
     #window_size = round(max(abs(self.state_model[state]['sw'][0]), abs(self.state_model[state]['tw'][0]//self.sample_time)) +

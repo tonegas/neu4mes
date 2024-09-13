@@ -17,6 +17,8 @@ from reportlab.lib.utils import ImageReader
 import io
 import json
 from torch.fx import symbolic_trace
+import onnxruntime
+import onnx
 
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import NeuObj, MAIN_JSON
@@ -224,6 +226,20 @@ class Neu4mes:
                 if self.model.connect:
                     if i==0 or i%(prediction_samples+1) == 0:
                         self.model.clear_connect_variables()
+                ## Update State variables if necessary
+                for state in self.model_def['States'].keys():
+                    if state in X.keys(): ## the state variable must be initialized with the dataset values
+                        self.model.update_state(state, X[state], 1)
+                    else:
+                        self.model.update_state(state, batch=1)
+                '''
+                ## Update connect variables
+                if connect:
+                    self.model.connect = connect
+                    for connect_in in connect.keys():
+                        if connect_in in X.keys():
+                            del self.model.connect[connect_in]
+                '''
                 result, _ = self.model(X)
 
                 ## Update the recurrent variable
@@ -544,7 +560,8 @@ class Neu4mes:
 
     def resultAnalysis(self, name_data, XY_data):
         import warnings
-        self.model.batch_size = XY_data[list(XY_data.keys())[0]].shape[0]
+        batch_size = XY_data[list(XY_data.keys())[0]].shape[0]
+        self.model.batch_size = batch_size
         self.clear_state()
         with torch.inference_mode():
             self.performance[name_data] = {}
@@ -559,7 +576,12 @@ class Neu4mes:
                 A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
                 B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
                 aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
-
+            ## Update State variables if necessary
+            for state in self.model_def['States'].keys():
+                if state in XY_data.keys(): ## the state variable must be initialized with the dataset values
+                    self.model.update_state(state, XY_data[state], batch_size)
+                else:
+                    self.model.update_state(state, batch=batch_size)
             _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A[key] = minimize_out[value['A'].name]
@@ -935,13 +957,18 @@ class Neu4mes:
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
-
+        
         self.resultAnalysis(train_dataset, XY_train)
         if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val)
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test)
 
+        if self.run_training_params['n_samples_test'] > 0:
+            self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
+        elif self.run_training_params['n_samples_val'] > 0:
+            self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
+        
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
 
@@ -970,6 +997,22 @@ class Neu4mes:
                 ## Model Forward
                 if self.model.connect and horizon_idx==0:
                     self.model.clear_connect_variables()
+                
+                ## Update State variables if necessary
+                for state in self.model_def['States'].keys():
+                    if state in XY.keys(): ## the state variable must be initialized with the dataset values
+                        self.model.update_state(state, XY[state], batch_size)
+                    else:
+                        self.model.update_state(state, batch=batch_size)
+                '''
+                ## Update connect variables
+                if connect:
+                    self.model.connect = connect
+                    for connect_in in connect.keys():
+                        if connect_in in XY.keys():
+                            del self.model.connect[connect_in]
+                '''
+
                 out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
@@ -1043,81 +1086,6 @@ class Neu4mes:
         else:
             self.visualizer.warning('The model does not have state variables!')
 
-
-    '''
-    def exportONNX(self, tracer_path):
-        # Step 1: Define the mapping dictionary
-        trace_mapping = {}
-        forward = 'def forward(self,'
-        dummy_inputs = []
-        input_names = []
-        for key, item in self.model_def['Inputs'].items():
-            value = f'kwargs[\'{key}\']'
-            trace_mapping[value] = key
-            forward = forward + f' {key},'
-            input_names.append(key)
-            window_size = self.input_n_samples[key]
-            dummy_inputs.append(torch.randn(size=(1, window_size, item['dim'])))
-        forward = forward + '):'
-        output_names = [name for name in self.model_def['Outputs'].keys()]
-        dummy_inputs = tuple(dummy_inputs)
-
-        # Step 2: Open and read the file
-        with open(tracer_path, 'r') as file:
-            file_content = file.read()
-
-        file_content = file_content.replace('def forward(self, kwargs):', forward)
-
-        # Step 3: Perform the substitution
-        for key, value in trace_mapping.items():
-            file_content = file_content.replace(key, value)
-
-        # Step 4: Write the modified content back to a new file
-        onnx_path = tracer_path.replace('.py','_onnx.py')
-        with open(onnx_path, 'w') as file:
-            file.write(file_content)
-
-        # Step 5: Import the compatible tracer
-        self.importTracer(onnx_path)
-
-        self.model.eval()
-
-        onnx_path = tracer_path.replace('.py','.onnx')
-        torch.onnx.export(
-                    self.model,                            # The model to be exported
-                    dummy_inputs,                          # Tuple of inputs to match the forward signature
-                    onnx_path,                             # File path to save the ONNX model
-                    export_params=True,                    # Store the trained parameters in the model file
-                    opset_version=12,                      # ONNX version to export to (you can use 11 or higher)
-                    do_constant_folding=True,              # Optimize constant folding for inference
-                    input_names=input_names,               # Name each input as they will appear in ONNX
-                    output_names=output_names,             # Name the output
-                    )
-    
-    
-    def exportModel(self):
-        import io
-        import onnx
-        from onnx import reference as onnxreference
-
-        features = {}
-        for name, value in self.model_def['Inputs'].items():
-            window_size = self.input_n_samples[name]
-            features[name] = torch.randn(size=(1, window_size, value['dim']))
-        #torch_out, torch_min = self.model(features)
-
-        f = io.BytesIO()
-        #torch.onnx.export(self.model, {"x": features}, f)
-        torch.onnx.export(self.model, features, f)
-        onnx_model = onnx.load_model_from_string(f.getvalue())
-
-        sess = onnxreference.ReferenceEvaluator(onnx_model)
-        model_input_names = [i.name for i in onnx_model.graph.input]
-        input_dict = dict(zip(model_input_names, features.values()))
-        onnx_out = sess.run(None, input_dict)
-        print("onnx_out:", onnx_out)
-    '''
-
     def save_model(self, path):
         torch.save(self.model.state_dict(), path)
 
@@ -1170,6 +1138,24 @@ class Neu4mes:
         module = __import__(module_name)
 
         self.model = module.TracerModel()
+
+    def import_onnx(self, onnx_path, data):
+        # Load the ONNX model
+        session = onnxruntime.InferenceSession(onnx_path)
+        # Get input and output names
+        input_names = [item.name for item in session.get_inputs()]
+        output_names = [item.name for item in session.get_outputs()]
+        #input_name = session.get_inputs()#[0].name
+        #output_name = session.get_outputs()[0].name
+        
+        print('input_name: ', input_names)
+        print('output_name: ', output_names)
+        
+        # Run inference
+        result = session.run([output_names], {input_names: data})
+        # Print the result
+        print(result)
+        
 
     def ExportReport(self, data, train_loss, val_loss):
         file_name = "report.pdf"

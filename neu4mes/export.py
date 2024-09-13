@@ -210,9 +210,21 @@ def model_to_python(model_def, model, folder_path):
             elif 'relation_forward' in attr:
                 key = attr.split('.')[2]
                 if 'Fir' in key or 'Linear' in key:
-                    param = model_def['Relations'][key][2] if 'weights' in attr.split('.')[3] else model_def['Relations'][key][3]
-                    value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
-                    file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
+                    if 'weights' in attr.split('.')[3]:
+                        param = model_def['Relations'][key][2]
+                        value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
+                        file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
+                    elif 'bias' in attr.split('.')[3]:
+                        param = model_def['Relations'][key][3]
+                        #value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
+                        value = model.all_parameters[param].data
+                        file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
+                    elif 'dropout' in attr.split('.')[3]:
+                        param = model_def['Relations'][key][4]
+                        file.write(f"        self.{key} = torch.nn.Dropout(p={param})\n")
+                    #param = model_def['Relations'][key][2] if 'weights' in attr.split('.')[3] else model_def['Relations'][key][3]
+                    #value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
+                    #file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
             elif 'all_parameters' in attr:
                 key = attr.split('.')[-1]
                 file.write(f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.{model.all_parameters[key].data}, requires_grad=True)\n")
@@ -220,12 +232,19 @@ def model_to_python(model_def, model, folder_path):
         file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
         for line in trace.code.split("\n")[len(saved_functions)+1:]:
             if 'self.relation_forward' in line:
-                attribute = line.split()[-1]
-                relation = attribute.split('.')[2]
-                relation_type = attribute.split('.')[3]
-                param = model_def['Relations'][relation][2] if 'weights' == relation_type else model_def['Relations'][relation][3]
-                new_attribute = f'self.all_parameters.{param}'
-                file.write(f"    {line.replace(attribute, new_attribute)}\n")
+                if 'dropout' in line:
+                    attribute = line.split()[0]
+                    layer = attribute.split('_')[2].capitalize()
+                    old_line = f"self.relation_forward.{layer}.dropout"
+                    new_line = f"self.{layer}"
+                    file.write(f"    {line.replace(old_line, new_line)}\n")
+                else:
+                    attribute = line.split()[-1]
+                    relation = attribute.split('.')[2]
+                    relation_type = attribute.split('.')[3]
+                    param = model_def['Relations'][relation][2] if 'weights' == relation_type else model_def['Relations'][relation][3]
+                    new_attribute = f'self.all_parameters.{param}'
+                    file.write(f"    {line.replace(attribute, new_attribute)}\n")
             else:
                 file.write(f"    {line}\n")
     return file_path

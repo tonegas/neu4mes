@@ -136,7 +136,6 @@ elif example == 3: ## Test State Variables
     params = {'num_of_epochs':20, 
           'train_batch_size': 1, 
           'val_batch_size':1, 
-          'test_batch_size':1, 
-          'learning_rate':0.01}
-    test.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
+          'test_batch_size':1, }
+    test.trainModel(splits=[70,20,10], lr=0.01, prediction_samples=3, shuffle_data=False, training_params=params)
     test.exportTracer()
