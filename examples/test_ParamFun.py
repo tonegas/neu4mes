@@ -74,7 +74,7 @@ print("------------------------EXAMPLE 4------------------------")
 def myFun(K1,K2,p1):
     import torch
     return torch.stack([K1,2*K1,3*K1,4*K1],dim=2).squeeze(-1)*p1+K2
-parfun = ParamFun(myFun,parameters_dimensions = {'p1':(1,4)})
+parfun = ParamFun(myFun,n_input=2,parameters_dimensions = {'p1':(1,4)})
 out = Output('out',parfun(x.last(),F.last()))
 example = Neu4mes()
 example.addModel('out',out)

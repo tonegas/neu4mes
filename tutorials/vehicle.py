@@ -51,5 +51,5 @@ def filter_function(sample):
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=[{'params':'grav','weight_decay': 0.1}], add_optimizer_defaults={'weight_decay': 0.00001}, training_params={'num_of_epochs':300, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003})
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=[{'params':'grav','weight_decay': 0.1}], add_optimizer_defaults={'weight_decay': 0.00001}, training_params={'num_of_epochs':80, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003})
 vehicle.neuralizeModel(0.05)

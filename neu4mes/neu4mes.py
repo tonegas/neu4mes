@@ -934,13 +934,14 @@ class Neu4mes:
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
         self.resultAnalysis(train_dataset, XY_train)
-        self.visualizer.showResults(train_dataset)
+        self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val)
-            self.visualizer.showResults(validation_dataset)
+            self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test)
-            self.visualizer.showResults(test_dataset)
+            self.visualizer.showResult(test_dataset)
+        self.visualizer.showResults()
 
         return train_losses, val_losses, test_losses
 

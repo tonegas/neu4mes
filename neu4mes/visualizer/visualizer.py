@@ -51,5 +51,8 @@ class Visualizer():
     def showTrainingTime(self, time):
         pass
 
-    def showResults(self, name_data):
+    def showResult(self, name_data):
+        pass
+
+    def showResults(self):
         pass
