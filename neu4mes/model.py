@@ -21,8 +21,9 @@ class Model(nn.Module):
         self.input_n_samples = input_n_samples
         self.minimizers_keys = [minimize_dict[key]['A'].name for key in minimize_dict] + [minimize_dict[key]['B'].name for key in minimize_dict]
 
-        self.batch_size = 1
+        #self.batch_size = 1
         self.connect = {}
+        self.initialize_connect = False
 
         ## Build the network
         self.all_parameters = {}
@@ -187,34 +188,41 @@ class Model(nn.Module):
                             elif relation_size == window_size:
                                 result_dict[connect_in] = result_dict[relation].clone()
                             else: ## input window is bigger than the output window
-                                if connect_in not in self.connect_variables:  ## initialization
-                                    if connect_in in kwargs.keys(): ## initialize with dataset
-                                        self.connect_variables[connect_in] = kwargs[connect_in].detach()
-                                    else: ## initialize with zeros
-                                        self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=False)
+                                #if connect_in not in self.connect_variables:  ## initialization
+                                #    if connect_in in kwargs.keys(): ## initialize with dataset
+                                #        self.connect_variables[connect_in] = kwargs[connect_in].detach()
+                                #    else: ## initialize with zeros
+                                #        self.connect_variables[connect_in] = torch.zeros(size=(self.batch_size, window_size, self.inputs[connect_in]['dim']), dtype=torch.float32, requires_grad=False)
+                                #    result_dict[connect_in] = self.connect_variables[connect_in].clone()
+                                #else: ## update connect variable
+                                if self.initialize_connect:
                                     result_dict[connect_in] = self.connect_variables[connect_in].clone()
-                                else: ## update connect variable
+                                    self.initialize_connect=False
+                                else:
                                     result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)#relation_size, dims=1)
                                 result_dict[connect_in][:, -relation_size:, :] = result_dict[relation].clone() 
                                 self.connect_variables[connect_in] = result_dict[connect_in].clone()
                             ## add the new input
                             available_keys.add(connect_in)
 
-                    ## Update the state if necessary
-                    if relation in self.states_updates.values():
-                        for state in [key for key, value in self.states_updates.items() if value == relation]:
-                            shift = result_dict[relation].shape[1]
-                            self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)#shifts=-shift, dims=1)
-                            self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
-                            #self.states[state].requires_grad = False
-                    elif relation in self.states_connect.values():
+                    ## Update connect state if necessary
+                    if relation in self.states_connect.values():
                         for state in [key for key, value in self.states_connect.items() if value == relation]:
                             shift = result_dict[relation].shape[1]
                             self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
                             self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
                             #self.states[state].requires_grad = False
                             available_keys.add(state)
-                        
+
+            ## Update closed loop state if necessary
+            for relation in self.relations.keys():
+                if relation in self.states_updates.values():
+                    for state in [key for key, value in self.states_updates.items() if value == relation]:
+                        shift = result_dict[relation].shape[1]
+                        self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)  # shifts=-shift, dims=1)
+                        self.states[state][:, -shift:, :] = result_dict[relation]  # .detach() ## TODO: detach??
+                        # self.states[state].requires_grad = False
+
         ## Return a dictionary with all the outputs final values
         output_dict = {key: result_dict[value] for key, value in self.outputs.items()}
         ## Return a dictionary with the minimization relations
@@ -248,14 +256,20 @@ class Model(nn.Module):
     def clear_connect_variables(self, name=None):
         if name is None:
             self.connect_variables = {}
+            self.initialize_connect = True
         else:
             if name in self.connect_variables.keys():
                 del self.connect_variables[name]
             else:
                 raise KeyError
             
-    def update_connect_variables(self, name, value):
-        self.connect_variables[name] = value.clone()
+    def update_connect_variables(self, name, value=None, batch=1):
+        if value is not None:
+            self.connect_variables[name] = value.clone()
+        else:
+            window_size = self.input_n_samples[name]
+            self.connect_variables[name] = torch.zeros(size=(batch, window_size, self.inputs[name]['dim']), dtype=torch.float32, requires_grad=False)
+
     
 
     #window_size = round(max(abs(self.state_model[state]['sw'][0]), abs(self.state_model[state]['tw'][0]//self.sample_time)) +
