@@ -139,12 +139,16 @@ class Neu4mes:
             else:
                 min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
+            min_din_key = non_recurrent_inputs[min_dim_ind]
+            max_din_key = non_recurrent_inputs[max_dim_ind]
         else:
             if recurrent_inputs:
                 ps = 0 if prediction_samples is None else prediction_samples
                 if provided_inputs:
                     min_dim_ind, min_dim = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
                     max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+                    min_din_key = provided_inputs[min_dim_ind]
+                    max_din_key = provided_inputs[max_dim_ind]
                 else:
                     min_dim = max_dim = ps + 1
             else:
@@ -157,7 +161,7 @@ class Neu4mes:
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
-            self.visualizer.warning(f'Different number of samples between inputs [MAX {list(provided_inputs)[max_dim_ind]} = {max_dim}; MIN {list(provided_inputs)[min_dim_ind]} = {min_dim}]')
+            self.visualizer.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
 
         ## Autofill the missing inputs
         if missing_inputs:
@@ -1000,6 +1004,7 @@ class Neu4mes:
             if train:
                 self.optimizer.step()
 
+        self.model.clear_connect_variables()
         ## return the losses
         return aux_losses
     

@@ -10,7 +10,7 @@ relation.CHECK_NAMES = False
 
 import torch
 
-# 12 Tests
+# 14 Tests
 # This file test the model prediction when closed loop or connect are present in particular the output value
 
 # Dimensions
