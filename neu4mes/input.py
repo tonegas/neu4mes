@@ -94,6 +94,20 @@ class State(InputState):
 # connect operation
 connect_name = 'connect'
 closedloop_name = 'closedLoop'
+
+
+# class Connect(Stream, ToStream):
+#     def __init__(self, obj1: Stream, obj2: State) -> Stream:
+#         check(type(obj1) is Stream, TypeError,
+#               f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
+#         obj1.connect(obj2)
+#
+# class ClosedLoop(Stream, ToStream):
+#     def __init__(self, obj1: Stream, obj2: State) -> Stream:
+#         check(type(obj1) is Stream, TypeError,
+#               f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
+#         obj1.closedloop(obj2)
+
 class Connect(Stream, ToStream):
     def __init__(self, obj1:Stream, obj2:State) -> Stream:
         check(type(obj1) is Stream, TypeError,

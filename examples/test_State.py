@@ -38,7 +38,7 @@ if example == 1:
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
-          'learning_rate':0.001}
+          'lr':0.001}
     mass_spring_damper.trainModel(splits=[70,20,10], shuffle_data=False, training_params=params)
 
 elif example == 2:
@@ -68,11 +68,11 @@ elif example == 2:
     print('x_state (last):', mass_spring_damper.data['dataset']['x_state'][-1])
     
     # Training ricorrente
-    params = {'num_of_epochs': 3, 
+    params = {'num_of_epochs': 3,
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
-          'learning_rate':0.001}
+          'lr':0.001}
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=2, shuffle_data=False, training_params=params)
 
     print('finale state: ', mass_spring_damper.model.states)
@@ -86,8 +86,8 @@ elif example == 3:
     y_state = State('y_state')
     x_out = Fir(x_state.tw(0.5))
     y_out = Fir(y_state.tw(0.5))
-    x_out.closedLoop(x_state)
-    y_out.closedLoop(y_state)
+    x_out = ClosedLoop(x_out, x_state)
+    y_out = ClosedLoop(y_out, y_state)
     out = Output('out',x_out+y_out)
 
     mass_spring_damper = Neu4mes(seed=42)
@@ -110,7 +110,7 @@ elif example == 3:
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
-          'learning_rate':0.001}
+          'lr':0.001}
     mass_spring_damper.trainModel(splits=[100,0,0], shuffle_data=False, training_params=params)
     print('finale state: ', mass_spring_damper.model.states)
 
@@ -146,7 +146,7 @@ elif example == 4:
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
-          'learning_rate':0.01}
+          'lr':0.01}
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
     print('finale state: ', mass_spring_damper.model.states)
 
@@ -182,7 +182,7 @@ elif example == 5:
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
-          'learning_rate':0.01}
+          'lr':0.01}
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=3, shuffle_data=False, training_params=params)
     print('finale state: ', mass_spring_damper.model.states)
 
@@ -219,6 +219,6 @@ elif example == 6:
           'train_batch_size': 4, 
           'val_batch_size':4, 
           'test_batch_size':1, 
-          'learning_rate':0.01}
-    mass_spring_damper.trainModel(splits=[70,20,10], close_loop={'F':'out'}, prediction_samples=3, shuffle_data=False, training_params=params)
+          'lr':0.01}
+    mass_spring_damper.trainModel(splits=[70,20,10], closed_loop={'F':'out'}, prediction_samples=3, shuffle_data=False, training_params=params)
     print('finale state: ', mass_spring_damper.model.states)
