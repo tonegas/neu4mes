@@ -8,7 +8,7 @@ import os
 
 # Neu4mes packages
 from neu4mes.input import closedloop_name, connect_name
-from neu4mes.relation import NeuObj, MAIN_JSON
+from neu4mes.relation import MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
@@ -996,16 +996,19 @@ class Neu4mes:
                             XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
 
             ## Calculate the total loss
+            total_loss = 0
             for ind in range(len(self.minimize_dict)):
-                total_loss = sum(horizon_losses[ind])/(prediction_samples+1)
-                if train:
-                    total_loss.backward(retain_graph=True) ## Backpropagate the error
+                total_loss += sum(horizon_losses[ind])/(prediction_samples+1)
                 aux_losses[ind][idx//batch_size] = total_loss.item()
+
             ## Gradient Step
             if train:
+                total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
 
-        self.model.clear_connect_variables()
+            self.model.clear_connect_variables()
+            self.model.clear_state()
+
         ## return the losses
         return aux_losses
     
