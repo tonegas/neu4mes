@@ -165,13 +165,12 @@ class Neu4mes:
             else:
                 min_dim = max_dim = 0
 
+        # TODO include this code
         # if recurrent_inputs:
         #     window_dim = max_dim
         # else:
         #     window_dim = min_dim
         window_dim = min_dim
-        # if prediction_samples == None:
-        #     prediction_samples = window_dim
         check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
@@ -188,14 +187,12 @@ class Neu4mes:
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
-        ## Initialize the batch_size
-        #self.model.batch_size = 1
-        ## Initialize the connect variables
-        #self.model.connect = connect
-        if prediction_samples is not None:
-            self.model.reset_states(only=False)
+        ## Initialize the state variables
+        # TODO include this code maybe
+        # if prediction_samples is not None:
+        #     self.model.reset_states(only=False)
         self.model.reset_connect_variables(connect, only = False)
-        #self.model.reset_states()
+
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
@@ -228,41 +225,24 @@ class Neu4mes:
                     if X[key].ndim <= 2: ## add the time dimension
                         X[key] = X[key].unsqueeze(0)
 
+                self.model.reset_states(X)
                 if prediction_samples is None:
                     self.model.reset_connect_variables(connect, X)
-                    self.model.reset_states(X)
+                    # TODO include this code
+                    #self.model.reset_states(X)
                 elif i%(prediction_samples+1) == 0:
                     self.model.reset_connect_variables(connect, X, only=False)
-                    self.model.reset_states(X, only=False)
-
-                ## Model Predict
-                # if connect and (i==0 or i%(prediction_samples+1) == 0):
-                #     self.model.reset_connect_variables(connect,X)
-                        # self.model.clear_connect_variables()
-                        # for connect_in in connect.keys():
-                        #     if connect_in in X.keys():
-                        #         self.model.update_connect_variables(connect_in, value=X[connect_in], batch=1)
-                        #     else:
-                        #         self.model.update_connect_variables(connect_in, batch=1)
-
-                ## Update State variables if necessary
-                # self.model.reset_states(X)
-                # for state in self.model_def['States'].keys():
-                #     if state in X.keys(): ## the state variable must be initialized with the dataset values
-                #         #self.model.update_state(state, X[state], 1)
-                #         self.model.clear_state(1, state = state, value = X[state])
-                #      #else:
-                #         #self.model.clear_state(1, state=state)
-                #         #self.model.update_state(state, batch=1)
+                    # TODO include this code
+                    #self.model.reset_states(X, only=False)
 
                 result, _ = self.model(X)
 
                 ## Update the recurrent variable
                 for close_in, close_out in closed_loop.items():
-                    if i >= closed_loop_windows[close_in]-1:
-                        dim = result[close_out].shape[1]  ## take the output time dimension
-                        X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
-                        X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
+                    #if i >= closed_loop_windows[close_in]-1:
+                    dim = result[close_out].shape[1]  ## take the output time dimension
+                    X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
+                    X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
 
                 ## Append the prediction of the current sample to the result dictionary
                 for key in self.model_def['Outputs'].keys():
@@ -574,41 +554,18 @@ class Neu4mes:
 
     def resultAnalysis(self, name_data, XY_data, connect, closed_loop):
         import warnings
-        batch_size = XY_data[list(XY_data.keys())[0]].shape[0]
-        # self.model.clear_state(batch_size)
         with torch.inference_mode():
+            ## Init model for retults analysis
+            self.model.eval()
             self.performance[name_data] = {}
             self.prediction[name_data] = {}
-
-            self.model.eval()
             A = {}
             B = {}
             aux_losses = {}
-            # for (name, items) in self.minimize_dict.items():
-            #     window = 'tw' if 'tw' in items['A'].dim else ('sw' if 'sw' in items['A'].dim else None)
-            #     sample_time = self.sample_time if 'tw' == window else 1
-            #     A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window]/sample_time,items['A'].dim['dim']])
-            #     B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window]/sample_time,items['B'].dim['dim']])
-            #     aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
             ## Update State variables if necessary
             self.model.reset_states(XY_data, only = False)
             self.model.reset_connect_variables(connect, XY_data, only=False)
-            # for state in self.model_def['States'].keys():
-            #     if state in XY_data.keys(): ## the state variable must be initialized with the dataset values
-            #         #self.model.update_state(state, XY_data[state], batch_size)
-            #         self.model.clear_state(batch_size, state = state, value = XY_data[state])
-            #     #else:
-            #         #self.model.update_state(state, batch=batch_size)
-
-            # if self.model.connect:
-            #     self.model.reset_connect_variables(connect,XY_data)
-                # self.model.clear_connect_variables()
-                # for connect_in in self.model.connect.keys():
-                #     if connect_in in XY_data.keys():
-                #         self.model.update_connect_variables(connect_in, value=XY_data[connect_in], batch=batch_size)
-                #     else:
-                #         self.model.update_connect_variables(connect_in, batch=batch_size)
 
             _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
@@ -1015,14 +972,10 @@ class Neu4mes:
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, closed_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step - 1) if shuffle else 0
-        ## Initialize the batch_size
-        #self.model.clear_state(batch_size)
+
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
-        ## Initialize connect inputs
-        # if connect:
-        #     self.model.connect = connect
-        #self.model.reset_connect_variables(connect, values = None)
+
         ## +2 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 2 = 1 # one epochs
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             if train:
@@ -1039,16 +992,6 @@ class Neu4mes:
             self.model.reset_connect_variables(connect, XY, only= False)
 
             for horizon_idx in range(prediction_samples + 1):
-                ## Model Forward
-                # if connect and horizon_idx==0:
-                #     self.model.reset_connect_variables(connect,XY)
-                    # self.model.clear_connect_variables()
-                    # for connect_in in connect.keys():
-                    #     if connect_in in XY.keys():
-                    #         self.model.update_connect_variables(connect_in, value=XY[connect_in], batch=batch_size)
-                    #     else:
-                    #         self.model.update_connect_variables(connect_in, batch=batch_size)
-
                 out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
@@ -1085,8 +1028,6 @@ class Neu4mes:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
 
-            #self.model.clear_connect_variables()
-            #self.model.clear_state()
         ## return the losses
         return aux_losses
     
@@ -1094,8 +1035,6 @@ class Neu4mes:
         if shuffle:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
-        ## Initialize the batch_size
-        #self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
         for idx in range(0, (n_samples - batch_size + 1), batch_size):
@@ -1121,42 +1060,6 @@ class Neu4mes:
 
     def resetStates(self, values = None, only = True):
         self.model.reset_states(values, only)
-
-        ## RECURRENT TRAIN
-        # self.resetStates(XY, only=False)
-        #
-        # for horizon_idx in range(prediction_samples + 1):
-        #     ## Model Forward
-        #     if connect and horizon_idx == 0:
-        #         self.model.reset_connect_variables(connect, XY)
-
-        ## Results analysis
-        # self.resetStates(XY_data, only=False)
-        #
-        # if self.model.connect:
-        #     self.model.reset_connect_variables(connect, XY_data)
-
-        ## Model Predict
-        # if connect and (i == 0 or i % (prediction_samples + 1) == 0):
-        #     self.model.reset_connect_variables(connect, X)
-        #
-        # self.resetStates(X)
-
-        # if batch_size is None:
-        #     batch_size = values[list(values)[0]].shape[0]
-        #     #check(values is not None, ValueError, "XY must be None if the batch_size is not None.")
-        # for state in self.model_def['States'].keys():
-        #     if state in values.keys():  ## the state variable must be initialized with the dataset values
-        #         self.model.clear_state(batch_size, state=state, value=values[state])
-        #     else:
-        #         self.model.clear_state(batch_size, state=state)
-
-    # def clear_state(self, state=None):
-    #     check(self.neuralized, ValueError, "The network is not neuralized yet.")
-    #     if self.model_def['States']:
-    #         self.model.clear_state(state=state)
-    #     else:
-    #         self.visualizer.warning('The model does not have state variables!')
 
     def save_model(self, path):
         torch.save(self.model.state_dict(), path)

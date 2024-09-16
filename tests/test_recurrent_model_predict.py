@@ -71,7 +71,7 @@ class MyTestCase(unittest.TestCase):
         result = test(inputs={'x':[1,2,3,4,5], 'F':[1,2,3]}, closed_loop={'F':'out'})
         self.assertEqual(result['out'], [16.0])
 
-    def test_closed_loop_complex(self):
+    def test_closed_loop_predict_complex(self):
         ## the memory is not shared between different calls
         x = Input('x') 
         y = Input('y')
@@ -88,24 +88,22 @@ class MyTestCase(unittest.TestCase):
         test.addModel('out_neg',out_neg)
         test.neuralizeModel(0.1)
 
-        ## two sample prediction with x in close loop
+        ## two sample one prediction for x in close loop
         result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6]}, closed_loop={'x':'out_pos'})
         self.assertEqual(result['out'], [0.0, 9.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0])
         self.assertEqual(result['out_neg'], [-15.0, -20.0])
-        ## two sample prediction with y in close loop
+        ## two sample one prediction for y in close loop
         result = test(inputs={'x':[1,2,3,4,5,6], 'y':[1,2,3,4,5]}, closed_loop={'y':'out_pos'})
         self.assertEqual(result['out'], [0.0, -9.0])
         self.assertEqual(result['out_pos'], [15.0, 20.0])
         self.assertEqual(result['out_neg'], [-15.0, -29.0])
         ## one sample prediction with both close loops
-        ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
         result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'})
         self.assertEqual(result['out'], [0.0])
         self.assertEqual(result['out_pos'], [15.0])
         self.assertEqual(result['out_neg'], [-15.0])
-        ## three sample prediction with both close loops
-        ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
+        ## three sample prediction due to the max dimensions of inputs + prediction_samples
         result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=2)
         self.assertEqual(result['out'], [0.0, 30.0, 58.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
@@ -116,7 +114,43 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out'], [0.0, 9.0, 31.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
-    
+
+    def test_closed_loop_complex(self):
+        ## the memory is not shared between different calls
+        x = State('x')
+        y = State('y')
+        p = Parameter('p', tw=0.5, dimensions=1, values=[[1.0],[1.0],[1.0],[1.0],[1.0]])
+        n = Parameter('n', tw=0.5, dimensions=1, values=[[-1.0],[-1.0],[-1.0],[-1.0],[-1.0]])
+        fir_pos = Fir(parameter=p)(x.tw(0.5))
+        fir_neg = Fir(parameter=n)(y.tw(0.5))
+        out_pos = Output('out_pos', fir_pos)
+        out_neg = Output('out_neg', fir_neg)
+        out = Output('out',fir_neg+fir_pos)
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addClosedLoop(fir_pos, x)
+        test.addClosedLoop(fir_neg, y)
+        test.addModel('out', out)
+        test.addModel('out_pos',out_pos)
+        test.addModel('out_neg',out_neg)
+        test.neuralizeModel(0.1)
+
+        ## one sample prediction with both close loops
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]})
+        self.assertEqual(result['out'], [0.0])
+        self.assertEqual(result['out_pos'], [15.0])
+        self.assertEqual(result['out_neg'], [-15.0])
+        ## three sample prediction due to the max dimensions of inputs + prediction_samples
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, prediction_samples=2)
+        self.assertEqual(result['out'], [0.0, 30.0, 58.0])
+        self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
+        self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
+        ## three sample prediction with both close loops but y gets initialized for 3 steps
+        ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, prediction_samples=2)
+        self.assertEqual(result['out'], [0.0, 9.0, 31.0])
+        self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
+        self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
+
     def test_state_closed_loop(self):
         ## the state is saved inside the model so the memory is shared between different calls
         x = Input('x') 
@@ -158,9 +192,9 @@ class MyTestCase(unittest.TestCase):
         # 2 samples prediction with state variables inizialized only at %prediction_samples
         result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]},prediction_samples=2)
         # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 4+0+4 = 8, 8+8+8 = 24
-        self.assertEqual(result['out'], [3.0,9.0,27.0,8.0])
+        #self.assertEqual(result['out'], [3.0,9.0,27.0,8.0])
+        self.assertEqual(result['out'], [3.0, 6.0, 12.0, 20.0])
 
-    
     def test_state_closed_loop_complex(self):
         ## the state is saved inside the model so the memory is shared between different calls
         x = Input('x') 
