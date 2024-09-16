@@ -350,6 +350,7 @@ class Neu4mes:
     def addMinimize(self, name, streamA, streamB, loss_function='mse'):
         check(isinstance(streamA, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
         check(isinstance(streamB, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
+        check(streamA.dim == streamB.dim, ValueError, f'Dimension of streamA and streamB are not equal.')
         self.minimize_dict[name]={'A':copy.deepcopy(streamA), 'B': copy.deepcopy(streamB), 'loss':loss_function}
         self.__update_model()
         self.visualizer.showaddMinimize(name)
@@ -418,10 +419,8 @@ class Neu4mes:
         if self.max_samples_forward < 0:
             self.visualizer.warning(f"The input is only in the far future the max_sample_forward is: {self.max_samples_forward}")
         self.max_n_samples = self.max_samples_forward + self.max_samples_backward
-
         self.visualizer.showModelInputWindow()
 
-        #self.visualizer.showModel()
         ## Build the network
         self.model = Model(model_def, self.minimize_dict, self.input_ns_backward, self.input_n_samples)
         self.visualizer.showBuiltModel()
@@ -585,11 +584,12 @@ class Neu4mes:
             A = {}
             B = {}
             aux_losses = {}
-            for (name, items) in self.minimize_dict.items():
-                window = 'tw' if 'tw' in items['A'].dim else ('sw' if 'sw' in items['A'].dim else None)
-                A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
-                B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
-                aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
+            # for (name, items) in self.minimize_dict.items():
+            #     window = 'tw' if 'tw' in items['A'].dim else ('sw' if 'sw' in items['A'].dim else None)
+            #     sample_time = self.sample_time if 'tw' == window else 1
+            #     A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window]/sample_time,items['A'].dim['dim']])
+            #     B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window]/sample_time,items['B'].dim['dim']])
+            #     aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
             ## Update State variables if necessary
             self.model.reset_states(XY_data, only = False)

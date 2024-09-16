@@ -164,7 +164,7 @@ elif example == 5:
 
     mass_spring_damper = Neu4mes(seed=42)
     mass_spring_damper.addModel('model', out)
-    mass_spring_damper.addMinimize('error', out, x.next())
+    mass_spring_damper.addMinimize('error', out, x.tw(0.5))
 
     mass_spring_damper.neuralizeModel(0.1)
 
