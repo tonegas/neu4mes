@@ -353,7 +353,7 @@ class MyTestCase(unittest.TestCase):
         result = test()
         self.assertEqual(test.model.states['x_state'].numpy().tolist(), [[[3.],[6.],[11.]]])
 
-    def test_recurrent_connect_predict_order_of_values_same_window(self):
+    def test_recurrent_connect_predict_values_same_window(self):
         NeuObj.reset_count()
         input1 = Input('in1',dimensions=2)
         W = Parameter('W', values=[[[-1],[-5]]])
@@ -375,7 +375,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[-30,-30]}, connect={'inout': 'out1'}))
 
-    def test_recurrent_connect_predict_order_of_values_bigger_window(self):
+    def test_recurrent_connect_predict_values_bigger_window(self):
         NeuObj.reset_count()
         input1 = Input('in1',dimensions=2)
         W = Parameter('W', values=[[[-1],[-5]]])
@@ -399,6 +399,20 @@ class MyTestCase(unittest.TestCase):
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]]}, connect={'inout': 'out1'}))
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-30,-30]}, connect={'inout': 'out1'}))
+        with self.assertRaises(StopIteration):
+            self.assertEqual({}, test())
+        with self.assertRaises(StopIteration):
+            self.assertEqual({}, test(prediction_samples=0))
+        with self.assertRaises(StopIteration):
+            self.assertEqual({}, test(prediction_samples=4))
+
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [9.0], 'out3': [9.0], 'out4': [9.0]},
+                        test(connect={'inout': 'out1'}))
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [9.0], 'out3': [9.0], 'out4': [9.0]},
+                        test(connect={'inout': 'out1'},prediction_samples=0))
+        self.assertEqual({'out1': [[1.0, 1.0],[1.0, 1.0]], 'out2': [9.0,9.0], 'out3': [9.0,12.0], 'out4': [9.0,9.0]},
+                        test(connect={'inout': 'out1'},prediction_samples=1))
+
         # [[1,2],[2,3]]*[-1,-5] = [[1*-1+2*-5=-11],[2*-1+3*-5=-17]]+[1]
         # [[2,3],[1,2]]*[-1,-5] = [[2*-1+3*-5=-17],[1*-1+2*-5=-11]]+[1]
         # out2 # = [[-10,-16],[-16,-10]] -> 1) [-10,-16]*[4,5] -> [-16*5+-10*4=-120]             2) [-16,-10]*[4,5] -> [-16*4+-10*5=-114] -> [-120,-114]
@@ -407,7 +421,7 @@ class MyTestCase(unittest.TestCase):
                          test({'in1': [[1.0, 2.0], [2.0, 3.0], [1.0,2.0]]},
                               connect={'inout': 'out1'}))
 
-    def test_recurrent_connect_order_of_values_same_window(self):
+    def test_recurrent_connect_values_same_window(self):
         NeuObj.reset_count()
         input1 = Input('in1',dimensions=2)
         W = Parameter('W', values=[[[-1],[-5]]])
@@ -428,7 +442,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3':[-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[-10,-16]}))
         self.assertEqual({'out1': [[-10.0,-16.0]], 'out2': [-120.0], 'out3':[-120.0]}, test({'in1': [[1.0,2.0],[2.0,3.0]]}))
 
-    def test_recurrent_connect_order_of_values_bigger_window(self):
+    def test_recurrent_connect_values_bigger_window(self):
         NeuObj.reset_count()
         input1 = Input('in1',dimensions=2)
         W = Parameter('W', values=[[[-1],[-5]]])
@@ -460,8 +474,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual({'out1': [[-10.0, -16.0],[-16.0, -10.0]], 'out2': [-120.0,-114.0], 'out3': [-120.0,-144], 'out4': [-120.0,-114.0]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0], [1.0,2.0]]}))
 
-## TODO to be finished
-    def test_recurrent_closed_loop_order_of_values_bigger_window(self):
+    def test_recurrent_closed_loop_values_bigger_window(self):
         NeuObj.reset_count()
         input1 = State('in1',dimensions=2)
         W = Parameter('W', values=[[[-1],[-5]]])
@@ -479,17 +492,54 @@ class MyTestCase(unittest.TestCase):
         test.addClosedLoop(output1, input2)
         test.addClosedLoop(output2, input1)
         test.neuralizeModel()
-        # out1 # [[1.0, 2.0], [2.0, 3.0]] * [[[-1],[-5]]] + [[1]] = [[[1*-1+2*-5+1,2*-1+3*-5+1]]] = [[[-10,-16]]]
-        # out2 # [-10,-16] * [4] = [-40]
-        #self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-40.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'in2':[-10,-16,-5,2,3]}))
-        #test.clear_state()
-        # out1 # [[2.0, 3.0],[-10.0,-16.0]] * [[[-1],[-5]]] + [[1]] = [[[2*-1+3*-5+1,-10*-1+-16*-5+1]]] = [[[-16,91]]]
-        # out1 # [[-10.0,-16.0],[-16.0,91.0]] * [[[-1],[-5]]] + [[1]] = [[[2*-1+3*-5+1,-10*-1+-16*-5+1]]] = [[[-16,91]]]
-        # out1 # [-10,-16] * [4] = [-40]
-        #self.assertEqual({'out1': [[-10.0,-16.0],[-16.0,91.0],[-10.0,-16.0]], 'out2': [-40.0,1,1]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'in2':[-10,-16,-5,2,3]}, prediction_samples=2))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=0))
 
-        # self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0]},
-        #                  test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[-30,-30]}, connect={'inout': 'out1'}))
+        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=1))
+        self.assertEqual({'out1': [[465.0,1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test())
+        test.clear_state()
+        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0],[465.0,1291.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]],[[2230.0, 3102.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=2))
+
+    def test_recurrent_closed_loop_predict_values_bigger_window(self):
+        NeuObj.reset_count()
+        input1 = Input('in1',dimensions=2)
+        W = Parameter('W', values=[[[-1],[-5]]])
+        b = Parameter('b', values=[[1]])
+        output1 = Output('out1', Linear(W=W, b=b)(input1.sw(2)))
+
+        # input2 = State('inout') #TODO loop forever
+        # test.addConnect(output1, input1) # With this
+        input2 = Input('in2')
+        a = Parameter('a', values=[[1,3],[2,4],[3,5],[4,6],[5,7]])
+        output2 = Output('out2', Fir(output_dimension=2,parameter=a)(input2.sw(5)))
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel('model', [output1,output2])
+        test.neuralizeModel()
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, closed_loop={'in1':'out2', 'in2':'out1'}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=0, closed_loop={'in1':'out2', 'in2':'out1'}))
+        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=1, closed_loop={'in1':'out2', 'in2':'out1'}))
+        with self.assertRaises(StopIteration):
+             self.assertEqual({'out1': [[465.0, 1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test())
+        with self.assertRaises(StopIteration):
+             self.assertEqual({'out1': [[465.0, 1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test(prediction_samples=0))
+        with self.assertRaises(StopIteration):
+             self.assertEqual({'out1': [[465.0, 1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test(prediction_samples=3))
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [[[0.0, 0.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'}))
+        self.assertEqual({'out1': [[1.0, 1.0]], 'out2': [[[0.0, 0.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=0))
+        self.assertEqual({'out1': [[1.0, 1.0],[1.0,1.0]], 'out2': [[[0.0, 0.0]],[[9.0,13.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=1))
+        self.assertEqual({'out1': [[1.0, 1.0],[1.0,1.0],[1.0,-73.0]], 'out2': [[[0.0, 0.0]],[[9.0,13.0]],[[12.0,18.0]]]},
+                          test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=2))
 
 if __name__ == '__main__':
     unittest.main()

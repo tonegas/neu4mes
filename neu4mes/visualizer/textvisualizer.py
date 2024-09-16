@@ -170,8 +170,9 @@ class TextVisualizer(Visualizer):
             self.__paramjson("num of epochs:", par['num_of_epochs'])
             if par['shuffle_data']:
                 self.__param('shuffle data:', str(par['shuffle_data']))
-            if par['early_stopping']:
-                self.__param('shuffle early_stopping:', par['early_stopping'])
+            if 'early_stopping' in par:
+                self.__param('early stopping:', par['early_stopping'])
+                self.__paramjson('early stopping params:', par['early_stopping_params'])
 
             self.__paramjson('minimize:', par['minimize'])
 
@@ -181,14 +182,14 @@ class TextVisualizer(Visualizer):
                 self.__paramjson("closed loop:", par['closed_loop'])
                 self.__paramjson("connect:", par['connect'])
 
-            self.__paramjson("optimizer:", par['optimizer'])
-            self.__paramjson("optimizer_defaults:",self.n4m.run_training_params['optimizer_defaults'])
+            self.__param("optimizer:", par['optimizer'])
+            self.__paramjson("optimizer defaults:",self.n4m.run_training_params['optimizer_defaults'])
             if self.n4m.run_training_params['optimizer_params'] is not None:
-                self.__paramjson("optimizer_params:", self.n4m.run_training_params['optimizer_params'])
+                self.__paramjson("optimizer params:", self.n4m.run_training_params['optimizer_params'])
 
             self.__line()
 
-    def showOneResult(self, name_data = None):
+    def showResult(self, name_data):
         eng = lambda val: np.format_float_scientific(val, precision=3)
         if self.verbose >= 1:
             loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.minimize_dict.items())])

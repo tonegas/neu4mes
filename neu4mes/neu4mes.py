@@ -77,7 +77,8 @@ class Neu4mes:
             'models' : None,
             'train_dataset' : None, 'validation_dataset' : None, 'test_dataset' : None, 'splits' : [70, 20, 10],
             'closed_loop' : {}, 'connect' : {}, 'step' : 1, 'prediction_samples' : 0,
-            'shuffle_data' : True, 'early_stopping' : None,
+            'shuffle_data' : True,
+            'early_stopping' : None, 'early_stopping_params' : {},
             'minimize_gain' : {},
             'num_of_epochs': 100,
             'train_batch_size' : 128, 'val_batch_size' : 1, 'test_batch_size' : 1,
@@ -113,6 +114,13 @@ class Neu4mes:
 
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
+        model_inputs = list(self.model_def['Inputs'].keys())
+        model_states = list(self.model_def['States'].keys())
+        provided_inputs = list(inputs.keys())
+        missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
+        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
+
+        # Closed loop inputs
         closed_loop_windows = {}
         for close_in, close_out in closed_loop.items():
             check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
@@ -121,22 +129,16 @@ class Neu4mes:
                 closed_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
             else:
                 closed_loop_windows[close_in] = 1
-
-        for connect_in, connect_out in connect.items():
-            check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
-            check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
-
-        model_inputs = list(self.model_def['Inputs'].keys())
-        model_states = list(self.model_def['States'].keys())
-        provided_inputs = list(inputs.keys())
-        missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
-        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
-
         for key in model_states:
             if key in inputs.keys():
                 closed_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
             else:
                 closed_loop_windows[key] = 1
+
+        # Connect inputs checks
+        for connect_in, connect_out in connect.items():
+            check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
+            check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
 
         ## Ignoring extra inputs if not necessary
         if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
@@ -144,7 +146,8 @@ class Neu4mes:
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
-        non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(model_states) - set(connect.keys()))
+        non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(connect.keys()) - set(model_states))
+        recurrent_inputs = set(closed_loop.keys())|set(connect.keys())|set(model_states)
 
         ## Determine the Maximal number of samples that can be created
         if non_recurrent_inputs:
@@ -155,17 +158,20 @@ class Neu4mes:
                 min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
         else:
-            ps = 0 if prediction_samples is None else prediction_samples
-            if provided_inputs:
-                min_dim_ind, min_dim  = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
-                max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+            if recurrent_inputs:
+                ps = 0 if prediction_samples is None else prediction_samples
+                if provided_inputs:
+                    min_dim_ind, min_dim = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
+                    max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+                else:
+                    min_dim = max_dim = ps + 1
             else:
-                min_dim = max_dim = ps + 1
+                min_dim = max_dim = 0
 
         window_dim = min_dim
         if prediction_samples == None:
             prediction_samples = window_dim
-        check(window_dim > 0, StopIteration, f'Missing {abs(min_dim)+1} samples in the input window')
+        check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
@@ -175,14 +181,14 @@ class Neu4mes:
         if missing_inputs:
             self.visualizer.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
             for key in missing_inputs:
-                inputs[key] = np.zeros(shape=(window_dim, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
+                inputs[key] = np.zeros(shape=(self.input_n_samples[key]+window_dim-1, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
 
         result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
         ## Initialize the batch_size
-        self.model.batch_size = 1
+        #self.model.batch_size = 1
         ## Initialize the connect variables
         self.model.connect = connect
         ## Cycle through all the samples provided
@@ -218,30 +224,28 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(0)
 
                 ## Model Predict
-                if self.model.connect:
+                if connect:
                     if i==0 or i%(prediction_samples+1) == 0:
                         self.model.clear_connect_variables()
+                        for connect_in in connect.keys():
+                            if connect_in in X.keys():
+                                self.model.update_connect_variables(connect_in, value=X[connect_in], batch=1)
+                            else:
+                                self.model.update_connect_variables(connect_in, batch=1)
                 ## Update State variables if necessary
                 for state in self.model_def['States'].keys():
                     if state in X.keys(): ## the state variable must be initialized with the dataset values
                         self.model.update_state(state, X[state], 1)
                     else:
                         self.model.update_state(state, batch=1)
-                '''
-                ## Update connect variables
-                if connect:
-                    self.model.connect = connect
-                    for connect_in in connect.keys():
-                        if connect_in in X.keys():
-                            del self.model.connect[connect_in]
-                '''
+
                 result, _ = self.model(X)
 
                 ## Update the recurrent variable
                 for close_in, close_out in closed_loop.items():
                     if i >= closed_loop_windows[close_in]-1:
                         dim = result[close_out].shape[1]  ## take the output time dimension
-                        X[close_in] = torch.roll(X[close_in], shifts=-dim, dims=1) ## Roll the time window
+                        X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
                         X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
 
                 ## Append the prediction of the current sample to the result dictionary
@@ -722,7 +726,8 @@ class Neu4mes:
                     models=None,
                     train_dataset = None, validation_dataset = None, test_dataset = None, splits = None,
                     closed_loop = None, connect = None, step = None, prediction_samples = None,
-                    shuffle_data = None, early_stopping=  None,
+                    shuffle_data = None,
+                    early_stopping = None, early_stopping_params = None,
                     minimize_gain = None,
                     num_of_epochs = None,
                     train_batch_size = None, val_batch_size = None, test_batch_size = None,
@@ -768,6 +773,9 @@ class Neu4mes:
 
         ## Get early stopping
         early_stopping = self.__get_parameter(early_stopping = early_stopping)
+        if early_stopping:
+            self.run_training_params['early_stopping'] = early_stopping.__name__
+        early_stopping_params = self.__get_parameter(early_stopping_params = early_stopping_params)
 
         # Get dataset for training
         shuffle_data = self.__get_parameter(shuffle_data = shuffle_data)
@@ -878,6 +886,10 @@ class Neu4mes:
             del self.run_training_params['step']
             del self.run_training_params['prediction_samples']
 
+        if early_stopping is None:
+            del self.run_training_params['early_stopping']
+            del self.run_training_params['early_stopping_params']
+
         ## Create the train, validation and test loss dictionaries
         train_losses, val_losses, test_losses = {}, {}, {}
         for key in self.minimize_dict.keys():
@@ -929,7 +941,7 @@ class Neu4mes:
 
             ## Early-stopping
             if early_stopping:
-                if early_stopping(train_losses, val_losses, training_params):
+                if early_stopping(train_losses, val_losses, early_stopping_params):
                     self.visualizer.warning('Stopping the training..')
                     break
 
@@ -954,10 +966,14 @@ class Neu4mes:
                 test_losses[key] = torch.mean(losses[ind]).tolist()
         
         self.resultAnalysis(train_dataset, XY_train)
+        self.visualizer.showResults(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val)
+            self.visualizer.showResults(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test)
+            self.visualizer.showResults(test_dataset)
+
 
         # if self.run_training_params['n_samples_test'] > 0:
         #     self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
@@ -972,7 +988,7 @@ class Neu4mes:
         ## Sample Shuffle
         initial_value = random.randint(0, step - 1) if shuffle else 0
         ## Initialize the batch_size
-        self.model.batch_size = batch_size
+        #self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
         ## Initialize connect inputs
@@ -990,23 +1006,20 @@ class Neu4mes:
             horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
             for horizon_idx in range(prediction_samples + 1):
                 ## Model Forward
-                if self.model.connect and horizon_idx==0:
+                if connect and horizon_idx==0:
                     self.model.clear_connect_variables()
-                
+                    for connect_in in connect.keys():
+                        if connect_in in XY.keys():
+                            self.model.update_connect_variables(connect_in, value=XY[connect_in], batch=batch_size)
+                        else:
+                            self.model.update_connect_variables(connect_in, batch=batch_size)
+
                 ## Update State variables if necessary
                 for state in self.model_def['States'].keys():
                     if state in XY.keys(): ## the state variable must be initialized with the dataset values
                         self.model.update_state(state, XY[state], batch_size)
                     else:
                         self.model.update_state(state, batch=batch_size)
-                '''
-                ## Update connect variables
-                if connect:
-                    self.model.connect = connect
-                    for connect_in in connect.keys():
-                        if connect_in in XY.keys():
-                            del self.model.connect[connect_in]
-                '''
 
                 out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
@@ -1026,7 +1039,7 @@ class Neu4mes:
                     for key in XY.keys():
                         if key in closed_loop.keys(): ## the input is recurrent
                             dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
-                            XY[key] = torch.roll(XY[key], shifts=-dim, dims=1) ## Roll the time window
+                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1) ## Roll the time window
                             XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
                             XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
                         else: ## the input is not recurrent
@@ -1051,7 +1064,7 @@ class Neu4mes:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
         ## Initialize the batch_size
-        self.model.batch_size = batch_size
+        #self.model.batch_size = batch_size
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
         for idx in range(0, (n_samples - batch_size + 1), batch_size):
