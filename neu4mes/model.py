@@ -253,7 +253,20 @@ class Model(nn.Module):
     #                 window_size = self.input_n_samples[state]
     #                 self.states[state] = torch.zeros(size=(batch, window_size, self.state_model[state]['dim']), dtype=torch.float32, requires_grad=False)
 
-    #def reset_states(self, values=None):
+
+    def reset_connect_variables(self, connect, values = None, only = True):
+        if only == False:
+            self.connect = connect
+            self.connect_variables = {}
+            self.initialize_connect = True
+        for key in connect.keys():
+            if values is not None and key in values.keys():
+                self.connect_variables[key] = values[key].clone()
+            elif only == False:
+                batch = values[list(values)[0]].shape[0] if values is not None else 1
+                window_size = self.input_n_samples[key]
+                self.connect_variables[key] = torch.zeros(size=(batch, window_size, self.inputs[key]['dim']),
+                                                           dtype=torch.float32, requires_grad=False)
     def reset_states(self, values = None, only = True):
         if values is None:
             for key, value in self.state_model.items():
@@ -334,21 +347,6 @@ class Model(nn.Module):
     #                     batch = self.states[key].shape[0]
     #                 self.states[key] = torch.zeros(size=(batch, window_size, self.state_model[key]['dim']),
     #                                                  dtype=torch.float32, requires_grad=False)
-
-    def reset_connect_variables(self, connect, values = None, only = True):
-        if only == False:
-            self.connect = connect
-            self.connect_variables = {}
-            self.initialize_connect = True
-        for key in connect.keys():
-            if values is not None and key in values.keys():
-                self.connect_variables[key] = values[key].clone()
-            elif only == False:
-                batch = values[list(values)[0]].shape[0] if values is not None else 1
-                window_size = self.input_n_samples[key]
-                self.connect_variables[key] = torch.zeros(size=(batch, window_size, self.inputs[key]['dim']),
-                                                           dtype=torch.float32, requires_grad=False)
-
 
     # def clear_connect_variables(self, name=None):
     #     if name is None:

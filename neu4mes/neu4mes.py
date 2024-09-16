@@ -1107,14 +1107,15 @@ class Neu4mes:
             ## Model Forward
             _, minimize_out = self.model(XY)  ## Forward pass
             ## Loss Calculation
+            total_loss = 0
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
                 loss = loss * loss_gains[key] if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
-                if train:
-                    loss.backward(retain_graph=True)
                 aux_losses[ind][idx//batch_size]= loss.item()
+                total_loss += loss
             ## Gradient step
             if train:
+                total_loss.backward()
                 self.optimizer.step()
         return aux_losses
 
