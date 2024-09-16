@@ -7,8 +7,7 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 # Create neu4mes structure
-workspace = os.path.join(os.getcwd(), "results")
-vehicle = Neu4mes(visualizer=MPLVisulizer(), seed=0, workspace=workspace)
+vehicle = Neu4mes(visualizer=MPLVisulizer(),seed=0)
 
 # Dimensions of the layers
 n  = 25
@@ -37,6 +36,7 @@ out = Output('accelleration', air_drag_force+breaking_force+gravity_force+engine
 vehicle.addModel('acc',[out])
 vehicle.addMinimize('acc_error', acc.last(), out, loss_function='rmse')
 vehicle.neuralizeModel(0.05)
+vehicle.neuralizeModel(0.05)
 
 # Load the training and the validation dataset
 data_struct = ['vel','trq','brk','gear','alt','acc']
@@ -47,7 +47,7 @@ vehicle.loadData(name='validationset', source=data_folder, format=data_struct, s
 
 # Filter the data
 def filter_function(sample):
-    return np.all(sample['vel'] >= 1.).tolist()
+   return np.all(sample['vel'] >= 1.).tolist()
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
@@ -57,23 +57,23 @@ training_params = {'num_of_epochs':200, 'val_batch_size':128, 'train_batch_size'
 vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=optimizer_params, add_optimizer_defaults=optimizer_defaults, training_params=training_params)
 
 ## Neural network Predict
-sample = vehicle.get_random_samples(dataset='validationset', window=1)
-start = time.time()
-for _ in range(10000):
-    result = vehicle(sample, sampled=True)
-print('Inference Time: ', time.time() - start)
-print('Predicted accelleration: ', result['accelleration'])
-print('True accelleration: ', sample['acc'])
+# sample = vehicle.get_random_samples(dataset='validationset', window=1)
+# start = time.time()
+# for _ in range(10000):
+#     result = vehicle(sample, sampled=True)
+# print('Inference Time: ', time.time() - start)
+# print('Predicted accelleration: ', result['accelleration'])
+# print('True accelleration: ', sample['acc'])
 
-python, python_onnx, onnx = vehicle.exportTracer()
-#vehicle.import_onnx(onnx)
-#vehicle.exportONNX(file_name)
-
-## Import the tracer model
-vehicle.importTracer(file_path=python)
-start = time.time()
-for _ in range(10000):
-    result = vehicle(sample, sampled=True)
-print('Inference Time: ', time.time() - start)
-print('Predicted accelleration: ', result['accelleration'])
-print('True accelleration: ', sample['acc'])
+# python, python_onnx, onnx = vehicle.exportTracer()
+# #vehicle.import_onnx(onnx)
+# #vehicle.exportONNX(file_name)
+#
+# ## Import the tracer model
+# vehicle.importTracer(file_path=python)
+# start = time.time()
+# for _ in range(10000):
+#     result = vehicle(sample, sampled=True)
+# print('Inference Time: ', time.time() - start)
+# print('Predicted accelleration: ', result['accelleration'])
+# print('True accelleration: ', sample['acc'])

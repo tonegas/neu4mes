@@ -22,7 +22,7 @@ from neu4mes.optimizer import Optimizer, SGD, Adam
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
 log = logging.getLogger(__name__)
-log.setLevel(max(logging.ERROR, LOG_LEVEL))
+log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 class Neu4mes:
     name = None
@@ -1051,16 +1051,18 @@ class Neu4mes:
                             XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
 
             ## Calculate the total loss
+            total_loss = 0
             for ind in range(len(self.minimize_dict)):
-                total_loss = sum(horizon_losses[ind])/(prediction_samples+1)
-                if train:
-                    total_loss.backward(retain_graph=True) ## Backpropagate the error
+                total_loss += sum(horizon_losses[ind])/(prediction_samples+1)
                 aux_losses[ind][idx//batch_size] = total_loss.item()
+
             ## Gradient Step
             if train:
+                total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
 
-        #self.model.clear_connect_variables()
+            self.model.clear_connect_variables()
+            self.clear_state()
         ## return the losses
         return aux_losses
     
