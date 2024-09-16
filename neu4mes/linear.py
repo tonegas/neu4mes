@@ -1,6 +1,4 @@
-import copy
-import inspect
-
+import copy, inspect
 import torch.nn as nn
 import torch
 

@@ -1,9 +1,9 @@
 import copy
-from pprint import pformat
+
+from neu4mes.utilis import check, merge
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
-from neu4mes.utilis import check
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
@@ -108,6 +108,26 @@ class Stream(Relation):
             win_state = s.z(delay)
             return Stream(win_state.name, merge(win_state.json, out_connect.json), win_state.dim,0 )
 
+    def connect(self, obj):
+        from neu4mes.input import State
+        check(type(obj) is State, TypeError,
+              f"The {obj} must be a State and not a {type(obj)}.")
+        self.json = merge(self.json, obj.json)
+        check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name], KeyError,
+              f"The state variable {obj.name} is already connected.")
+        self.json['States'][obj.name]['connect'] = self.name
+        return Stream(self.name, self.json, self.dim,0 )
+
+    def closedLoop(self, obj):
+        from neu4mes.input import State
+        check(type(obj) is State, TypeError,
+              f"The {obj} must be a State and not a {type(obj)}.")
+        self.json = merge(self.json, obj.json)
+        check('closedLoop' not in self.json['States'][obj.name] or 'connect' not in self.json['States'][obj.name],
+              KeyError,
+              f"The state variable {obj.name} is already connected.")
+        self.json['States'][obj.name]['closedLoop'] = self.name
+        return Stream(self.name, self.json, self.dim,0 )
 
 class ToStream():
     def __new__(cls, *args, **kwargs):

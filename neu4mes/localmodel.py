@@ -1,9 +1,6 @@
-import inspect, copy
-
-import torch.nn as nn
+import inspect
 
 from neu4mes.relation import NeuObj
-from neu4mes.model import Model
 from neu4mes.part import Select
 from neu4mes.utilis import check
 

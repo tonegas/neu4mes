@@ -8,7 +8,7 @@ from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-# 9 Tests
+# 8 Tests
 # This test file tests the json, in particular
 # the dimensions that are propagated through the relations
 # and the structure of the json itself
@@ -248,8 +248,6 @@ class Neu4mesJson(unittest.TestCase):
         with self.assertRaises(ValueError):
             Linear(W = W15,b = b15)(input2) + Linear(W = W45, b = b45)(input4)
 
-    def test_output(self):
-        pass
 
 if __name__ == '__main__':
     unittest.main()

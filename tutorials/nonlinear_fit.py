@@ -8,7 +8,6 @@ from neu4mes import *
 # Custom visualizer for results
 class FunctionVisualizer(TextVisualizer):
     def showResults(self):
-        super().showResults()
         import matplotlib.pyplot as plt
         data_x = np.arange(-30,30,0.1)
         plt.title('Function Data')

@@ -1,5 +1,4 @@
-import copy
-import inspect
+import copy, inspect
 import numpy as np
 
 from neu4mes.relation import NeuObj, Stream

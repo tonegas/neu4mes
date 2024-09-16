@@ -60,7 +60,7 @@ class TextVisualizer(Visualizer):
             self.__line()
 
     def showBuiltModel(self):
-        if self.verbose >= 1:
+        if self.verbose >= 2:
             self.__title(" Neu4mes Built Model ")
             print(color(pformat(self.n4m.model),GREEN))
             self.__line()

@@ -1,20 +1,13 @@
+# Extern packages
 import copy
-
 import torch
-from datetime import datetime
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
 import random
+from datetime import datetime
 import os
-from pprint import pprint
-from pprint import pformat
-import re
-import matplotlib.pyplot as plt
-import io
-import json
-from torch.fx import symbolic_trace
 
+# Neu4mes packages
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import NeuObj, MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer
@@ -157,12 +150,16 @@ class Neu4mes:
             else:
                 min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
                 max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
+            min_din_key = non_recurrent_inputs[min_dim_ind]
+            max_din_key = non_recurrent_inputs[max_dim_ind]
         else:
             if recurrent_inputs:
                 ps = 0 if prediction_samples is None else prediction_samples
                 if provided_inputs:
                     min_dim_ind, min_dim = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
                     max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+                    min_din_key = provided_inputs[min_dim_ind]
+                    max_din_key = provided_inputs[max_dim_ind]
                 else:
                     min_dim = max_dim = ps + 1
             else:
@@ -175,7 +172,7 @@ class Neu4mes:
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
-            self.visualizer.warning(f'Different number of samples between inputs [MAX {list(provided_inputs)[max_dim_ind]} = {max_dim}; MIN {list(provided_inputs)[min_dim_ind]} = {min_dim}]')
+            self.visualizer.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
 
         ## Autofill the missing inputs
         if missing_inputs:
@@ -560,7 +557,6 @@ class Neu4mes:
     def resultAnalysis(self, name_data, XY_data):
         import warnings
         batch_size = XY_data[list(XY_data.keys())[0]].shape[0]
-        self.model.batch_size = batch_size
         self.clear_state()
         with torch.inference_mode():
             self.performance[name_data] = {}
@@ -581,6 +577,15 @@ class Neu4mes:
                     self.model.update_state(state, XY_data[state], batch_size)
                 else:
                     self.model.update_state(state, batch=batch_size)
+
+            if self.model.connect:
+                self.model.clear_connect_variables()
+                for connect_in in self.model.connect.keys():
+                    if connect_in in XY_data.keys():
+                        self.model.update_connect_variables(connect_in, value=XY_data[connect_in], batch=batch_size)
+                    else:
+                        self.model.update_connect_variables(connect_in, batch=batch_size)
+
             _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 A[key] = minimize_out[value['A'].name]
@@ -964,22 +969,21 @@ class Neu4mes:
             ## save the losses
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
-        
+
         self.resultAnalysis(train_dataset, XY_train)
-        self.visualizer.showResults(train_dataset)
+        self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val)
-            self.visualizer.showResults(validation_dataset)
+            self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test)
-            self.visualizer.showResults(test_dataset)
+            self.visualizer.showResult(test_dataset)
 
 
         # if self.run_training_params['n_samples_test'] > 0:
         #     self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
         # elif self.run_training_params['n_samples_val'] > 0:
         #     self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
-        
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
 
@@ -1056,6 +1060,7 @@ class Neu4mes:
             if train:
                 self.optimizer.step()
 
+        #self.model.clear_connect_variables()
         ## return the losses
         return aux_losses
     
@@ -1156,15 +1161,15 @@ class Neu4mes:
         output_names = [item.name for item in session.get_outputs()]
         #input_name = session.get_inputs()#[0].name
         #output_name = session.get_outputs()[0].name
-        
+
         print('input_name: ', input_names)
         print('output_name: ', output_names)
-        
+
         # Run inference
         result = session.run([output_names], {input_names: data})
         # Print the result
         print(result)
-        
+
 
     def ExportReport(self, data, train_loss, val_loss):
         from reportlab.lib.pagesizes import letter

@@ -1,13 +1,8 @@
 import copy
 
-import numpy as np
-
-from neu4mes.output import Output
 from neu4mes.relation import NeuObj, Stream, ToStream
 from neu4mes.utilis import check, merge
 from neu4mes.part import SamplePart, TimePart
-
-
 
 class InputState(NeuObj, Stream):
     def __init__(self, json_name, name, dimensions:int = 1):
@@ -99,6 +94,20 @@ class State(InputState):
 # connect operation
 connect_name = 'connect'
 closedloop_name = 'closedLoop'
+
+
+# class Connect(Stream, ToStream):
+#     def __init__(self, obj1: Stream, obj2: State) -> Stream:
+#         check(type(obj1) is Stream, TypeError,
+#               f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
+#         obj1.connect(obj2)
+#
+# class ClosedLoop(Stream, ToStream):
+#     def __init__(self, obj1: Stream, obj2: State) -> Stream:
+#         check(type(obj1) is Stream, TypeError,
+#               f"The {obj1} must be a Stream or Output and not a {type(obj1)}.")
+#         obj1.closedloop(obj2)
+
 class Connect(Stream, ToStream):
     def __init__(self, obj1:Stream, obj2:State) -> Stream:
         check(type(obj1) is Stream, TypeError,
