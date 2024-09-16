@@ -155,6 +155,11 @@ class MyTestCase(unittest.TestCase):
         ## 5 samples prediction with state variables initialized as many times as they have values to take
         result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1,2,3], 'y':[2,3], 'z':[3]})
         self.assertEqual(result['out'], [21.0, 46.0, 120.0, 390.0, 1205.0])
+        # 2 samples prediction with state variables inizialized only at %prediction_samples
+        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]},prediction_samples=2)
+        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 4+0+4 = 8, 8+8+8 = 24
+        self.assertEqual(result['out'], [3.0,9.0,27.0,8.0])
+
     
     def test_state_closed_loop_complex(self):
         ## the state is saved inside the model so the memory is shared between different calls

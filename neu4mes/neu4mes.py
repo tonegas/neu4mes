@@ -165,9 +165,13 @@ class Neu4mes:
             else:
                 min_dim = max_dim = 0
 
+        # if recurrent_inputs:
+        #     window_dim = max_dim
+        # else:
+        #     window_dim = min_dim
         window_dim = min_dim
-        if prediction_samples == None:
-            prediction_samples = window_dim
+        # if prediction_samples == None:
+        #     prediction_samples = window_dim
         check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
@@ -188,7 +192,10 @@ class Neu4mes:
         #self.model.batch_size = 1
         ## Initialize the connect variables
         #self.model.connect = connect
-        self.model.reset_connect_variables(connect, values = None)
+        if prediction_samples is not None:
+            self.model.reset_states(only=False)
+        self.model.reset_connect_variables(connect, only = False)
+        #self.model.reset_states()
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
@@ -221,12 +228,16 @@ class Neu4mes:
                     if X[key].ndim <= 2: ## add the time dimension
                         X[key] = X[key].unsqueeze(0)
 
-                #self.model.reset_connect_variables(connect, X, only = True)
-                self.model.reset_states(X)
+                if prediction_samples is None:
+                    self.model.reset_connect_variables(connect, X)
+                    self.model.reset_states(X)
+                elif i%(prediction_samples+1) == 0:
+                    self.model.reset_connect_variables(connect, X, only=False)
+                    self.model.reset_states(X, only=False)
 
                 ## Model Predict
-                if connect and (i==0 or i%(prediction_samples+1) == 0):
-                    self.model.reset_connect_variables(connect,X)
+                # if connect and (i==0 or i%(prediction_samples+1) == 0):
+                #     self.model.reset_connect_variables(connect,X)
                         # self.model.clear_connect_variables()
                         # for connect_in in connect.keys():
                         #     if connect_in in X.keys():
@@ -581,8 +592,8 @@ class Neu4mes:
                 aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
 
             ## Update State variables if necessary
-            self.model.reset_states(XY_data,only = False)
-            self.model.reset_connect_variables(connect, XY_data)
+            self.model.reset_states(XY_data, only = False)
+            self.model.reset_connect_variables(connect, XY_data, only=False)
             # for state in self.model_def['States'].keys():
             #     if state in XY_data.keys(): ## the state variable must be initialized with the dataset values
             #         #self.model.update_state(state, XY_data[state], batch_size)
@@ -1011,7 +1022,7 @@ class Neu4mes:
         ## Initialize connect inputs
         # if connect:
         #     self.model.connect = connect
-        self.model.reset_connect_variables(connect, values = None)
+        #self.model.reset_connect_variables(connect, values = None)
         ## +2 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 2 = 1 # one epochs
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             if train:
@@ -1025,7 +1036,7 @@ class Neu4mes:
 
             ## Reset state variables with zeros or using inputs
             self.model.reset_states(XY, only = False)
-            self.model.reset_connect_variables(connect, XY)
+            self.model.reset_connect_variables(connect, XY, only= False)
 
             for horizon_idx in range(prediction_samples + 1):
                 ## Model Forward

@@ -335,7 +335,7 @@ class Model(nn.Module):
     #                 self.states[key] = torch.zeros(size=(batch, window_size, self.state_model[key]['dim']),
     #                                                  dtype=torch.float32, requires_grad=False)
 
-    def reset_connect_variables(self, connect, values = None, only = False):
+    def reset_connect_variables(self, connect, values = None, only = True):
         if only == False:
             self.connect = connect
             self.connect_variables = {}
