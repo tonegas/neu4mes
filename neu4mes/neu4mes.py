@@ -11,14 +11,9 @@ from pprint import pprint
 from pprint import pformat
 import re
 import matplotlib.pyplot as plt
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
 import io
 import json
 from torch.fx import symbolic_trace
-import onnxruntime
-import onnx
 
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import NeuObj, MAIN_JSON
@@ -964,10 +959,10 @@ class Neu4mes:
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test)
 
-        if self.run_training_params['n_samples_test'] > 0:
-            self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
-        elif self.run_training_params['n_samples_val'] > 0:
-            self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
+        # if self.run_training_params['n_samples_test'] > 0:
+        #     self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
+        # elif self.run_training_params['n_samples_val'] > 0:
+        #     self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
         
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
@@ -1140,6 +1135,7 @@ class Neu4mes:
         self.model = module.TracerModel()
 
     def import_onnx(self, onnx_path, data):
+        import onnxruntime
         # Load the ONNX model
         session = onnxruntime.InferenceSession(onnx_path)
         # Get input and output names
@@ -1158,6 +1154,9 @@ class Neu4mes:
         
 
     def ExportReport(self, data, train_loss, val_loss):
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.utils import ImageReader
         file_name = "report.pdf"
         # Combine the folder path and file name to form the complete file path
         file_path = os.path.join(self.folder_path, file_name)

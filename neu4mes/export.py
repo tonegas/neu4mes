@@ -1,7 +1,4 @@
 import matplotlib.pyplot as plt
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
 import io
 import numpy as np
 import os
@@ -10,6 +7,9 @@ import torch
 from torch.fx import symbolic_trace
 
 def generate_training_report(train_loss, val_loss, y_true, y_pred, output_file='training_report.pdf'):
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.utils import ImageReader
     # Create loss plot
     plt.figure(figsize=(10, 5))
     plt.plot(train_loss, label='train loss')
