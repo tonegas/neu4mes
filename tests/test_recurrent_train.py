@@ -987,7 +987,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual([[252.75, 1172.5], [420.5, 1998.25], [-228.5, 627.5], [-626.75, 3036.5]], test.model.all_parameters['a'].data.numpy().tolist())
 
         test.neuralizeModel(clear_model=True)
-        test.trainModel(train_dataset='dataset3', optimizer='SGD', lr=1, num_of_epochs=2, train_batch_size=2, prediction_samples=2)
+        test.trainModel(train_dataset='dataset3', optimizer='SGD', lr=0.01, num_of_epochs=2, train_batch_size=2, prediction_samples=2)
         self.assertListEqual([[[-3010.5],[-5211.25]]],test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[199.5]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[252.75, 1172.5], [420.5, 1998.25], [-228.5, 627.5], [-626.75, 3036.5]], test.model.all_parameters['a'].data.numpy().tolist())
