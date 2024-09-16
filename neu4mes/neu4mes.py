@@ -187,7 +187,8 @@ class Neu4mes:
         ## Initialize the batch_size
         #self.model.batch_size = 1
         ## Initialize the connect variables
-        self.model.connect = connect
+        #self.model.connect = connect
+        self.model.reset_connect_variables(connect, values = None)
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
@@ -220,21 +221,28 @@ class Neu4mes:
                     if X[key].ndim <= 2: ## add the time dimension
                         X[key] = X[key].unsqueeze(0)
 
+                #self.model.reset_connect_variables(connect, X, only = True)
+                self.model.reset_states(X)
+
                 ## Model Predict
-                if connect:
-                    if i==0 or i%(prediction_samples+1) == 0:
-                        self.model.clear_connect_variables()
-                        for connect_in in connect.keys():
-                            if connect_in in X.keys():
-                                self.model.update_connect_variables(connect_in, value=X[connect_in], batch=1)
-                            else:
-                                self.model.update_connect_variables(connect_in, batch=1)
+                if connect and (i==0 or i%(prediction_samples+1) == 0):
+                    self.model.reset_connect_variables(connect,X)
+                        # self.model.clear_connect_variables()
+                        # for connect_in in connect.keys():
+                        #     if connect_in in X.keys():
+                        #         self.model.update_connect_variables(connect_in, value=X[connect_in], batch=1)
+                        #     else:
+                        #         self.model.update_connect_variables(connect_in, batch=1)
+
                 ## Update State variables if necessary
-                for state in self.model_def['States'].keys():
-                    if state in X.keys(): ## the state variable must be initialized with the dataset values
-                        self.model.update_state(state, X[state], 1)
-                    else:
-                        self.model.update_state(state, batch=1)
+                # self.model.reset_states(X)
+                # for state in self.model_def['States'].keys():
+                #     if state in X.keys(): ## the state variable must be initialized with the dataset values
+                #         #self.model.update_state(state, X[state], 1)
+                #         self.model.clear_state(1, state = state, value = X[state])
+                #      #else:
+                #         #self.model.clear_state(1, state=state)
+                #         #self.model.update_state(state, batch=1)
 
                 result, _ = self.model(X)
 
@@ -554,10 +562,10 @@ class Neu4mes:
             self.visualizer.showDataset(name=dataset_name)
 
 
-    def resultAnalysis(self, name_data, XY_data):
+    def resultAnalysis(self, name_data, XY_data, connect, closed_loop):
         import warnings
         batch_size = XY_data[list(XY_data.keys())[0]].shape[0]
-        self.clear_state()
+        # self.model.clear_state(batch_size)
         with torch.inference_mode():
             self.performance[name_data] = {}
             self.prediction[name_data] = {}
@@ -571,20 +579,25 @@ class Neu4mes:
                 A[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
                 B[name] = torch.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['B'].dim[window],items['B'].dim['dim']])
                 aux_losses[name] = np.zeros([XY_data[list(XY_data.keys())[0]].shape[0],items['A'].dim[window],items['A'].dim['dim']])
-            ## Update State variables if necessary
-            for state in self.model_def['States'].keys():
-                if state in XY_data.keys(): ## the state variable must be initialized with the dataset values
-                    self.model.update_state(state, XY_data[state], batch_size)
-                else:
-                    self.model.update_state(state, batch=batch_size)
 
-            if self.model.connect:
-                self.model.clear_connect_variables()
-                for connect_in in self.model.connect.keys():
-                    if connect_in in XY_data.keys():
-                        self.model.update_connect_variables(connect_in, value=XY_data[connect_in], batch=batch_size)
-                    else:
-                        self.model.update_connect_variables(connect_in, batch=batch_size)
+            ## Update State variables if necessary
+            self.model.reset_states(XY_data,only = False)
+            self.model.reset_connect_variables(connect, XY_data)
+            # for state in self.model_def['States'].keys():
+            #     if state in XY_data.keys(): ## the state variable must be initialized with the dataset values
+            #         #self.model.update_state(state, XY_data[state], batch_size)
+            #         self.model.clear_state(batch_size, state = state, value = XY_data[state])
+            #     #else:
+            #         #self.model.update_state(state, batch=batch_size)
+
+            # if self.model.connect:
+            #     self.model.reset_connect_variables(connect,XY_data)
+                # self.model.clear_connect_variables()
+                # for connect_in in self.model.connect.keys():
+                #     if connect_in in XY_data.keys():
+                #         self.model.update_connect_variables(connect_in, value=XY_data[connect_in], batch=batch_size)
+                #     else:
+                #         self.model.update_connect_variables(connect_in, batch=batch_size)
 
             _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
@@ -970,13 +983,13 @@ class Neu4mes:
             for ind, key in enumerate(self.minimize_dict.keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
-        self.resultAnalysis(train_dataset, XY_train)
+        self.resultAnalysis(train_dataset, XY_train, connect, closed_loop)
         self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
-            self.resultAnalysis(validation_dataset, XY_val)
+            self.resultAnalysis(validation_dataset, XY_val, connect, closed_loop)
             self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
-            self.resultAnalysis(test_dataset, XY_test)
+            self.resultAnalysis(test_dataset, XY_test, connect, closed_loop)
             self.visualizer.showResult(test_dataset)
 
 
@@ -992,12 +1005,13 @@ class Neu4mes:
         ## Sample Shuffle
         initial_value = random.randint(0, step - 1) if shuffle else 0
         ## Initialize the batch_size
-        #self.model.batch_size = batch_size
+        #self.model.clear_state(batch_size)
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
         ## Initialize connect inputs
-        if connect:
-            self.model.connect = connect
+        # if connect:
+        #     self.model.connect = connect
+        self.model.reset_connect_variables(connect, values = None)
         ## +2 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 2 = 1 # one epochs
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             if train:
@@ -1008,22 +1022,21 @@ class Neu4mes:
             ## collect the horizon labels
             XY_horizon = {key: val[idx:idx+batch_size+prediction_samples] for key, val in data.items()}
             horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
+
+            ## Reset state variables with zeros or using inputs
+            self.model.reset_states(XY, only = False)
+            self.model.reset_connect_variables(connect, XY)
+
             for horizon_idx in range(prediction_samples + 1):
                 ## Model Forward
-                if connect and horizon_idx==0:
-                    self.model.clear_connect_variables()
-                    for connect_in in connect.keys():
-                        if connect_in in XY.keys():
-                            self.model.update_connect_variables(connect_in, value=XY[connect_in], batch=batch_size)
-                        else:
-                            self.model.update_connect_variables(connect_in, batch=batch_size)
-
-                ## Update State variables if necessary
-                for state in self.model_def['States'].keys():
-                    if state in XY.keys(): ## the state variable must be initialized with the dataset values
-                        self.model.update_state(state, XY[state], batch_size)
-                    else:
-                        self.model.update_state(state, batch=batch_size)
+                # if connect and horizon_idx==0:
+                #     self.model.reset_connect_variables(connect,XY)
+                    # self.model.clear_connect_variables()
+                    # for connect_in in connect.keys():
+                    #     if connect_in in XY.keys():
+                    #         self.model.update_connect_variables(connect_in, value=XY[connect_in], batch=batch_size)
+                    #     else:
+                    #         self.model.update_connect_variables(connect_in, batch=batch_size)
 
                 out, minimize_out = self.model(XY)  ## Forward pass
                 ## Loss Calculation
@@ -1061,8 +1074,8 @@ class Neu4mes:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
 
-            self.model.clear_connect_variables()
-            self.clear_state()
+            #self.model.clear_connect_variables()
+            #self.model.clear_state()
         ## return the losses
         return aux_losses
     
@@ -1094,12 +1107,44 @@ class Neu4mes:
                 self.optimizer.step()
         return aux_losses
 
-    def clear_state(self, state=None):
-        check(self.neuralized, ValueError, "The network is not neuralized yet.")
-        if self.model_def['States']:
-            self.model.clear_state(state=state)
-        else:
-            self.visualizer.warning('The model does not have state variables!')
+    def resetStates(self, values = None, only = True):
+        self.model.reset_states(values, only)
+
+        ## RECURRENT TRAIN
+        # self.resetStates(XY, only=False)
+        #
+        # for horizon_idx in range(prediction_samples + 1):
+        #     ## Model Forward
+        #     if connect and horizon_idx == 0:
+        #         self.model.reset_connect_variables(connect, XY)
+
+        ## Results analysis
+        # self.resetStates(XY_data, only=False)
+        #
+        # if self.model.connect:
+        #     self.model.reset_connect_variables(connect, XY_data)
+
+        ## Model Predict
+        # if connect and (i == 0 or i % (prediction_samples + 1) == 0):
+        #     self.model.reset_connect_variables(connect, X)
+        #
+        # self.resetStates(X)
+
+        # if batch_size is None:
+        #     batch_size = values[list(values)[0]].shape[0]
+        #     #check(values is not None, ValueError, "XY must be None if the batch_size is not None.")
+        # for state in self.model_def['States'].keys():
+        #     if state in values.keys():  ## the state variable must be initialized with the dataset values
+        #         self.model.clear_state(batch_size, state=state, value=values[state])
+        #     else:
+        #         self.model.clear_state(batch_size, state=state)
+
+    # def clear_state(self, state=None):
+    #     check(self.neuralized, ValueError, "The network is not neuralized yet.")
+    #     if self.model_def['States']:
+    #         self.model.clear_state(state=state)
+    #     else:
+    #         self.visualizer.warning('The model does not have state variables!')
 
     def save_model(self, path):
         torch.save(self.model.state_dict(), path)

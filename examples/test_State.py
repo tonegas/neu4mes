@@ -76,7 +76,7 @@ elif example == 2:
     mass_spring_damper.trainModel(splits=[70,20,10], prediction_samples=2, shuffle_data=False, training_params=params)
 
     print('finale state: ', mass_spring_damper.model.states)
-    mass_spring_damper.clear_state()
+    mass_spring_damper.resetStates()
     print('state clear: ', mass_spring_damper.model.states)
 
 elif example == 3:

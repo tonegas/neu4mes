@@ -652,7 +652,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual({'out1': [0.0], 'out2': [1.0]}, test())
         self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1.0],'in2': [1.0]}))
         self.assertEqual({'out1': [1.0], 'out2': [3.0]}, test())
-        test.clear_state()
+        test.resetStates()
         self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2':  [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}, test(prediction_samples=5))
 
         dataset = {'in1': [1], 'in2': [1.0], 'out1': [3], 'out2': [3]}
