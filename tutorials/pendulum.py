@@ -29,7 +29,7 @@ out = Output('omega_pred', gravity_force+friction+torque)
 pendolum.addMinimize('omega error', omega.next(), out)
 pendolum.addModel('pendulum',out)
 pendolum.neuralizeModel(0.05)
-pendolum.exportJSON()
+#pendolum.exportJSON()
 
 # Data load
 data_struct = ['time','theta','omega','cos(theta)','sin(theta)','torque']
@@ -47,9 +47,9 @@ result = pendolum(sample, sampled=True)
 print('Predicted omega: ', result['omega_pred'])
 print('True omega: ', sample['omega'])
 
-file_name, _, _ = pendolum.exportTracer()
-pendolum.importTracer(file_path=file_name)
-result = pendolum(sample, sampled=True)
+#file_name, _, _ = pendolum.exportTracer()
+#pendolum.importTracer(file_path=file_name)
+#result = pendolum(sample, sampled=True)
 
 print('Predicted omega: ', result['omega_pred'])
 print('True omega: ', sample['omega'])
