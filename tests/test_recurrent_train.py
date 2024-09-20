@@ -22,16 +22,16 @@ dataset = {'in1': data_x, 'out': linear_fun(data_x,data_a,data_b)}
 data_folder = '/tests/data/'
 
 class Neu4mesTrainingTest(unittest.TestCase):
-    def testAlmostEqual(self, data1, data2, precision=3):
+    def assertAlmostEqual(self, data1, data2, precision=3):
         if type(data1) == type(data2) == list:
             assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2,dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'
             for pred, label in zip(data1, data2):
-                self.testAlmostEqual(pred, label, precision=precision)
+                self.assertAlmostEqual(pred, label, precision=precision)
         elif type(data1) == type(data2) == dict:
                 for (pred_key,pred_value), (label_key,label_value) in zip(data1.items(), data2.items()):
-                    self.testAlmostEqual(pred_value, label_value, precision=precision)
+                    self.assertAlmostEqual(pred_value, label_value, precision=precision)
         else:
-            self.assertAlmostEqual(data1, data2, places=precision)
+            super().assertAlmostEqual(data1, data2, places=precision)
     def test_training_values_fir_connect_linear(self):
         NeuObj.reset_count()
         input1 = Input('in1')
@@ -579,9 +579,9 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]}, test.internals['inout_1_0']['XY'])
         self.assertDictEqual({'in1': [[[6.0, 5.0], [4.0, 5.0]]], 'target': [[[1.0]]]}, test.internals['inout_1_1']['XY'])
         self.assertDictEqual({'in1': [[[4.0, 5.0], [0.0, 0.0]]], 'target': [[[0.0]]]},test.internals['inout_1_2']['XY'])
-        self.testAlmostEqual({'inout': [[[0.0], [0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_0']['state'])
-        self.testAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_1']['state'])
-        self.testAlmostEqual({'inout': [[[0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]],  [W[0][0][0]*0.0+W[0][1][0]*0.0+b[0][0]]]]}, test.internals['inout_1_2']['state'])
+        self.assertAlmostEqual({'inout': [[[0.0], [0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_0']['state'])
+        self.assertAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_1']['state'])
+        self.assertAlmostEqual({'inout': [[[0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]],  [W[0][0][0]*0.0+W[0][1][0]*0.0+b[0][0]]]]}, test.internals['inout_1_2']['state'])
         with self.assertRaises(KeyError):
             test.internals['inout_2_0']
 
@@ -780,14 +780,14 @@ class Neu4mesTrainingTest(unittest.TestCase):
                              test.internals['inout_1_1']['XY'])
         self.assertDictEqual({'in1': [[[4.0, 5.0], [0.0, 0.0]]], 'target': [[[0.0]]]},
                              test.internals['inout_1_2']['XY'])
-        self.testAlmostEqual({'inout': [[[0.0], [0.0], [0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+        self.assertAlmostEqual({'inout': [[[0.0], [0.0], [0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
                                          [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
                              test.internals['inout_1_0']['state'])
-        self.testAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+        self.assertAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
                                          [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
                                          [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
                              test.internals['inout_1_1']['state'])
-        self.testAlmostEqual({'inout': [
+        self.assertAlmostEqual({'inout': [
             [[0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
              [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]]]]},
                              test.internals['inout_1_2']['state'])
