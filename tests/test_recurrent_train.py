@@ -22,6 +22,16 @@ dataset = {'in1': data_x, 'out': linear_fun(data_x,data_a,data_b)}
 data_folder = '/tests/data/'
 
 class Neu4mesTrainingTest(unittest.TestCase):
+    def testAlmostEqual(self, data1, data2, precision=3):
+        if type(data1) == type(data2) == list:
+            assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2,dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'
+            for pred, label in zip(data1, data2):
+                self.testAlmostEqual(pred, label, precision=precision)
+        elif type(data1) == type(data2) == dict:
+                for (pred_key,pred_value), (label_key,label_value) in zip(data1.items(), data2.items()):
+                    self.testAlmostEqual(pred_value, label_value, precision=precision)
+        else:
+            self.assertAlmostEqual(data1, data2, places=precision)
     def test_training_values_fir_connect_linear(self):
         NeuObj.reset_count()
         input1 = Input('in1')
@@ -277,14 +287,14 @@ class Neu4mesTrainingTest(unittest.TestCase):
         b = Parameter('b', values=[[1]])
         output2 = Output('out2', Linear(W=W,b=b)(inout.last()))
 
-        test = Neu4mes(visualizer=None, seed=42)
+        test = Neu4mes(visualizer=None,seed=42)
         test.addModel('model', [output1,output2])
         test.addMinimize('error', target.last(), output2)
         test.addConnect(output1, inout)
         test.neuralizeModel()
         self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1]}))
 
-        dataset = {'in1': [0,2,7,1], 'out1': [3,4,5,1]}
+        dataset = {'in1': [0,2,7,1], 'out1': [3,4,5,1], 'inout': [1,1,2,2]}
         test.loadData(name='dataset2', source=dataset)
 
         self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
@@ -307,14 +317,25 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
 
-        # test.neuralizeModel(clear_model=True)
-        # self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        # self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        # self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        # test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=2, train_batch_size=2, prediction_samples=2)
-        # self.assertListEqual([[[-9.0]]], test.model.all_parameters['W'].data.numpy().tolist())
-        # self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
-        # self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
+        dataset = {'in1': [0, 2, 7, 1, 5, 0, 2], 'out1': [1, 4, 8, 2, 6, 1, 1]}
+        test.loadData(name='dataset3', source=dataset)
+
+        test.neuralizeModel(clear_model=True)
+        self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
+        test.trainModel(train_dataset='dataset3', optimizer='SGD', shuffle_data=False, lr=1, num_of_epochs=1, train_batch_size=2, prediction_samples=3)
+        self.assertListEqual([[[-162.75]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[-15.75]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-162.75]], test.model.all_parameters['a'].data.numpy().tolist())
+
+        # Because is a connect and the window is 1 the initialization of the state is overwritten by the out1
+        test.loadData(name='dataset4', source=dataset|{'inout': [0,0,0,0,0,0,0]})
+        test.neuralizeModel(clear_model=True)
+        test.trainModel(train_dataset='dataset4', optimizer='SGD', shuffle_data=False, lr=1, num_of_epochs=1, train_batch_size=2, prediction_samples=3)
+        self.assertListEqual([[[-162.75]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[-15.75]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-162.75]], test.model.all_parameters['a'].data.numpy().tolist())
 
     def test_training_values_fir_train_connect_linear_more_prediction(self):
         NeuObj.reset_count()
@@ -357,28 +378,40 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
 
-        # test.neuralizeModel(clear_model=True)
-        # self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        # self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        # self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        # test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=2, train_batch_size=2, prediction_samples=2, connect={'inout': 'out1'})
-        # self.assertListEqual([[[-9.0]]], test.model.all_parameters['W'].data.numpy().tolist())
-        # self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
-        # self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
-
+        # Because is a connect and the window is 1 the initialization of the state is overwritten by the out1
         dataset = {'in1': [0,2,7,1], 'out1': [3,4,5,1], 'inout':[1,1,2,2]}
         test.loadData(name='dataset3', source=dataset)
         test.neuralizeModel(clear_model=True)
-        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=3, connect={'inout': 'out1'})
+        test.trainModel(train_dataset='dataset3', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=3, connect={'inout': 'out1'})
         self.assertListEqual([[[-9.0]]], test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[0.5]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[-9.0]], test.model.all_parameters['a'].data.numpy().tolist())
-
         test.neuralizeModel(clear_model=True)
         test.trainModel(train_dataset='dataset3', optimizer='SGD', shuffle_data=False, lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=3)
         self.assertListEqual([[[-273.0]]], test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[-137.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
+
+        dataset = {'in1': [0, 2, 7, 1, 5, 0, 2], 'out1': [1, 4, 8, 2, 6, 1, 1]}
+        test.loadData(name='dataset4', source=dataset)
+        test.neuralizeModel(clear_model=True)
+        self.assertListEqual([[[1.0]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
+        test.trainModel(train_dataset='dataset4', optimizer='SGD', shuffle_data=False, lr=1, num_of_epochs=1,
+                        train_batch_size=2, prediction_samples=3, connect={'inout': 'out1'})
+        self.assertListEqual([[[-162.75]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[-15.75]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-162.75]], test.model.all_parameters['a'].data.numpy().tolist())
+
+        # Because is a connect and the window is 1 the initialization of the state is overwritten by the out1
+        test.loadData(name='dataset5', source=dataset | {'inout': [0, 0, 0, 0, 0, 0, 0]})
+        test.neuralizeModel(clear_model=True)
+        test.trainModel(train_dataset='dataset5', optimizer='SGD', shuffle_data=False, lr=1, num_of_epochs=1,
+                        train_batch_size=2, prediction_samples=3, connect={'inout': 'out1'})
+        self.assertListEqual([[[-162.75]]], test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertListEqual([[-15.75]], test.model.all_parameters['b'].data.numpy().tolist())
+        self.assertListEqual([[-162.75]], test.model.all_parameters['a'].data.numpy().tolist())
 
     def test_training_values_fir_connect_linear_more_window(self):
         NeuObj.reset_count()
@@ -397,7 +430,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         target = Input('target')
 
-        test = Neu4mes(visualizer=None, seed=42)
+        test = Neu4mes(visualizer=None, seed=42, log_internal=True)
         test.addModel('model', [output1, output2, output3, output4])
         test.addConnect(output1, inout)
         test.addMinimize('error2', target.last(), output2)
@@ -490,20 +523,75 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual([[1], [2], [3], [-7682], [-7457.5]], test.model.all_parameters['ab'].data.numpy().tolist())
 
         test.neuralizeModel(clear_model=True)
-        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=3)
+        test.internals = {}
+        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, shuffle_data=False, num_of_epochs=1, train_batch_size=1, prediction_samples=3)
+        self.assertDictEqual({'in1': [[[1.0, 3.0], [4.0, 2.0]]], 'target': [[[3.0]]]}, test.internals['inout_0_0']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]}, test.internals['inout_0_1']['XY'])
+        self.assertDictEqual({'in1': [[[6.0, 5.0], [4.0, 5.0]]], 'target': [[[1.0]]]}, test.internals['inout_0_2']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 5.0], [0.0, 0.0]]], 'target': [[[0.0]]]}, test.internals['inout_0_3']['XY'])
+        self.assertDictEqual({'out1': [[[-15.0], [-13.0]]], 'out2': [[[-125.0]]], 'out3': [[[-125.0]]], 'out4': [[[-125.0]]]}, test.internals['inout_0_0']['out'])
+        self.assertDictEqual({'out1': [[[-13.0], [-30.0]]], 'out2': [[[-202.0]]], 'out3': [[[-247.0]]], 'out4': [[[-202.0]]]}, test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[4*-1+2*-5+1.0], [6*-1+5*-5+1.0]]],
+                                  'out2': [[[(4*-1+2*-5+1.0)*4+(6*-1+5*-5+1.0)*5]]],
+                                  'out3': [[[(-15)*3.0+(4*-1+2*-5+1.0)*4+(6*-1+5*-5+1.0)*5]]],
+                                  'out4': [[[(4*-1+2*-5+1.0)*4+(6*-1+5*-5+1.0)*5]]]}, test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[6*-1+5*-5+1.0], [4*-1+5*-5+1.0]]],
+                                   'out2': [[[(6*-1+5*-5+1.0)*4.0+(4*-1+5*-5+1.0)*5.0]]],
+                                   'out3': [[[(-15)*2.0+(4*-1+2*-5+1.0)*3.0+(6*-1+5*-5+1.0)*4.0+(4*-1+5*-5+1.0)*5.0]]],
+                                   'out4': [[[(6*-1+5*-5+1.0)*4.0+(4*-1+5*-5+1.0)*5.0]]]}, test.internals['inout_0_2']['out'])
+        self.assertDictEqual({'out1': [[[4*-1+5*-5+1.0], [0*-1+0*-5+1.0]]],
+                                  'out2': [[[(4*-1+5*-5+1.0)*4.0+(0*-1+0*-5+1.0)*5.0]]],
+                                  'out3': [[[(-15)*1.0+(4*-1+2*-5+1.0)*2.0+(6*-1+5*-5+1.0)*3.0+(4*-1+5*-5+1.0)*4.0+(0*-1+0*-5+1.0)*5.0]]],
+                                  'out4': [[[(4*-1+5*-5+1.0)*4.0+(0*-1+0*-5+1.0)*5.0]]]}, test.internals['inout_0_3']['out'])
+        self.assertDictEqual({'inout': [[[0.0], [0.0], [0.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['state'])
+        self.assertDictEqual({'inout': [[[0.0], [0.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['state'])
+        self.assertDictEqual({'inout': [[[0.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['state'])
+        self.assertDictEqual({'inout': [[[-15.0], [-13.0], [-30.0], [-28.0], [1.0]]]}, test.internals['inout_0_3']['state'])
         self.assertListEqual([[[22273.5], [20993.0]]],test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[6154.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[4], [5]], test.model.all_parameters['a'].data.numpy().tolist())
         self.assertListEqual([[-1784.0], [-4020.0], [-7564.5], [-10843.5], [-9033.0]], test.model.all_parameters['ab'].data.numpy().tolist())
+        with self.assertRaises(KeyError):
+            test.internals['inout_1_0']
 
-        # test.neuralizeModel(clear_model=True)
-        # test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=0.01, num_of_epochs=2, train_batch_size=2,
-        #                 prediction_samples=2)
-        # self.assertListEqual([[[22273.5], [20993.0]]], test.model.all_parameters['W'].data.numpy().tolist())
-        # self.assertListEqual([[6154.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        # self.assertListEqual([[4], [5]], test.model.all_parameters['a'].data.numpy().tolist())
-        # self.assertListEqual([[-1784.0], [-4020.0], [-7564.5], [-10843.5], [-9033.0]],
-        #                      test.model.all_parameters['ab'].data.numpy().tolist())
+        test.neuralizeModel(clear_model=True)
+        test.internals = {}
+        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=0.01, shuffle_data=False,  num_of_epochs=1, train_batch_size=1,
+                         prediction_samples=2)
+        self.assertDictEqual({'in1': [[[1.0, 3.0], [4.0, 2.0]]], 'target': [[[3.0]]]}, test.internals['inout_0_0']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]}, test.internals['inout_0_1']['XY'])
+        self.assertDictEqual({'in1': [[[6.0, 5.0], [4.0, 5.0]]], 'target': [[[1.0]]]}, test.internals['inout_0_2']['XY'])
+        self.assertDictEqual({'out1': [[[-15.0], [-13.0]]], 'out2': [[[-125.0]]], 'out3': [[[-125.0]]], 'out4': [[[-125.0]]]}, test.internals['inout_0_0']['out'])
+        self.assertDictEqual({'out1': [[[-13.0], [-30.0]]], 'out2': [[[-202.0]]], 'out3': [[[-247.0]]], 'out4': [[[-202.0]]]}, test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[4*-1+2*-5+1.0], [6*-1+5*-5+1.0]]],
+                              'out2': [[[(4*-1+2*-5+1.0)*4+(6*-1+5*-5+1.0)*5]]],
+                              'out3': [[[(-15)*3.0+(4*-1+2*-5+1.0)*4+(6*-1+5*-5+1.0)*5]]],
+                              'out4': [[[(4*-1+2*-5+1.0)*4+(6*-1+5*-5+1.0)*5]]]}, test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[6*-1+5*-5+1.0], [4*-1+5*-5+1.0]]],
+                                   'out2': [[[(6*-1+5*-5+1.0)*4.0+(4*-1+5*-5+1.0)*5.0]]],
+                                   'out3': [[[(-15)*2.0+(4*-1+2*-5+1.0)*3.0+(6*-1+5*-5+1.0)*4.0+(4*-1+5*-5+1.0)*5.0]]],
+                                   'out4': [[[(6*-1+5*-5+1.0)*4.0+(4*-1+5*-5+1.0)*5.0]]]}, test.internals['inout_0_2']['out'])
+        self.assertDictEqual({'inout': [[[0.0], [0.0], [0.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['state'])
+        self.assertDictEqual({'inout': [[[0.0], [0.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['state'])
+        self.assertDictEqual({'inout': [[[0.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['state'])
+        W = test.internals['inout_1_0']['param']['W']
+        b = test.internals['inout_1_0']['param']['b']
+        self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]}, test.internals['inout_1_0']['XY'])
+        self.assertDictEqual({'in1': [[[6.0, 5.0], [4.0, 5.0]]], 'target': [[[1.0]]]}, test.internals['inout_1_1']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 5.0], [0.0, 0.0]]], 'target': [[[0.0]]]},test.internals['inout_1_2']['XY'])
+        self.testAlmostEqual({'inout': [[[0.0], [0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_0']['state'])
+        self.testAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_1']['state'])
+        self.testAlmostEqual({'inout': [[[0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]],  [W[0][0][0]*0.0+W[0][1][0]*0.0+b[0][0]]]]}, test.internals['inout_1_2']['state'])
+        with self.assertRaises(KeyError):
+            test.internals['inout_2_0']
+
+        test.neuralizeModel(clear_model=True)
+        test.internals = {}
+        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=0.01, shuffle_data=False, num_of_epochs=1, train_batch_size=2, prediction_samples=1)
+        self.assertDictEqual({'in1': [[[1.0, 3.0], [4.0, 2.0]], [[4.0, 2.0], [6.0, 5.0]]], 'target': [[[3.0]],[[0.0]]]}, test.internals['inout_0_0']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]], [[6.0, 5.0], [4.0, 5.0]]], 'target': [[[0.0]], [[1.0]]]}, test.internals['inout_0_1']['XY'])
+        with self.assertRaises(KeyError):
+            test.internals['inout_1_0']
 
     def test_training_values_fir_connect_train_linear_more_window(self):
         NeuObj.reset_count()
@@ -522,7 +610,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         target = Input('target')
 
-        test = Neu4mes(visualizer=None, seed=42)
+        test = Neu4mes(visualizer=None, seed=42, log_internal=True)
         test.addModel('model', [output1, output2, output3, output4])
         test.addMinimize('error2', target.last(), output2)
         #test.addMinimize('error3', target.last(), output3)
@@ -617,17 +705,107 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         test.neuralizeModel(clear_model=True)
         test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=1, num_of_epochs=1, train_batch_size=1, prediction_samples=3, connect={'inout':'out1'})
-        self.assertListEqual([[[22273.5], [20993.0]]],test.model.all_parameters['W'].data.numpy().tolist())
+        self.assertDictEqual({'in1': [[[1.0, 3.0], [4.0, 2.0]]], 'target': [[[3.0]]]},
+                             test.internals['inout_0_0']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]},
+                             test.internals['inout_0_1']['XY'])
+        self.assertDictEqual({'in1': [[[6.0, 5.0], [4.0, 5.0]]], 'target': [[[1.0]]]},
+                             test.internals['inout_0_2']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 5.0], [0.0, 0.0]]], 'target': [[[0.0]]]},
+                             test.internals['inout_0_3']['XY'])
+        self.assertDictEqual(
+            {'out1': [[[-15.0], [-13.0]]], 'out2': [[[-125.0]]], 'out3': [[[-125.0]]], 'out4': [[[-125.0]]]},
+            test.internals['inout_0_0']['out'])
+        self.assertDictEqual(
+            {'out1': [[[-13.0], [-30.0]]], 'out2': [[[-202.0]]], 'out3': [[[-247.0]]], 'out4': [[[-202.0]]]},
+            test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[4 * -1 + 2 * -5 + 1.0], [6 * -1 + 5 * -5 + 1.0]]],
+                              'out2': [[[(4 * -1 + 2 * -5 + 1.0) * 4 + (6 * -1 + 5 * -5 + 1.0) * 5]]],
+                              'out3': [[[(-15) * 3.0 + (4 * -1 + 2 * -5 + 1.0) * 4 + (6 * -1 + 5 * -5 + 1.0) * 5]]],
+                              'out4': [[[(4 * -1 + 2 * -5 + 1.0) * 4 + (6 * -1 + 5 * -5 + 1.0) * 5]]]},
+                             test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[6 * -1 + 5 * -5 + 1.0], [4 * -1 + 5 * -5 + 1.0]]],
+                              'out2': [[[(6 * -1 + 5 * -5 + 1.0) * 4.0 + (4 * -1 + 5 * -5 + 1.0) * 5.0]]],
+                              'out3': [[[(-15) * 2.0 + (4 * -1 + 2 * -5 + 1.0) * 3.0 + (6 * -1 + 5 * -5 + 1.0) * 4.0 + (
+                                          4 * -1 + 5 * -5 + 1.0) * 5.0]]],
+                              'out4': [[[(6 * -1 + 5 * -5 + 1.0) * 4.0 + (4 * -1 + 5 * -5 + 1.0) * 5.0]]]},
+                             test.internals['inout_0_2']['out'])
+        self.assertDictEqual({'out1': [[[4 * -1 + 5 * -5 + 1.0], [0 * -1 + 0 * -5 + 1.0]]],
+                              'out2': [[[(4 * -1 + 5 * -5 + 1.0) * 4.0 + (0 * -1 + 0 * -5 + 1.0) * 5.0]]],
+                              'out3': [[[(-15) * 1.0 + (4 * -1 + 2 * -5 + 1.0) * 2.0 + (6 * -1 + 5 * -5 + 1.0) * 3.0 + (
+                                          4 * -1 + 5 * -5 + 1.0) * 4.0 + (0 * -1 + 0 * -5 + 1.0) * 5.0]]],
+                              'out4': [[[(4 * -1 + 5 * -5 + 1.0) * 4.0 + (0 * -1 + 0 * -5 + 1.0) * 5.0]]]},
+                             test.internals['inout_0_3']['out'])
+        self.assertListEqual([[[22273.5], [20993.0]]], test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[6154.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[4], [5]], test.model.all_parameters['a'].data.numpy().tolist())
-        self.assertListEqual([[-1784.0], [-4020.0], [-7564.5], [-10843.5], [-9033.0]], test.model.all_parameters['ab'].data.numpy().tolist())
+        self.assertListEqual([[-1784.0], [-4020.0], [-7564.5], [-10843.5], [-9033.0]],
+                             test.model.all_parameters['ab'].data.numpy().tolist())
+        with self.assertRaises(KeyError):
+            test.internals['inout_1_0']
 
-        # test.neuralizeModel(clear_model=True)
-        # test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=0.01, num_of_epochs=2, train_batch_size=2, prediction_samples=2, connect={'inout':'out1'})
-        # self.assertListEqual([[[22273.5], [20993.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        # self.assertListEqual([[6154.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        # self.assertListEqual([[4], [5]], test.model.all_parameters['a'].data.numpy().tolist())
-        # self.assertListEqual([[-1784.0], [-4020.0], [-7564.5], [-10843.5], [-9033.0]], test.model.all_parameters['ab'].data.numpy().tolist())
+        test.neuralizeModel(clear_model=True)
+        test.internals = {}
+        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=0.01, shuffle_data=False, num_of_epochs=1,
+                        train_batch_size=1,
+                        prediction_samples=2, connect={'inout':'out1'})
+        self.assertDictEqual({'in1': [[[1.0, 3.0], [4.0, 2.0]]], 'target': [[[3.0]]]},
+                             test.internals['inout_0_0']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]},
+                             test.internals['inout_0_1']['XY'])
+        self.assertDictEqual({'in1': [[[6.0, 5.0], [4.0, 5.0]]], 'target': [[[1.0]]]},
+                             test.internals['inout_0_2']['XY'])
+        self.assertDictEqual(
+            {'out1': [[[-15.0], [-13.0]]], 'out2': [[[-125.0]]], 'out3': [[[-125.0]]], 'out4': [[[-125.0]]]},
+            test.internals['inout_0_0']['out'])
+        self.assertDictEqual(
+            {'out1': [[[-13.0], [-30.0]]], 'out2': [[[-202.0]]], 'out3': [[[-247.0]]], 'out4': [[[-202.0]]]},
+            test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[4 * -1 + 2 * -5 + 1.0], [6 * -1 + 5 * -5 + 1.0]]],
+                              'out2': [[[(4 * -1 + 2 * -5 + 1.0) * 4 + (6 * -1 + 5 * -5 + 1.0) * 5]]],
+                              'out3': [[[(-15) * 3.0 + (4 * -1 + 2 * -5 + 1.0) * 4 + (6 * -1 + 5 * -5 + 1.0) * 5]]],
+                              'out4': [[[(4 * -1 + 2 * -5 + 1.0) * 4 + (6 * -1 + 5 * -5 + 1.0) * 5]]]},
+                             test.internals['inout_0_1']['out'])
+        self.assertDictEqual({'out1': [[[6 * -1 + 5 * -5 + 1.0], [4 * -1 + 5 * -5 + 1.0]]],
+                              'out2': [[[(6 * -1 + 5 * -5 + 1.0) * 4.0 + (4 * -1 + 5 * -5 + 1.0) * 5.0]]],
+                              'out3': [[[(-15) * 2.0 + (4 * -1 + 2 * -5 + 1.0) * 3.0 + (6 * -1 + 5 * -5 + 1.0) * 4.0 + (
+                                          4 * -1 + 5 * -5 + 1.0) * 5.0]]],
+                              'out4': [[[(6 * -1 + 5 * -5 + 1.0) * 4.0 + (4 * -1 + 5 * -5 + 1.0) * 5.0]]]},
+                             test.internals['inout_0_2']['out'])
+        W = test.internals['inout_1_0']['param']['W']
+        b = test.internals['inout_1_0']['param']['b']
+        self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]},
+                             test.internals['inout_1_0']['XY'])
+        self.assertDictEqual({'in1': [[[6.0, 5.0], [4.0, 5.0]]], 'target': [[[1.0]]]},
+                             test.internals['inout_1_1']['XY'])
+        self.assertDictEqual({'in1': [[[4.0, 5.0], [0.0, 0.0]]], 'target': [[[0.0]]]},
+                             test.internals['inout_1_2']['XY'])
+        self.testAlmostEqual({'inout': [[[0.0], [0.0], [0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+                                         [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
+                             test.internals['inout_1_0']['state'])
+        self.testAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+                                         [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+                                         [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
+                             test.internals['inout_1_1']['state'])
+        self.testAlmostEqual({'inout': [
+            [[0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+             [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]]]]},
+                             test.internals['inout_1_2']['state'])
+        with self.assertRaises(KeyError):
+            test.internals['inout_2_0']
+
+        test.neuralizeModel(clear_model=True)
+        test.internals = {}
+        test.trainModel(train_dataset='dataset2', optimizer='SGD', lr=0.01, shuffle_data=False, num_of_epochs=1,
+                        train_batch_size=2, prediction_samples=1, connect={'inout':'out1'})
+        self.assertDictEqual(
+            {'in1': [[[1.0, 3.0], [4.0, 2.0]], [[4.0, 2.0], [6.0, 5.0]]], 'target': [[[3.0]], [[0.0]]]},
+            test.internals['inout_0_0']['XY'])
+        self.assertDictEqual(
+            {'in1': [[[4.0, 2.0], [6.0, 5.0]], [[6.0, 5.0], [4.0, 5.0]]], 'target': [[[0.0]], [[1.0]]]},
+            test.internals['inout_0_1']['XY'])
+        with self.assertRaises(KeyError):
+            test.internals['inout_1_0']
 
     def test_training_values_fir_and_liner_closed_loop(self):
         NeuObj.reset_count()

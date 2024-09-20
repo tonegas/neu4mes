@@ -4,7 +4,7 @@ from pprint import pformat
 import subprocess
 import json
 
-from neu4mes.visualizer.visualizer import Visualizer, color, GREEN
+from neu4mes.visualizer.visualizer import Visualizer, color, GREEN, RED
 
 class TextVisualizer(Visualizer):
     def __init__(self, verbose=1):
@@ -37,8 +37,8 @@ class TextVisualizer(Visualizer):
     def showaddMinimize(self,variable_name):
         if self.verbose >= 2:
             self.__title(f" Minimize Error of {variable_name} with {self.n4m.minimize_dict[variable_name]['loss']} ")
-            self.__paramjson(f"Model {self.n4m.minimize_dict[variable_name]['A'][0]}", self.n4m.minimize_dict[variable_name]['A'][1].json)
-            self.__paramjson(f"Model {self.n4m.minimize_dict[variable_name]['B'][0]}", self.n4m.minimize_dict[variable_name]['B'][1].json)
+            self.__paramjson(f"Model {self.n4m.minimize_dict[variable_name]['A'].name}", self.n4m.minimize_dict[variable_name]['A'].json)
+            self.__paramjson(f"Model {self.n4m.minimize_dict[variable_name]['B'].name}", self.n4m.minimize_dict[variable_name]['B'].json)
             self.__line()
 
     def showModelInputWindow(self):
@@ -65,6 +65,26 @@ class TextVisualizer(Visualizer):
             print(color(pformat(self.n4m.model),GREEN))
             self.__line()
 
+    def showWeights(self, batch = None, epoch = None):
+        if self.verbose >= 2:
+            par = self.n4m.run_training_params
+            dim = len(self.n4m.minimize_dict)
+            if epoch is not None:
+                COLOR = GREEN
+                print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|',GREEN), end='')
+                print(color((f'Params').center(20 * (dim + 1) - 1, '-') + '|',GREEN))
+            if batch is not None:
+                COLOR = RED
+                print(color('|' + (f"{batch}").center(10, ' ') + '|', COLOR), end='')
+                print(color((f'Params').center(20 * (dim + 1) - 1, '-') + '|', COLOR))
+
+            for key,param in self.n4m.model.all_parameters.items():
+                print(color('|' + (f"{key}").center(10, ' ') + '|', COLOR), end='')
+                print(color((f'{param.tolist()}').center(20 * (dim + 1) - 1, ' ') + '|', COLOR))
+
+            if epoch is not None:
+                print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
+
     def showDataset(self, name):
         if self.verbose >= 1:
             self.__title(" Neu4mes Model Dataset ")
@@ -76,38 +96,42 @@ class TextVisualizer(Visualizer):
                     self.__param(f"Shape of {key}:", f'{self.n4m.data[name][key].shape}')
             self.__line()
 
-    def showTraining(self, epoch, train_losses, val_losses):
-        eng = lambda val: np.format_float_scientific(val, precision=3)
-        par = self.n4m.run_training_params
-        show_epoch = 1 if par['num_of_epochs'] <= 20 else 10
-        dim = len(self.n4m.minimize_dict)
+    def showStartTraining(self):
         if self.verbose >= 1:
-            if epoch == 0:
-                self.__title(" Neu4mes Training ",12+(len(self.n4m.minimize_dict)+1)*20)
-                print(color('|'+(f'Epoch').center(10,' ')+'|'),end='')
-                for key in self.n4m.minimize_dict.keys():
-                    print(color((f'{key}').center(19, ' ') + '|'), end='')
-                print(color((f'Total').center(19, ' ') + '|'))
+            par = self.n4m.run_training_params
+            dim = len(self.n4m.minimize_dict)
+            self.__title(" Neu4mes Training ", 12+(len(self.n4m.minimize_dict)+1)*20)
+            print(color('|'+(f'Epoch').center(10,' ')+'|'),end='')
+            for key in self.n4m.minimize_dict.keys():
+                print(color((f'{key}').center(19, ' ') + '|'), end='')
+            print(color((f'Total').center(19, ' ') + '|'))
 
-                print(color('|' + (f' ').center(10, ' ') + '|'), end='')
-                for key in self.n4m.minimize_dict.keys():
-                    print(color((f'Loss').center(19, ' ') + '|'),end='')
-                print(color((f'Loss').center(19, ' ') + '|'))
+            print(color('|' + (f' ').center(10, ' ') + '|'), end='')
+            for key in self.n4m.minimize_dict.keys():
+                print(color((f'Loss').center(19, ' ') + '|'),end='')
+            print(color((f'Loss').center(19, ' ') + '|'))
 
-                print(color('|' + (f' ').center(10, ' ') + '|'), end='')
-                for key in self.n4m.minimize_dict.keys():
-                    if val_losses:
-                        print(color((f'train').center(9, ' ') + '|'),end='')
-                        print(color((f'val').center(9, ' ') + '|'),end='')
-                    else:
-                        print(color((f'train').center(19, ' ') + '|'), end='')
-                if val_losses:
-                    print(color((f'train').center(9, ' ') + '|'), end='')
-                    print(color((f'val').center(9, ' ') + '|'))
+            print(color('|' + (f' ').center(10, ' ') + '|'), end='')
+            for key in self.n4m.minimize_dict.keys():
+                if par['n_samples_val']:
+                    print(color((f'train').center(9, ' ') + '|'),end='')
+                    print(color((f'val').center(9, ' ') + '|'),end='')
                 else:
-                    print(color((f'train').center(19, ' ') + '|'))
+                    print(color((f'train').center(19, ' ') + '|'), end='')
+            if par['n_samples_val']:
+                print(color((f'train').center(9, ' ') + '|'), end='')
+                print(color((f'val').center(9, ' ') + '|'))
+            else:
+                print(color((f'train').center(19, ' ') + '|'))
 
-                print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
+            print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
+
+    def showTraining(self, epoch, train_losses, val_losses):
+        if self.verbose >= 1:
+            eng = lambda val: np.format_float_scientific(val, precision=3)
+            par = self.n4m.run_training_params
+            show_epoch = 1 if par['num_of_epochs'] <= 20 else 10
+            dim = len(self.n4m.minimize_dict)
             if epoch < par['num_of_epochs']:
                 print('', end='\r')
                 print('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|', end='')

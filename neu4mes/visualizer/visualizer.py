@@ -39,7 +39,15 @@ class Visualizer():
     def showBuiltModel(self):
         pass
 
+
+    def showWeights(self, batch = None, epoch = None):
+        pass
+
+
     def showDataset(self, name):
+        pass
+
+    def showStartTraining(self):
         pass
 
     def showTraining(self, epoch, train_losses, val_losses):

@@ -15,7 +15,7 @@ from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.relation import Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check, argmax_max, argmin_min, merge
+from neu4mes.utilis import check, argmax_max, argmin_min, merge, tensor_to_list
 from neu4mes.export import plot_fuzzify, generate_training_report, model_to_python, model_to_onnx, model_to_python_onnx
 from neu4mes.optimizer import Optimizer, SGD, Adam
 
@@ -26,7 +26,7 @@ log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 class Neu4mes:
     name = None
-    def __init__(self, visualizer = 'Standard', seed=None, workspace=None):
+    def __init__(self, visualizer = 'Standard', seed = None, workspace = None, log_internal =  False):
 
         # Visualizer
         if visualizer == 'Standard':
@@ -42,6 +42,11 @@ class Neu4mes:
             torch.manual_seed(seed=seed) ## set the pytorch seed
             random.seed(seed) ## set the random module seed
             np.random.seed(seed) ## set the numpy seed
+
+        # Save internal
+        self.log_internal = log_internal
+        if self.log_internal == True:
+            self.internals = {}
 
         # Inizialize the model definition
         self.model_dict = {}
@@ -100,7 +105,7 @@ class Neu4mes:
             os.makedirs(self.folder_path, exist_ok=True)
 
 
-    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = None):
+    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = None, num_of_samples = None, align_input = False):
         inputs = copy.deepcopy(inputs)
         closed_loop = copy.deepcopy(closed_loop)
         connect = copy.deepcopy(connect)
@@ -188,7 +193,7 @@ class Neu4mes:
             result_dict[key] = []
 
         ## Initialize the state variables
-        # TODO include this code maybe
+        # TODO include this code maybe NO it is wrong
         # if prediction_samples is not None:
         #     self.model.reset_states(only=False)
         self.model.reset_connect_variables(connect, only = False)
@@ -896,13 +901,13 @@ class Neu4mes:
         check(set(keys).issubset(set(XY_train.keys())), KeyError, f"Not all the mandatory keys {keys} are present in the training dataset {set(XY_train.keys())}.")
 
         # Show the training params
-        self.visualizer.showTrainParams()
         check((n_samples_train - train_batch_size - prediction_samples + 1) > 0, ValueError, f"The number of available sample are (n_samples_train - train_batch_size - prediction_samples + 1) = {(n_samples_train - train_batch_size - prediction_samples + 1)}.")
-
+        self.visualizer.showTrainParams()
 
         import time
         ## start the train timer
         start = time.time()
+        self.visualizer.showStartTraining()
         for epoch in range(num_of_epochs):
             ## TRAIN
             self.model.train()
@@ -933,6 +938,7 @@ class Neu4mes:
 
             ## visualize the training...
             self.visualizer.showTraining(epoch, train_losses, val_losses)
+            self.visualizer.showWeights(epoch = epoch)
 
         ## save the training time
         end = time.time()
@@ -968,6 +974,8 @@ class Neu4mes:
         self.visualizer.showResults()
         return train_losses, val_losses, test_losses
 
+    def __save_internal(self, key, value):
+        self.internals[key] = tensor_to_list(value)
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, closed_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
@@ -976,7 +984,8 @@ class Neu4mes:
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
 
-        ## +2 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 2 = 1 # one epochs
+        ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
+        ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
@@ -993,6 +1002,9 @@ class Neu4mes:
 
             for horizon_idx in range(prediction_samples + 1):
                 out, minimize_out = self.model(XY)  ## Forward pass
+                if self.log_internal:
+                    self.__save_internal('inout_'+str(idx)+'_'+str(horizon_idx),{'XY':XY,'out':out,'state':self.model.states,'param':self.model.all_parameters})
+
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
@@ -1027,6 +1039,7 @@ class Neu4mes:
             if train:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
+                self.visualizer.showWeights(batch = idx/(batch_size + step - 1))
 
         ## return the losses
         return aux_losses
@@ -1056,6 +1069,9 @@ class Neu4mes:
             if train:
                 total_loss.backward()
                 self.optimizer.step()
+                self.visualizer.showWeights()
+
+        ## return the losses
         return aux_losses
 
     def resetStates(self, values = None, only = True):
