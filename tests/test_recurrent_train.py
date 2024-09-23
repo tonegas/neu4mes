@@ -593,6 +593,30 @@ class Neu4mesTrainingTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             test.internals['inout_1_0']
 
+        test.neuralizeModel(clear_model=True)
+        dataset3 = {'in1': [[0,1],[2,3],[7,4],[1,3],[4,2],[6,5],[4,5],[0,0]], 'target': [3,4,5,1,3,0,1,0], 'inout':[9,8,7,6,5,4,3,2]}
+        test.loadData(name='dataset3', source=dataset3)
+        test.internals = {}
+        test.trainModel(train_dataset='dataset3', optimizer='SGD', lr=0.01, shuffle_data=False, num_of_epochs=1,
+                        train_batch_size=1,
+                        prediction_samples=2)
+        self.assertDictEqual({'inout': [[[8.0], [7.0], [6.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['state'])
+        self.assertDictEqual({'inout': [[[7.0], [6.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['state'])
+        self.assertDictEqual({'inout': [[[6.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['state'])
+        W = test.internals['inout_1_0']['param']['W']
+        b = test.internals['inout_1_0']['param']['b']
+        self.assertAlmostEqual({'inout': [[[7.0], [6.0], [5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+                                           [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
+                               test.internals['inout_1_0']['state'])
+        self.assertAlmostEqual({'inout': [[[6.0], [5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+                                           [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+                                           [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
+                               test.internals['inout_1_1']['state'])
+        self.assertAlmostEqual({'inout': [
+            [[5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+             [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]]]]},
+                               test.internals['inout_1_2']['state'])
+
     def test_training_values_fir_connect_train_linear_more_window(self):
         NeuObj.reset_count()
         input1 = Input('in1', dimensions=2)
@@ -806,6 +830,30 @@ class Neu4mesTrainingTest(unittest.TestCase):
             test.internals['inout_0_1']['XY'])
         with self.assertRaises(KeyError):
             test.internals['inout_1_0']
+
+        test.neuralizeModel(clear_model=True)
+        dataset3 = {'in1': [[0,1],[2,3],[7,4],[1,3],[4,2],[6,5],[4,5],[0,0]], 'target': [3,4,5,1,3,0,1,0], 'inout':[9,8,7,6,5,4,3,2]}
+        test.loadData(name='dataset3', source=dataset3)
+        test.internals = {}
+        test.trainModel(train_dataset='dataset3', optimizer='SGD', lr=0.01, shuffle_data=False, num_of_epochs=1,
+                        train_batch_size=1,
+                        prediction_samples=2, connect={'inout':'out1'})
+        self.assertDictEqual({'inout': [[[8.0], [7.0], [6.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['connect'])
+        self.assertDictEqual({'inout': [[[7.0], [6.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['connect'])
+        self.assertDictEqual({'inout': [[[6.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['connect'])
+        W = test.internals['inout_1_0']['param']['W']
+        b = test.internals['inout_1_0']['param']['b']
+        self.assertAlmostEqual({'inout': [[[7.0], [6.0], [5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+                                           [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
+                               test.internals['inout_1_0']['connect'])
+        self.assertAlmostEqual({'inout': [[[6.0], [5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+                                           [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+                                           [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]]]]},
+                               test.internals['inout_1_1']['connect'])
+        self.assertAlmostEqual({'inout': [
+            [[5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+             [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]]]]},
+                               test.internals['inout_1_2']['connect'])
 
     def test_training_values_fir_and_liner_closed_loop(self):
         NeuObj.reset_count()

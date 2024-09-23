@@ -335,7 +335,7 @@ class Neu4mes:
     def addMinimize(self, name, streamA, streamB, loss_function='mse'):
         check(isinstance(streamA, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
         check(isinstance(streamB, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
-        check(streamA.dim == streamB.dim, ValueError, f'Dimension of streamA and streamB are not equal.')
+        check(streamA.dim == streamB.dim, ValueError, f'Dimension of streamA={streamA.dim} and streamB={streamB.dim} are not equal.')
         self.minimize_dict[name]={'A':copy.deepcopy(streamA), 'B': copy.deepcopy(streamB), 'loss':loss_function}
         self.__update_model()
         self.visualizer.showaddMinimize(name)
@@ -1003,7 +1003,7 @@ class Neu4mes:
             for horizon_idx in range(prediction_samples + 1):
                 out, minimize_out = self.model(XY)  ## Forward pass
                 if self.log_internal:
-                    self.__save_internal('inout_'+str(idx)+'_'+str(horizon_idx),{'XY':XY,'out':out,'state':self.model.states,'param':self.model.all_parameters})
+                    self.__save_internal('inout_'+str(idx)+'_'+str(horizon_idx),{'XY':XY,'out':out,'state':self.model.states,'param':self.model.all_parameters,'connect':self.model.connect_variables})
 
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
