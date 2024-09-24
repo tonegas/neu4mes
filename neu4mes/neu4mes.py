@@ -105,7 +105,7 @@ class Neu4mes:
             os.makedirs(self.folder_path, exist_ok=True)
 
 
-    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = None, num_of_samples = None, align_input = False):
+    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = 'auto', num_of_samples = 'auto', align_input = False):
         inputs = copy.deepcopy(inputs)
         closed_loop = copy.deepcopy(closed_loop)
         connect = copy.deepcopy(connect)
@@ -119,19 +119,19 @@ class Neu4mes:
         extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
 
         # Closed loop inputs
-        closed_loop_windows = {}
-        for close_in, close_out in closed_loop.items():
-            check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
-            check(close_out in self.model_def['Outputs'], ValueError, f'the tag {close_out} is not an output of the network')
-            if close_in in inputs.keys():
-                closed_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
-            else:
-                closed_loop_windows[close_in] = 1
-        for key in model_states:
-            if key in inputs.keys():
-                closed_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
-            else:
-                closed_loop_windows[key] = 1
+        # closed_loop_windows = {}
+        # for close_in, close_out in closed_loop.items():
+        #     check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
+        #     check(close_out in self.model_def['Outputs'], ValueError, f'the tag {close_out} is not an output of the network')
+        #     if close_in in inputs.keys():
+        #         closed_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
+        #     else:
+        #         closed_loop_windows[close_in] = 1
+        # for key in model_states:
+        #     if key in inputs.keys():
+        #         closed_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
+        #     else:
+        #         closed_loop_windows[key] = 1
 
         # Connect inputs checks
         for connect_in, connect_out in connect.items():
@@ -144,67 +144,100 @@ class Neu4mes:
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
-        non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(connect.keys()) - set(model_states))
-        recurrent_inputs = set(closed_loop.keys())|set(connect.keys())|set(model_states)
+        # non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(connect.keys()) - set(model_states))
+        # recurrent_inputs = set(closed_loop.keys())|set(connect.keys())|set(model_states)
 
-        ## Determine the Maximal number of samples that can be created
-        if non_recurrent_inputs:
-            if sampled:
-                min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in non_recurrent_inputs])
-                max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in non_recurrent_inputs])
+        ## Determine the maximum number of samples
+        if num_of_samples == 'auto':
+            if provided_inputs:
+                min_dim_ind, min_dim = argmin_min([len(inputs[key]) - (self.input_n_samples[key] - 1)*(not sampled) for key in provided_inputs])
+                max_dim_ind, max_dim = argmax_max([len(inputs[key]) - (self.input_n_samples[key] - 1)*(not sampled) for key in provided_inputs])
+                min_din_key = provided_inputs[min_dim_ind]
+                max_din_key = provided_inputs[max_dim_ind]
+                if min_dim <= 0:
+                    min_dim = max_dim = 1
             else:
-                min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
-                max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
-            min_din_key = non_recurrent_inputs[min_dim_ind]
-            max_din_key = non_recurrent_inputs[max_dim_ind]
+                min_dim = max_dim = 1
         else:
-            if recurrent_inputs:
-                ps = 0 if prediction_samples is None else prediction_samples
-                if provided_inputs:
-                    min_dim_ind, min_dim = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
-                    max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
-                    min_din_key = provided_inputs[min_dim_ind]
-                    max_din_key = provided_inputs[max_dim_ind]
-                else:
-                    min_dim = max_dim = ps + 1
-            else:
-                min_dim = max_dim = 0
+            max_dim = min_dim = num_of_samples
+        num_of_samples = max_dim
+
+         # if non_recurrent_inputs:
+        #     if sampled:
+        #         min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in non_recurrent_inputs])
+        #         max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in non_recurrent_inputs])
+        #     else:
+        #         min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
+        #         max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
+        #     min_din_key = non_recurrent_inputs[min_dim_ind]
+        #     max_din_key = non_recurrent_inputs[max_dim_ind]
+        # else:
+        #     if recurrent_inputs:
+        #         if provided_inputs:
+        #             min_dim_ind, min_dim = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
+        #             max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+        #             min_din_key = provided_inputs[min_dim_ind]
+        #             max_din_key = provided_inputs[max_dim_ind]
+        #         else:
+        #             min_dim = max_dim = ps + 1
+        #     else:
+        #         min_dim = max_dim = 0
 
         # TODO include this code
         # if recurrent_inputs:
         #     window_dim = max_dim
         # else:
         #     window_dim = min_dim
-        window_dim = min_dim
-        check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
+        # window_dim = min_dim
+        #check(num_of_samples > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
         if min_dim != max_dim:
             self.visualizer.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
 
-        ## Autofill the missing inputs
+        ## Autofill the missing inputs and value
+        in_state = self.model_def['Inputs'] | self.model_def['States']
         if missing_inputs:
             self.visualizer.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
             for key in missing_inputs:
-                inputs[key] = np.zeros(shape=(self.input_n_samples[key]+window_dim-1, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
+                inputs[key] = np.zeros(shape=(self.input_n_samples[key]+num_of_samples-1, in_state[key]['dim']), dtype=np.float32)
+        for key in provided_inputs:
+            if sampled:
+                for i in range(num_of_samples):
+                    if len(inputs[key]) <= i:
+                        if in_state[key]['dim'] == 1:
+                            inputs[key].append([0 for i in range(self.input_n_samples[key])])
+                        else:
+                            inputs[key].append([[0 for i in range(self.input_n_samples[key])] for i in range(in_state[key]['dim'])])
+            else:
+                for i in range(self.input_n_samples[key]):
+                    if len(inputs[key]) <= i:
+                        if in_state[key]['dim']==1:
+                            inputs[key].insert(0,0)
+                        else:
+                            inputs[key].prepend(0,[0 for i in range(in_state[key]['dim'])])
+                for i in range(self.input_n_samples[key]+num_of_samples-1):
+                    if len(inputs[key]) <= i:
+                        if in_state[key]['dim']==1:
+                            inputs[key].append(0)
+                        else:
+                            inputs[key].append([0 for i in range(in_state[key]['dim'])])
+
 
         result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
         ## Initialize the state variables
-        # TODO include this code maybe NO it is wrong
-        # if prediction_samples is not None:
-        #     self.model.reset_states(only=False)
         self.model.reset_connect_variables(connect, only = False)
 
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
-            for i in range(window_dim):
+            for i in range(num_of_samples):
                 for key, val in inputs.items():
                     if key in closed_loop.keys() or key in model_states:
-                        if i >= closed_loop_windows[key]:
+                        if prediction_samples != 'auto' and not (prediction_samples is None or i%(prediction_samples+1) == 0):
                             if key in model_states and key in X.keys():
                                 del X[key]
                             continue
@@ -230,15 +263,12 @@ class Neu4mes:
                     if X[key].ndim <= 2: ## add the time dimension
                         X[key] = X[key].unsqueeze(0)
 
-                self.model.reset_states(X)
-                if prediction_samples is None:
+                if prediction_samples == 'auto':
                     self.model.reset_connect_variables(connect, X)
-                    # TODO include this code
-                    #self.model.reset_states(X)
-                elif i%(prediction_samples+1) == 0:
+                    self.model.reset_states(X)
+                elif prediction_samples is None or i%(prediction_samples+1) == 0:
                     self.model.reset_connect_variables(connect, X, only=False)
-                    # TODO include this code
-                    #self.model.reset_states(X, only=False)
+                    self.model.reset_states(X, only=False)
 
                 result, _ = self.model(X)
 

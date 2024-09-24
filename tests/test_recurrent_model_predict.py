@@ -120,7 +120,7 @@ class MyTestCase(unittest.TestCase):
         ## one sample prediction with F initialized with [1] (the other values are ignored)
         test.resetStates()
         result = test(inputs={'x':[1,2,3,4,5], 'F':[1,2,3]})
-        self.assertEqual(result['out'], [16.0])
+        self.assertEqual(result['out'], [16.0,16.0,15.0])
 
     def test_predict_values_fir_closed_loop_predict(self):
         ## the memory is not shared between different calls
@@ -150,7 +150,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out'], [16.0, 22.0, 28.0, 58.0, 93.0])
         ## one sample prediction with F initialized with [1] (the other values are ignored)
         result = test(inputs={'x':[1,2,3,4,5], 'F':[1,2,3]}, closed_loop={'F':'out'})
-        self.assertEqual(result['out'], [16.0])
+        self.assertEqual(result['out'], [16.0,16.0,15.0])
 
     def test_predict_values_2fir_closed_loop(self):
         ## the memory is not shared between different calls
@@ -177,16 +177,15 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out_pos'], [15.0])
         self.assertEqual(result['out_neg'], [-15.0])
         ## three sample prediction due to the max dimensions of inputs + prediction_samples
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, prediction_samples=2)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, num_of_samples=3)
         self.assertEqual(result['out'], [0.0, 30.0, 58.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
         ## three sample prediction with both close loops but y gets initialized for 3 steps
-        ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
         result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, prediction_samples=2)
-        self.assertEqual(result['out'], [0.0, 9.0, 31.0])
-        self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
-        self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
+        self.assertEqual(result['out'], [0.0, (2+3+4+5)+15.0-(2+3+4+5)+15.0, 58.0])
+        self.assertEqual(result['out_pos'], [15.0, (2+3+4+5)+15.0, (3+4+5+15)+((2+3+4+5)+15.0)])
+        self.assertEqual(result['out_neg'], [-15.0, -(2+3+4+5)+15.0, -(3+4+5)+15.0-(-(2+3+4+5)+15.0)])
 
     def test_predict_values_2fir_closed_loop_predict(self):
         ## the memory is not shared between different calls
@@ -221,7 +220,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out_pos'], [15.0])
         self.assertEqual(result['out_neg'], [-15.0])
         ## three sample prediction due to the max dimensions of inputs + prediction_samples
-        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=2)
+        result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, num_of_samples=3)
         self.assertEqual(result['out'], [0.0, 30.0, 58.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
         self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
@@ -252,30 +251,74 @@ class MyTestCase(unittest.TestCase):
         ## one sample prediction with state variables not initialized
         ## (they will have the last valid state)
         result = test(inputs={'x':[1,2,3,4,5]})
-        self.assertEqual(result['out'], [15.0])
+        self.assertEqual([15.0], result['out'])
         ## 5 sample prediction with state variables not initialized
         ## (the first prediction will preserve the state of the previous test [15.0])
         result = test(inputs={'x':[1,2,3,4,5,6,7,8,9]})
-        self.assertEqual(result['out'], [60.0, 200.0, 625.0, 1905.0, 5750.0])
+        self.assertEqual([60.0, 60*3+(2+3+4+5+6), 625.0, 1905.0, 5750.0], result['out'])
         ## one sample prediction with state variables initialized with zero
         test.resetStates()
         result = test(inputs={'x':[1,2,3,4,5]})
-        self.assertEqual(result['out'], [15.0])
+        self.assertEqual([15.0], result['out'])
         ## one sample prediction with F initialized with [1] and the others not initialized (so they will have 15.0 in the memory)
         result = test(inputs={'x':[1,2,3,4,5], 'F':[1]})
-        self.assertEqual(result['out'], [46.0])
+        self.assertEqual([46.0], result['out'])
         ## one sample prediction with all the state variables initialized
         result = test(inputs={'x':[1,2,3,4,5], 'F':[1], 'y':[2], 'z':[3]})
-        self.assertEqual(result['out'], [21.0])
+        self.assertEqual([21.0], result['out'])
         ## 5 samples prediction with state variables initialized as many times as they have values to take
         result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'F':[1,2,3], 'y':[2,3], 'z':[3]})
-        self.assertEqual(result['out'], [21.0, 46.0, 120.0, 390.0, 1205.0])
-        # 2 samples prediction with state variables inizialized only at %prediction_samples
-        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]},prediction_samples=2)
-        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 4+0+4 = 8, 8+8+8 = 24
-        #self.assertEqual(result['out'], [3.0,9.0,27.0,8.0])
-        self.assertEqual(result['out'], [3.0, 6.0, 12.0, 20.0])
+        self.assertEqual([21.0, 46.0, 120.0, 390.0, 1205.0], result['out'])
 
+        # prediction = None use only the inputs with state variables inizialized every step
+        result = test(inputs={'F': [1, 2, 3, 4], 'y': [1, 2], 'z': [1, 2, 3, 4, 5]}, prediction_samples=None)
+        # 1+1+1 = 3, 2+2+2 = 6, 3+3 = 6, 4+4 = 8, 5 = 5
+        self.assertEqual([3.0, 6.0, 6.0, 8.0, 5.0], result['out'])
+
+        # 0 samples prediction for closed loop is equal as before
+        result = test(inputs={'F': [1, 2, 3, 4], 'y': [1, 2], 'z': [1, 2, 3, 4, 5]}, prediction_samples=0)
+        # 1+1+1 = 3, 3+3+3 = 9, 3+3 = 6, 6+6+6 = 18, 5 = 5
+        self.assertEqual([3.0, 6.0, 6.0, 8.0, 5.0], result['out'])
+
+        # 1 samples prediction with state variables inizialized only at %prediction_samples
+        result = test(inputs={'F': [1, 2, 3, 4], 'y': [1, 2], 'z': [1, 2, 3, 4, 5]}, prediction_samples=1)
+        # 1+1+1 = 3, 3+3+3 = 9, 3+3 = 6, 6+6+6 = 18, 5 = 5
+        self.assertEqual([3.0, 9.0, 6.0, 18.0, 5.0], result['out'])
+
+        # 2 samples prediction with state variables inizialized only at %prediction_samples
+        result = test(inputs={'F': [1, 2, 3, 4], 'y': [1, 2], 'z': [1, 2, 3, 4, 5]}, prediction_samples=2)
+        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 4+4 = 8, 8+8+8 = 24
+        self.assertEqual([3.0, 9.0, 27.0, 8.0, 24.0], result['out'])
+
+        # 3 samples prediction with state variables inizialized only at %prediction_samples
+        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]}, prediction_samples=3)
+        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 27+27+27 = 27*3, 5 = 5
+        self.assertEqual([3.0, 9.0, 27.0, 27.0*3.0, 5.0], result['out'])
+
+        # 3 samples prediction with state variables inizialized only at %prediction_samples
+        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]}, prediction_samples=4)
+        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 27+27+27 = 27*3, 5 = 5
+        self.assertEqual([3.0, 9.0, 27.0, 27.0*3.0, 27.0*3.0*3.0], result['out'])
+
+        # 'auto' samples prediction with state variables if is present
+        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]})
+        # 1+1+1 = 3, 3+3+3 = 9, 6+3+3 = 12, 12+4+4 = 20, 20+20+5 = 5
+        self.assertEqual([3.0, 6.0, 12.0, 20.0, 45.0], result['out'])
+
+        # 'auto' samples prediction with state variables inizialized never initialized
+        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]}, num_of_samples=2)
+        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 27+27+27 = 27*3, 5 = 5
+        self.assertEqual([3.0, 6.0], result['out'])
+
+        # 'auto' samples prediction with state variables inizialized never initialized
+        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]}, num_of_samples=7)
+        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 27+27+27 = 27*3, 5 = 5
+        self.assertEqual([3.0, 6.0, 12.0, 20.0, 45.0, 45*3, 45*3*3], result['out'])
+
+        # 'auto' samples prediction with state variables inizialized never initialized
+        result = test(inputs={'F': [1,2,3,4], 'y': [1,2], 'z': [1,2,3,4,5]}, num_of_samples=7)
+        # 1+1+1 = 3, 3+3+3 = 9, 9+9+9 = 27, 27+27+27 = 27*3, 5 = 5
+        self.assertEqual([3.0, 6.0, 12.0, 20.0, 45.0, 45*3, 45*3*3], result['out'])
     def test_predict_values_3states_closed_loop_predict(self):
         ## the state is saved inside the model so the memory is shared between different calls
         x = Input('x')
@@ -489,8 +532,8 @@ class MyTestCase(unittest.TestCase):
         test.addModel('out_all',[out, out_x, out_y, out_z])
         test.neuralizeModel(0.1)
 
-        ## one sample prediction with state variables not initialized
-        ## (they will have the last valid state)
+        # ## one sample prediction with state variables not initialized
+        # ## (they will have the last valid state)
         result = test(inputs={'x':[1,2,3,4,5]}, connect={'y':'out_x','z':'out_x'})
         self.assertEqual(result['out'], [90.0])
         self.assertEqual(result['out_x'], [15.0])
@@ -535,7 +578,7 @@ class MyTestCase(unittest.TestCase):
         ## Without connect
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
-        self.assertEqual(results['out2'], [21.0, 29.0, 37.0, 45.0])
+        self.assertEqual(results['out2'], [(1+2+3+4+5)+(2+3+(1+2+3+4+5.0)), 29.0, 37.0, 45.0])
 
         ## connect out1 to in3 for 4 samples
         test.resetStates()
@@ -729,7 +772,8 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-10,-16]}))
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]]}, connect={'inout': 'out1'}))
-        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
+        # [-10,-16] -> [-30,-10,-16]*[3,4,5] -> [-30*3-16*5+-10*4=-120] <------
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-210.0], 'out4': [-120.0]},
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-30,-30]}, connect={'inout': 'out1'}))
         with self.assertRaises(StopIteration):
             self.assertEqual({}, test())
@@ -836,12 +880,13 @@ class MyTestCase(unittest.TestCase):
         # Test output recurrent
 
         # prediction_samples set the dimension of the prediction samples every prediction_samples the recurrent variable is read from input (as in train)
-        # default value = None means that the network uses the input as long as they are available
+        # default value = 'auto' means the network is connected and is closed loop for all the available samples
+        # None means that the network is not anymore closed loop or connected
         # 0 means that every sample the state is reset or with zero or with the input
         # 1 means that for 1 sample the network use the inside value
 
-        # num_of_samples is the numer of sample return from the call if the input is missing is filled with zero
-        # default value = None means that the network choose the best number of samples to generate
+        # num_of_samples is the number of samples return from the call if the input is missing is filled with zero
+        # default value = 'auto' means that the network choose the best number of samples to generate
         # at least one sample is generate if the network is called without values
         # or the maximum number of samples if it is called without aligned_input = True
         # otherwise generate the same number of the dataset if it is called with aligned_inputs = True

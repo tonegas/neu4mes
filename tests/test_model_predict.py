@@ -513,8 +513,11 @@ class MyTestCase(unittest.TestCase):
         test.addModel('out',out)
         test.neuralizeModel(0.1)
 
-        with self.assertRaises(StopIteration):
-            test({'in1': [1, 2, 2]})
+        # with self.assertRaises(StopIteration):
+        #     test({'in1': [1, 2, 2]}) #-> [0,1,2,2]
+        results = test({'in1': [1, 2, 2]})  # -> [0,1,2,2]
+        self.TestAlmostEqual(results['out'][0], test({'in1': [0, 1, 2, 2]})['out'][0])
+
         results = test({'in1': [[1], [2], [2], [4]]})
         self.TestAlmostEqual(results['out'][0], -0.03262542933225632)
         results = test({'in1': [[[1], [2], [2], [4]],[[2], [2], [4], [5]]]}, sampled=True)
@@ -531,10 +534,12 @@ class MyTestCase(unittest.TestCase):
         test = Neu4mes(visualizer=None, seed=1)
         test.addModel('out',out)
         test.neuralizeModel(0.1)
-        with self.assertRaises(StopIteration): ## TODO: change to KeyError when checking the inputs
-            test({'in1': [[1, 2, 2, 4]]})
-        results = test({'in1': [1, 2, 2, 4], 'in2': [1, 2, 2, 4]})
+        # with self.assertRaises(StopIteration): ## TODO: change to KeyError when checking the inputs
+        #     test({'in1': [[1, 2, 2, 4]]})
+        results = test({'in1': [1, 2, 2, 4]})
+        self.TestAlmostEqual(results['out'], test({'in1': [1, 2, 2, 4], 'in2': [0, 0, 0, 0]})['out'])
 
+        results = test({'in1': [1, 2, 2, 4], 'in2': [1, 2, 2, 4]})
         self.TestAlmostEqual(results['out'], [-0.4379930794239044])
         results = test({'in1': [[1, 2, 2, 4]], 'in2': [[1, 2, 2, 4]]}, sampled=True)
         self.TestAlmostEqual(results['out'], [-0.4379930794239044])

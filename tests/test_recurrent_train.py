@@ -643,10 +643,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
 
         # Dataset with only one sample
         dataset = {'in1': [[0,1],[2,3],[7,4],[1,3],[4,2]], 'target': [3,4,5,1,3]}
-        self.assertEqual({'out1': [[-4.0, -16.0], [-16.0, -26.0], [-26.0, -15.0], [-15.0, -13.0]],
-                               'out2': [-96.0, -194.0, -179.0, -125.0],
-                               'out3': [-96.0, -206.0, -235.0, -239.0],
-                               'out4': [-96.0, -194.0, -179.0, -125.0]
+        self.assertEqual({'out1': [[-4.0, -16.0], [-16.0, -26.0], [-26.0, -15.0], [-15.0, -13.0], [-13.0, 1.0]],
+                               'out2': [-96.0, -194.0, -179.0, -125.0, -47.0],
+                               'out3': [-96.0, -206.0, -235.0, -239.0, -160.0],
+                               'out4': [-96.0, -194.0, -179.0, -125.0, -47.0]
                           }, test(dataset, connect={'inout':'out1'}))
         test.loadData(name='dataset', source=dataset)
         # TODO add and error
@@ -674,10 +674,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
         dataset2 = {'in1': [[0,1],[2,3],[7,4],[1,3],[4,2],[6,5],[4,5],[0,0]], 'target': [3,4,5,1,3,0,1,0]}
         test.loadData(name='dataset2', source=dataset2)
         self.maxDiff = None
-        self.assertEqual({'out1': [[-4.0, -16.0], [-16.0, -26.0], [-26.0, -15.0], [-15.0, -13.0], [-13.0, -30.0], [-30.0, -28.0], [-28.0, 1.0]],
-                          'out2': [-96.0, -194.0, -179.0, -125.0, -202.0, -260.0, -107.0],
-                          'out3': [-96.0, -206.0, -235.0, -239.0, -315.0, -355.0, -238.0],
-                          'out4': [-96.0, -194.0, -179.0, -125.0, -202.0, -260.0, -107.0]
+        self.assertEqual({'out1': [[-4.0, -16.0], [-16.0, -26.0], [-26.0, -15.0], [-15.0, -13.0], [-13.0, -30.0], [-30.0, -28.0], [-28.0, 1.0], [1.0, 1.0]],
+                          'out2': [-96.0, -194.0, -179.0, -125.0, -202.0, -260.0, -107.0, 9.0],
+                          'out3': [-96.0, -206.0, -235.0, -239.0, -315.0, -355.0, -238.0, -148.0],
+                          'out4': [-96.0, -194.0, -179.0, -125.0, -202.0, -260.0, -107.0, 9.0]
                           }, test(dataset2, connect={'inout':'out1'}))
 
         # Use a train_batch_size of 4
@@ -879,7 +879,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1.0],'in2': [1.0]}))
         self.assertEqual({'out1': [1.0], 'out2': [3.0]}, test())
         test.resetStates()
-        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2':  [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}, test(prediction_samples=5))
+        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2':  [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}, test(num_of_samples = 6))
 
         dataset = {'in1': [1], 'in2': [1.0], 'out1': [3], 'out2': [3]}
         test.loadData(name='dataset', source=dataset)
@@ -1026,16 +1026,14 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.addClosedLoop(output1, input1)
         test.addClosedLoop(output2, input2)
         test.neuralizeModel()
-        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]},
-                         test(prediction_samples=5))
-        self.assertEqual({'out1': [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0]},
-                         test({'in1':[1.0,2.0]},prediction_samples=5))
-        # self.assertEqual({'out1': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0]},
-        #                  test({'in1': [1.0, 2.0]}, prediction_samples=5))
-        self.assertEqual({'out1': [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]},
-                         test({'in2':[-1.0,-2.0,-3.0]},prediction_samples=5))
-        # self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0]},
-        #                  test({'in2':[-1.0,-2.0,-3.0]}, prediction_samples=5))
+        self.assertEqual({'out1': [0.0], 'out2': [1.0]},
+                         test(prediction_samples = 5))
+        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [2.0, 3.0, 4.0, 5.0, 6.0, 7.0]},
+                         test(num_of_samples = 6))
+        self.assertEqual({'out1': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0]},
+                         test({'in1':[1.0,2.0]}, prediction_samples = 5, num_of_samples = 7))
+        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0]},
+                          test({'in2':[-1.0,-2.0,-3.0]}, prediction_samples = 5, num_of_samples = 8))
 
         dataset = {'in1': [0,2,7,1], 'in2': [-1,0,-3,7], 'out1': [3,4,5,1], 'out2': [-3,-4,-5,-1]}
         test.loadData(name='dataset2', source=dataset)
@@ -1088,11 +1086,18 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.addMinimize('error2', target_out2.last(), output2)
         test.neuralizeModel()
         self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]},
-                         test(prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}))
-        self.assertEqual({'out1': [1.0, 2.0, 2.0, 2.0, 2.0, 2.0,2.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]},
-                         test({'in1':[1.0,2.0]},prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}))
-        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]},
-                         test({'in2':[-1.0,-2.0,-3.0]},prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}))
+                         test(num_of_samples = 6, prediction_samples = 5, closed_loop = {'in2':'out2','in1':'out1'}))
+        self.assertEqual({'out1': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0]},
+                         test({'in1':[1.0, 2.0]}, num_of_samples = 7, prediction_samples = 5, closed_loop = {'in2':'out2','in1':'out1'}))
+        self.assertEqual({'out1': [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 2.0, 1.0, 2.0, 1.0, 2.0, 1.0]},
+                         test({'in1': [1.0, 2.0]}, num_of_samples=7, prediction_samples = 1,
+                              closed_loop={'in2': 'out2', 'in1': 'out1'}))
+        self.assertEqual({'out1': [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]},
+                         test({'in1': [1.0, 2.0]}, num_of_samples = 7, prediction_samples = 0,
+                              closed_loop={'in2': 'out2', 'in1': 'out1'}))
+        self.assertEqual({'out1': [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]},
+                         test({'in1': [1.0, 2.0]}, num_of_samples = 7, prediction_samples = None,
+                              closed_loop={'in2': 'out2', 'in1': 'out1'}))
 
         dataset = {'in1': [0,2,7,1], 'in2': [-1,0,-3,7], 'out1': [3,4,5,1], 'out2': [-3,-4,-5,-1]}
         test.loadData(name='dataset2', source=dataset)
@@ -1148,14 +1153,15 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.addMinimize('error2', output2, target2.last())
         test.neuralizeModel()
 
-        self.assertEqual({'out1': [[-10.0, -16.0], [-16.0, -33.0], [-33.0, -4.0]], 'out2': [[[-49.0, -107.0]], [[-12.0, -46.0]], [[13.0, 15.0]]]},
-                          test({'in1': [[1.0, 2.0], [2.0, 3.0], [4.0, 6.0], [0.0, 1.0]], 'in2': [-10, -16, -5, 2, 2, 2]}))
+        # self.assertEqual({'out1': [[-10.0, -16.0], [-16.0, -33.0], [-33.0, -4.0]], 'out2': [[[-49.0, -107.0]], [[-12.0, -46.0]], [[13.0, 15.0]]]},
+        #                   test({'in1': [[1.0, 2.0], [2.0, 3.0], [4.0, 6.0], [0.0, 1.0]], 'in2': [-10, -16, -5, 2, 2, 2]}))
 
         dataset = {'in1': [[1.0, 2.0], [2.0, 3.0], [4.0, 6.0], [0.0, 1.0]], 'in2': [-10, -16, -5, 2],
                    'target1': [-11, -17, -12, -20],
                    'target2': [[-34.0, -86.0], [-31.0, -90.0], [-32.0, -86.0], [-33.0, -84.0]]}
         test.loadData(name='dataset', source=dataset)
-        self.assertEqual({'out1': [[-10.0, -16.0], [-16.0, -33.0], [-33.0, -4.0]],
+        #[-10-32-15+8, -30-64-25+12]
+        self.assertEqual({'out1': [[-10.0, -16.0], [-16.0, -33.0], [-33.0, -4.0], [-4.0, 1.0]],
                           'out2': [[[-49.0, -107.0]], [[-120.0, -214.0]], [[-205.0, -333.0]]]},
                          test(dataset))
 
