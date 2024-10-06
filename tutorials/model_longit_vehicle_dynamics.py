@@ -40,9 +40,9 @@ vehicle.neuralizeModel(0.05)
 
 # Load the training and the validation dataset
 data_struct = ['vel','trq','brk','gear','alt','acc']
-data_folder = './tutorials/datasets/vehicle_data/trainingset'
+data_folder = './tutorials/datasets/model_longit_vehicle_dynamics/trainingset'
 vehicle.loadData(name='trainingset', source=data_folder, format=data_struct, skiplines=1)
-data_folder = './tutorials/datasets/vehicle_data/validationset'
+data_folder = './tutorials/datasets/model_longit_vehicle_dynamics/validationset'
 vehicle.loadData(name='validationset', source=data_folder, format=data_struct, skiplines=1)
 
 # Filter the data
