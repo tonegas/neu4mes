@@ -249,12 +249,12 @@ class Neu4mes:
     def get_random_samples(self, dataset, window=1):
         if self.data_loaded:
             result_dict = {}
-            for key in self.model_def['Inputs'].keys():
+            for key in (self.model_def['Inputs'].keys() | self.model_def['States'].keys()):
                 result_dict[key] = []
             random_idx = random.randint(0, self.num_of_samples[dataset] - window)
             for idx in range(window):
                 for key ,samples in self.data[dataset].items():
-                    if key in self.model_def['Inputs'].keys():
+                    if key in (self.model_def['Inputs'].keys() | self.model_def['States'].keys()):
                         result_dict[key].append(samples[random_idx+idx])
             return result_dict
         else:
