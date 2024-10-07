@@ -58,7 +58,7 @@ steer_controller_park.addMinimize('steer_error',
 steer_controller_park.neuralizeModel()
 
 # Load the training and the validation dataset
-data_struct = ['curv','steer']
+data_struct = ['curv','steer'] 
 data_folder_train = os.path.join(os.getcwd(),'tutorials','datasets','control_steer_car_parking','training')
 data_folder_valid = os.path.join(os.getcwd(),'tutorials','datasets','control_steer_car_parking','validation')
 data_folder_test  = os.path.join(os.getcwd(),'tutorials','datasets','control_steer_car_parking','test')
@@ -66,6 +66,11 @@ steer_controller_park.loadData(name='training_set', source=data_folder_train, fo
 steer_controller_park.loadData(name='validation_set', source=data_folder_valid, format=data_struct, skiplines=1)
 steer_controller_park.loadData(name='test_set', source=data_folder_test, format=data_struct, skiplines=1)
 
+# check the windows in the data
+samples_test_set = steer_controller_park.get_samples('training_set', index=100, window=1) 
+print(samples_test_set)
+
+'''
 # Neural network train
 training_pars = {'num_of_epochs':500, 
                  'val_batch_size':128, 
@@ -85,3 +90,4 @@ steer_controller_park.trainModel(train_dataset='training_set', validation_datase
 
 # NOTE: by default, the next batch skips a full length of a batch
 # NOTE: shuffle = True shuffles only the order of the batches, so it's ok with the autoregression
+'''
