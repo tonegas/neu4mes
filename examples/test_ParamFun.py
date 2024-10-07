@@ -99,4 +99,30 @@ example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
 #
 
+print("------------------------EXAMPLE 6------------------------")
+# Example 5
+# Load a scalar constant
+P1 = 5.0
+def myFun(K1,p1):
+    return K1*p1
+parfun = ParamFun(myFun)
+out = Output('out',parfun(x.tw(1),P1))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1]}))
+#
 
+# print("------------------------EXAMPLE 6------------------------")
+# # Example 5
+# # Load a vector constant
+# P1 = [5.0,4.0,3.0,2.0]
+# def myFun(K1,p1):
+#     return K1*p1
+# parfun = ParamFun(myFun)
+# out = Output('out',parfun(x.tw(1),P1))
+# example = Neu4mes()
+# example.addModel('out',out)
+# example.neuralizeModel(0.25)
+# print(example({'x':[1,1,1,1]}))
+# #

@@ -22,7 +22,7 @@ NeuObj_names = []
 
 def toStream(obj):
     from neu4mes.parameter import Parameter
-    obj = Stream(obj, MAIN_JSON, {}) if type(obj) in (int,float) else obj
+    obj = Stream(obj, MAIN_JSON, {'dim' : 1}) if type(obj) in (int,float) else obj
     obj = Stream(obj.name, obj.json, obj.dim) if type(obj) is Parameter else obj
     return obj
 

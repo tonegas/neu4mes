@@ -2,7 +2,7 @@ import inspect, copy
 
 import torch.nn as nn
 
-from neu4mes.relation import NeuObj, Stream
+from neu4mes.relation import NeuObj, Stream, toStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.utilis import check, merge
@@ -31,6 +31,7 @@ class ParamFun(NeuObj):
         input_dimensions = []
         stream_json = copy.deepcopy(self.json)
         for ind,o in enumerate(obj):
+            o = toStream(o)
             stream_json = merge(stream_json,o.json)
             check(type(o) is Stream, TypeError,
                   f"The type of {o} is {type(o)} and is not supported for ParamFun operation.")
