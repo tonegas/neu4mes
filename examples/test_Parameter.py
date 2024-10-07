@@ -65,3 +65,16 @@ example.addModel('out12',[out,out2])
 example.neuralizeModel()
 print('result: ', example({'xx':[[1,2,4,4],[1,2,4,4],[1,2,4,4]],'y':[1,2,4,2]}))
 #
+
+print("------------------------EXAMPLE 5------------------------")
+# Example 4
+# Sum Parameter to constant
+g = Parameter('p14', values=[[1,2,3,4]])
+o = Constant('c14', values=[[1,2,3,4]])
+x = Input('xxx', dimensions=4)
+out = Output('out', x.last()+g+o)
+example = Neu4mes()
+example.addModel('out',[out])
+example.neuralizeModel()
+print('result: ', example({'xxx':[[1,2,4,4],[0,0,0,0],[-1,-1,-1,-1]]}))
+#

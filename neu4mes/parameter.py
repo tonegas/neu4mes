@@ -6,6 +6,31 @@ from neu4mes.utilis import check
 
 #values = zeros, ones, 1order, linear, quadratic
 
+class Constant(NeuObj, Stream):
+    def __init__(self, name:str, values:list, tw:int|None = None, sw:int|None = None):
+        NeuObj.__init__(self, name)
+        shape = np.array(values).shape
+        if len(shape) == 0:
+            self.dim = {'dim': 1}
+        else:
+            check(len(shape) >= 2, ValueError,
+              f"The shape of a Constant must have at least 2 dimensions or zero.")
+            dimensions = shape[1] if len(shape[1:]) == 1 else shape[1:]
+            self.dim = {'dim': dimensions}
+            if tw is not None:
+                check(sw is None, ValueError, "If tw is set sw must be None")
+                self.dim['tw'] = tw
+            elif sw is not None:
+                self.dim['sw'] = sw
+                check(shape[0] == self.dim['sw'],ValueError, f"The sw = {sw} is different from sw = {shape[0]} of the values.")
+            else:
+                self.dim['sw'] = shape[0]
+
+        # deepcopy dimention information inside Parameters
+        self.json['Constants'][self.name] = copy.deepcopy(self.dim)
+        self.json['Constants'][self.name]['values'] = values
+        Stream.__init__(self, name, self.json, self.dim)
+
 class Parameter(NeuObj, Stream):
     def __init__(self, name:str, dimensions:int|tuple|None = None, tw:int|None = None, sw:int|None = None, values:list|None = None, init:None = None, init_params:None = None):
         NeuObj.__init__(self, name)
@@ -23,7 +48,7 @@ class Parameter(NeuObj, Stream):
             self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
         else:
             shape = np.array(values).shape
-            check(len(shape), ValueError,
+            check(len(shape) >= 2, ValueError,
                   f"The shape of a parameter must have at least 2 dimensions.")
             values_dimensions = shape[1] if len(shape[1:]) == 1 else shape[1:]
             if dimensions is None:

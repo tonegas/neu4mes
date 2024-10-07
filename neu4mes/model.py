@@ -13,6 +13,7 @@ class Model(nn.Module):
         self.outputs = model_def['Outputs']
         self.relations = model_def['Relations']
         self.params = model_def['Parameters']
+        self.constants = model_def['Constants']
         self.sample_time = model_def['SampleTime']
         self.functions = model_def['Functions']
         self.state_model = model_def['States']
@@ -27,12 +28,13 @@ class Model(nn.Module):
 
         ## Build the network
         self.all_parameters = {}
+        self.all_constants = {}
         self.relation_forward = {}
         self.relation_inputs = {}
         self.states = {}
         self.states_updates = {}
         self.states_connect = {}
-        self.constants = set()
+        #self.constants = set()
         self.connect_variables = {}
 
         ## Define the correct slicing
@@ -78,6 +80,11 @@ class Model(nn.Module):
             else:
                 self.all_parameters[name] = nn.Parameter(torch.rand(size=param_size, dtype=torch.float32), requires_grad=True)
 
+        ## Create all the constants
+        for name, param_data in self.constants.items():
+            self.all_constants[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=False)
+
+
         ## Initialize state variables
         self.reset_states()
         ## save the states updates
@@ -94,7 +101,7 @@ class Model(nn.Module):
             ## collect the inputs needed for the relation
             input_var = inputs[1]
             ## collect the constants of the model
-            self.constants.update([item for item in inputs[1] if not isinstance(item, str)])
+            #self.constants.update([item for item in inputs[1] if not isinstance(item, str)])
             
             ## Create All the Relations
             func = getattr(self,rel_name)
@@ -103,6 +110,8 @@ class Model(nn.Module):
                 for item in inputs[2:]:
                     if item in list(self.params.keys()): ## the relation takes parameters
                         layer_inputs.append(self.all_parameters[item])
+                    elif item in list(self.constants.keys()): ## the relation takes parameters
+                        layer_inputs.append(self.all_constants[item])
                     elif item in list(self.functions.keys()): ## the relation takes a custom function
                         layer_inputs.append(self.functions[item])
                         if 'parameters' in self.functions[item].keys(): ## Parametric function that takes parameters
@@ -141,7 +150,7 @@ class Model(nn.Module):
         ## Initially i have only the inputs from the dataset, the parameters, and the constants
         available_inputs = [key for key in self.inputs.keys() if key not in self.connect.keys()]  ## remove connected inputs
         available_states = [key for key in self.state_model.keys() if key not in self.states_connect.keys()] ## remove connected states
-        available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.constants) + available_states)
+        available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.all_constants.keys()) + available_states)
 
         ## Forward pass through the relations
         while not self.network_outputs.issubset(available_keys): ## i need to climb the relation tree until i get all the outputs
@@ -151,8 +160,8 @@ class Model(nn.Module):
                     ## Collect all the necessary inputs for the relation
                     layer_inputs = []
                     for key in self.relation_inputs[relation]:
-                        if not isinstance(key, str): ## relation that takes a constant
-                            layer_inputs.append(torch.tensor(key, dtype=torch.float32))
+                        if key in self.all_constants.keys(): ## relation that takes a constant
+                            layer_inputs.append(self.all_constants[key])
                         elif key in self.states.keys(): ## relation that takes a state
                             layer_inputs.append(self.states[key])
                         elif key in available_inputs:  ## relation that takes inputs (self.inputs.keys())
