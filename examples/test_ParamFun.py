@@ -85,12 +85,12 @@ print(example({'x':[1],'F':[1]}))
 print("------------------------EXAMPLE 5------------------------")
 # Example 5
 # This case I create a parameter that I pass to the parametric function
-# The parametric function takes a parameter of size 4
-# The function has three inputs, the first two are inputs and the second is a K parameter
+# The parametric function takes a parameter of size 1 and tw = 1
+# The function has two inputs, the first two are inputs and the second is a K parameter
 # The function creates a tensor performs a dot product between input 1 and p1 (which is effectively K Parameter)
 def myFun(K1,p1):
     return K1*p1
-K = Parameter('k', dimensions =  1, tw = 1)
+K = Parameter('k', dimensions =  1, tw = 1,values=[[2.0]])
 parfun = ParamFun(myFun, parameters = [K] )
 out = Output('out',parfun(x.tw(1)))
 example = Neu4mes()
@@ -99,4 +99,49 @@ example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
 #
 
+print("------------------------EXAMPLE 6------------------------")
+# Example 5
+# Parametric function with a constant scalar
+P1 = 7.0
+def myFun(K1,p1):
+    return K1*p1
+parfun = ParamFun(myFun)
+out = Output('out',parfun(x.tw(1),P1))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1]}))
+#
 
+print("------------------------EXAMPLE 7------------------------")
+# Example 5
+# This case I create a 2 parameters that are passed to the parametric function
+# The parametric function takes a scalar parameter
+# The function has two inputs, the first two are inputs and the second is a K or R parameter
+# The function creates a tensor performs a dot product between input 1 and p1 (which is effectively K Parameter)
+# In this case the parameter are passed t
+def myFun(K1,p1):
+    return K1*p1
+K = Parameter('k1', dimensions =  1, tw = 1,values=[[2.0],[3.0],[4.0],[5.0]])
+R = Parameter('r1', dimensions =  1, tw = 1,values=[[5.0]])
+parfun = ParamFun(myFun)
+out = Output('out',parfun(x.tw(1),K)+parfun(x.tw(1),R))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
+#
+
+print("------------------------EXAMPLE 8------------------------")
+# Example 5
+# Parametric function with a constant vector
+P1 = [[5.0],[4.0],[3.0],[2.0]]
+def myFun(K1,p1):
+    return K1*p1
+parfun = ParamFun(myFun)
+out = Output('out',parfun(x.sw(4),P1))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1]}))
+#

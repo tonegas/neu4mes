@@ -11,19 +11,26 @@ MAIN_JSON = {
                 'SampleTime': 0,
                 'Inputs' : {},
                 'States' : {},
-                'Functions' : {},
+                'Constants': {},
                 'Parameters' : {},
-                'Outputs': {},
+                'Functions' : {},
                 'Relations': {},
+                'Outputs': {}
             }
 
 CHECK_NAMES = True
 NeuObj_names = []
 
 def toStream(obj):
-    from neu4mes.parameter import Parameter
-    obj = Stream(obj, MAIN_JSON, {}) if type(obj) in (int,float) else obj
-    obj = Stream(obj.name, obj.json, obj.dim) if type(obj) is Parameter else obj
+    from neu4mes.parameter import Parameter, Constant
+    if type(obj) in (int,float):
+        obj = Constant('Constant'+str(NeuObj.count), obj)
+        #obj = Stream(obj, MAIN_JSON, {'dim': 1}) if type(obj) in (int, float) else obj
+    elif type(obj) is list:
+        obj = Constant('Constant' + str(NeuObj.count), obj)
+        # obj = Stream(obj, MAIN_JSON, {'dim': len(obj)}) if type(obj) is list else obj
+    if type(obj) is Parameter or type(obj) is Constant:
+        obj = Stream(obj.name, obj.json, obj.dim)
     return obj
 
 
