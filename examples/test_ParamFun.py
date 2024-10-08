@@ -145,3 +145,18 @@ example.addModel('out',out)
 example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1]}))
 #
+
+print("------------------------EXAMPLE 9------------------------")
+# Example 9
+# Parametric function with a constant scalar and a learnable parameter
+P1 = 7.0
+R = Parameter('R', dimensions =  1, tw = 1,values=[[5.0]])
+def myFun(K1,p1,R):
+    return K1*p1 + R
+parfun = ParamFun(myFun, parameters = [R])
+out = Output('out',parfun(x.tw(1),P1))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1]}))
+#

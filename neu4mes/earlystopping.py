@@ -1,3 +1,19 @@
+# Early stopping functions:
+# The functions return True if the training should stop
+
+# "Classical" early stopping based on the validation loss:
+# Stop if the validation loss has not improved for a certain number of epochs
+def early_stop_valid_patience(train_losses, val_losses, params):
+  patience = params['patience']
+  val_losses_steer = val_losses['steer_error']
+  if len(val_losses_steer) > patience:
+    # Index of the minimum validation loss
+    min_val_loss_index = val_losses_steer.index(min(val_losses_steer))
+    # Check if the patience has been exceeded
+    if min_val_loss_index < len(val_losses_steer) - patience:
+      return True
+  return False
+
 def mean_stopping(train_losses, val_losses, params):
     tol = params['tol'] if 'tol' in params.keys() else 0.001
     if val_losses:
