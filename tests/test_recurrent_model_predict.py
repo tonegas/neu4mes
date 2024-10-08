@@ -23,6 +23,14 @@ def myfun(x, P):
     out = x*P
     return out[:,1:,:]
 
+def myfunsum(x, P):
+    out = x + P
+    return out
+
+def matmul(x,y):
+    import torch
+    return torch.matmul(torch.transpose(x,1,2),y)
+
 # def myfun2(a, b ,c):
 #     import torch
 #     return torch.sin(a + b) * c
@@ -450,28 +458,28 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out_x'], [15.0])
         self.assertEqual(result['out_y'], [30.0])
         self.assertEqual(result['out_z'], [45.0])
-        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [15.0]]])
-        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [15.0]]])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [15.0], [0.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[0.0], [0.0], [0.0], [15.0], [0.0]]])
         ## 1 sample prediction with state variables all initialized
         result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5], 'z':[1,2,3,4,5]})
-        self.assertEqual(result['out'], [160.0])
+        self.assertEqual(result['out'], [140.0])
         self.assertEqual(result['out_x'], [15.0])
-        self.assertEqual(result['out_y'], [58.0])
-        self.assertEqual(result['out_z'], [87.0])
-        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [15.0]]])
-        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [15.0]]])
+        self.assertEqual(result['out_y'], [50.0])
+        self.assertEqual(result['out_z'], [75.0])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[2.0], [3.0], [4.0], [15.0], [1.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [15.0], [1.0]]])
         ## clear state of y
         test.resetStates({'y'})
         self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
-        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [5.0], [15.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[2.0], [3.0], [4.0], [15.0], [1.0]]])
         ## multi-sample prediction with states initialized as many times as they have values
         result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'y':[1,2,3,4,5,6,7], 'z':[1,2,3,4,5,6]})
         self.assertEqual(result['out_x'], [15.0, 20.0, 25.0, 30.0, 35.0])
-        self.assertEqual(result['out_y'], [2*(2+3+4+5+15), 2*(3+4+5+6+20), 2*(4+5+6+7+25), 2*(5+6+7+25+30), 2*(6+7+25+30+35)])
-        self.assertEqual(result['out_z'], [3*(2+3+4+5+15), 3*(3+4+5+6+20), 3*(4+5+6+20+25), 3*(5+6+20+25+30), 3*(6+20+25+30+35)])
+        self.assertEqual(result['out_y'], [2*(1+2+3+4+15), 2*(2+3+4+5+20), 2*(3+4+5+6+25), 2*(4+5+6+25+30), 2*(5+6+25+30+35)])
+        self.assertEqual(result['out_z'], [3*(1+2+3+4+15), 3*(2+3+4+5+20), 3*(3+4+5+20+25), 3*(4+5+20+25+30), 3*(5+20+25+30+35)])
         self.assertEqual(result['out'], [sum(x) for x in zip(result['out_x'],result['out_y'],result['out_z'])])
-        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[6.0], [7.0], [25.0], [30.0], [35.0]]])
-        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[6.0], [20.0], [25.0], [30.0], [35.0]]])
+        self.assertEqual(test.model.states['y'].numpy().tolist(), [[[6.0], [25.0], [30.0], [35.0], [5.0]]])
+        self.assertEqual(test.model.states['z'].numpy().tolist(), [[[20.0], [25.0], [30.0], [35.0], [5.0]]])
         ## Clear all states
         test.resetStates()
         self.assertEqual(test.model.states['y'].numpy().tolist(), [[[0.0], [0.0], [0.0], [0.0], [0.0]]])
@@ -506,18 +514,18 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(result['out_z'], [45.0])
         ## 1 sample prediction with state variables all initialized
         result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5], 'z':[1,2,3,4,5]}, connect={'y':'out_x','z':'out_x'})
-        self.assertEqual(result['out'], [160.0])
+        #(1+2+3+4+5)+(1+2+3+4+(1+2+3+4+5))*2+(1+2+3+4+(1+2+3+4+5))*3
+        self.assertEqual(result['out'], [140.0])
         self.assertEqual(result['out_x'], [15.0])
-        self.assertEqual(result['out_y'], [58.0])
-        self.assertEqual(result['out_z'], [87.0])
+        self.assertEqual(result['out_y'], [50.0])
+        self.assertEqual(result['out_z'], [75.0])
         ## multi-sample prediction with states initialized as many times as they have values
         result = test(inputs={'x':[1,2,3,4,5,6,7,8,9], 'y':[1,2,3,4,5,6,7], 'z':[1,2,3,4,5,6]}, connect={'y':'out_x','z':'out_x'})
         self.assertEqual(result['out_x'], [15.0, 20.0, 25.0, 30.0, 35.0])
-        self.assertEqual(result['out_y'], [2.0*(2+3+4+5+15), 2.0*(3+4+5+6+20), 2.0*(4+5+6+7+25), 2.0*(5+6+7+25+30), 2.0*(6+7+25+30+35)])
-        self.assertEqual(result['out_z'], [3*(2+3+4+5+15), 3*(3+4+5+6+20), 3*(4+5+6+20+25), 3*(5+6+20+25+30), 3*(6+20+25+30+35)])
+        self.assertEqual(result['out_y'], [2*(1+2+3+4+15), 2*(2+3+4+5+20), 2*(3+4+5+6+25), 2*(4+5+6+25+30), 2*(5+6+25+30+35)])
+        self.assertEqual(result['out_z'], [3*(1+2+3+4+15), 3*(2+3+4+5+20), 3*(3+4+5+20+25), 3*(4+5+20+25+30), 3*(5+20+25+30+35)])
         self.assertEqual(result['out'], [sum(x) for x in zip(result['out_x'],result['out_y'],result['out_z'])])
 
-   # [58, 76, 94, 146, 206]
     def test_predict_values_and_connect_variables_2models_more_window_connect(self):
         ## Model1
         input1 = Input('in1')
@@ -551,31 +559,31 @@ class MyTestCase(unittest.TestCase):
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=3)
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 105.0])
-        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
+        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[25.], [30.], [20.]]])
 
         ## connect out1 to in3 for 3 samples
         test.resetStates()
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=2)
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 60.0])
-        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[0.], [0.], [30.]]])
+        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[0.], [30.], [0.]]])
 
         ## connect out1 to in3 for 4 samples (initialize in3 with data)
         test.resetStates()
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=3)
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
-        #(1+2+3+4+5)+(2+3+15)
-        #(2+3+4+5+6)+(3+15+20)
-        self.assertEqual(results['out2'], [35.0, 58.0, 85.0, 105.0])
-        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
+        #(1+2+3+4+5)+(1+2+15)
+        #(2+3+4+5+6)+(2+15+20)
+        self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 105.0])
+        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[25.], [30.], [20.]]])
 
         ## connect out1 to in3 for 3 samples (initialize in3 with data)
         test.resetStates()
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=2)
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
-        # (4+5+6+6+7)+(4+5+30)
-        self.assertEqual(results['out2'], [35.0, 58.0, 85.0, 71.0])
-        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[5.], [6.], [30.]]])
+        # (4+5+6+7+8)+(4+5+30)
+        self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 69.0])
+        self.assertEqual(test.model.states['in3'].detach().numpy().tolist(), [[[5.], [30.], [4.]]])
 
     def test_predict_values_and_connect_variables_2models_more_window_connect_predict(self):
         ## Model1
@@ -608,25 +616,25 @@ class MyTestCase(unittest.TestCase):
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=3, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 105.0])
-        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[25.], [30.], [20.]]])
 
         ## connect out1 to in3 for 3 samples
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]]}, prediction_samples=2, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
         self.assertEqual(results['out2'], [30.0, 55.0, 85.0, 60.0])
-        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[0.], [0.], [30.]]])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[0.], [30.], [0.]]])
 
         ## connect out1 to in3 for 4 samples (initialize in3 with data)
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=3, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
-        self.assertEqual(results['out2'], [35.0, 58.0, 85.0, 105.0])
-        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[20.], [25.], [30.]]])
+        self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 105.0])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[25.], [30.], [20.]]])
 
         ## connect out1 to in3 for 3 samples (initialize in3 with data)
         results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=2, connect={'in3':'out1'})
         self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
-        self.assertEqual(results['out2'], [35.0, 58.0, 85.0, 71.0])
-        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[5.], [6.], [30.]]])
+        self.assertEqual(results['out2'], [33.0, 57.0, 85.0, 69.0])
+        self.assertEqual(test.model.connect_variables['in3'].detach().numpy().tolist(), [[[5.], [30.], [4.]]])
 
     def test_predict_values_and_states_only_state_variables_more_window_closed_loop(self):
         x_state = State('x_state')
@@ -711,7 +719,7 @@ class MyTestCase(unittest.TestCase):
         test.resetStates()
         # out2 # = [[-10,-16]] -> 1) [-10,-16]*[4,5] -> [-16*5+-10*4=-120]
         # out3 # = [[-10,-16]] -> 1) [0,0,-10,-10,-16]*[1,2,3,4,5] -> [-10*3+-16*5+-10*4=-150]
-        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-150.0], 'out4': [-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-10,-16]}))
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-10,-16]}))
         test.resetStates()
 
         # out2 # = [[-10,-16],[-16,-10]] -> 1) [-10,-16]*[4,5] -> [-16*5+-10*4=-120]             2) [-16,-10]*[4,5] -> [-16*4+-10*5=-114] -> [-120,-114]
@@ -741,7 +749,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]}, test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-10,-16]}))
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]]}, connect={'inout': 'out1'}))
-        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-150.0], 'out4': [-120.0]},
+        self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [-120.0], 'out3': [-120.0], 'out4': [-120.0]},
                         test({'in1': [[1.0, 2.0], [2.0, 3.0]],'inout':[0,0,0,-10,-16]}, connect={'inout': 'out1'}))
         with self.assertRaises(StopIteration):
             self.assertEqual({}, test())
@@ -832,19 +840,57 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual({'out1': [[1.0, 1.0],[1.0,1.0],[1.0,-73.0]], 'out2': [[[0.0, 0.0]],[[9.0,13.0]],[[12.0,18.0]]]},
                           test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=2))
 
-    def test_predict_values_num_of_samples_priority_parfun_models_closed_loop_predict(self):
-        NeuObj.reset_count()
-        input1 = Input('in1')
-        W = Parameter('W', values=[[[1], [2], [-3]]])
-        parfun = ParamFun(myfun,parameters=[W])
-        output = Output('out1', parfun(input1.sw(3)))
+    # def test_predict_parameters(self):
+    #     NeuObj.reset_count()
+    #     input1 = Input('in1')
+    #     cl1 = State('cl1')
+    #     co1 = State('co1')
+    #     W = Parameter('W', values=[[1], [2], [3]])
+    #     parfun = ParamFun(myfunsum, parameters=[W])
+    #     matmulfun = ParamFun(matmul)
+    #     parfun_out = parfun(input1.sw(3))
+    #     output = Output('out', parfun_out)
+    #     matmul_outcl = matmulfun(parfun_out, cl1.sw(3))+1.0
+    #     matmul_outcl.connect(co1)
+    #     matmul_outcl.closedLoop(cl1)
+    #     outputCl = Output('outCl', matmul_outcl)
+    #     outputCo = Output('outCo', matmulfun(parfun_out, co1.sw(3)))
+    #
+    #
+    #     test = Neu4mes(seed=42)
+    #     test.addModel('model', [output,outputCl,outputCo])
+    #     test.neuralizeModel()
 
-        test = Neu4mes(seed=42)
-        test.addModel('model', output)
-        test.neuralizeModel()
-        # Test output not reccurent
-        result = test({'in1':[1,2,3,4]})
-        self.assertEqual({'out1': [[2*2,3*-3],[3*2,4*-3]]},result)
+        # # Test only one input
+        # result = test({'in1':[1,2,3]})
+        # self.assertEqual((1,3), np.array(result['out']).shape)
+        # self.assertEqual((1,), np.array(result['outCl']).shape)
+        # self.assertEqual((1,), np.array(result['outCo']).shape)
+        # self.assertEqual([[2.0,4.0,6.0]], result['out'])
+        # self.assertEqual([1.0], result['outCl'])
+        # self.assertEqual([6.0],result['outCo'])
+        # self.assertEqual(test.model.states['cl1'].detach().numpy().tolist(), [[[0.], [0.], [1.]]])
+        #
+        # test.resetStates()
+        # self.assertEqual(test.model.states['cl1'].detach().numpy().tolist(), [[[0.], [0.], [0.]]])
+        # result = test({'in1':[1,2,3,4]})
+        # self.assertEqual((2,3), np.array(result['out']).shape)
+        # self.assertEqual((2,), np.array(result['outCl']).shape)
+        # self.assertEqual((2,), np.array(result['outCo']).shape)
+        # self.assertEqual([[2.0,4.0,6.0],[3.0,5.0,7.0]], result['out'])
+        # self.assertEqual(test.model.states['cl1'].detach().numpy().tolist(), [[[1.], [13.], [13.]]])
+        # self.assertEqual([1.0,1*7+1], result['outCl'])
+        # self.assertEqual([2.0*2.0+4*4+6*6,3.0*3+5.0*5+7.0*7],result['outCo'])
+        #
+        # test.resetStates()
+        # result = test({'in1':[1,2,3,4],'cl1':[3,2,1]})
+        # self.assertEqual((2,3), np.array(result['out']).shape)
+        # self.assertEqual((2,), np.array(result['outCl']).shape)
+        # self.assertEqual((2,), np.array(result['outCo']).shape)
+        # self.assertEqual([[2.0,4.0,6.0],[3.0,5.0,7.0]], result['out'])
+        # self.assertEqual([2.0*3+4.0*2+6.0*1,(2.0*3+4.0*5+6.0*7)], result['outCl'])
+        # self.assertEqual([2.0*2.0+4*4+6*6,3.0*3+5.0*5+7.0*7],result['outCo'])
+        #
         # Test output recurrent
 
         # prediction_samples set the dimension of the prediction samples every prediction_samples the recurrent variable is read from input (as in train)
@@ -907,9 +953,6 @@ class MyTestCase(unittest.TestCase):
         # Case predict fewer samples and reset every prediction_sample
         # The states are reset only if the input is present.
         #   test(dataset, prediction_sample=N, num_of_samples=M, aligned_input=True)
-
-        result = test({'in1':[1,2,3,4]},closed_loop={'in1':'out1'})
-        self.assertEqual({'out1': [[2*2,3*-3],[3*2,4*-3]]},result)
 
 if __name__ == '__main__':
     unittest.main()

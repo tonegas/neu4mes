@@ -178,7 +178,7 @@ class Model(nn.Module):
                         #     continue
                         if relation == self.outputs[connect_out]:  ## we have to save the output
                             shift = result_dict[relation].shape[1]
-                            self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
+                            # self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
                             self.connect_variables[connect_in][:, -shift:, :] = result_dict[relation]
                             result_dict[connect_in] = self.connect_variables[connect_in].clone()
                             # window_size = self.input_n_samples[connect_in]
@@ -202,25 +202,25 @@ class Model(nn.Module):
                     if relation in self.states_connect.values():
                         for state in [key for key, value in self.states_connect.items() if value == relation]:
                             shift = result_dict[relation].shape[1]
-                            self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
+                            # self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
                             self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
                             #self.states[state].requires_grad = False
                             available_keys.add(state)
 
-            ## Update closed loop state if necessary
-            for relation in self.relations.keys():
-                # for connect_in, connect_out in self.connect.items():
-                #     if relation == self.outputs[connect_out]:  ## we have to save the output
-                #         self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
-                # if relation in self.states_connect.values():
-                #     for state in [key for key, value in self.states_connect.items() if value == relation]:
-                #         self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
-                if relation in self.states_closed_loop.values():
-                    for state in [key for key, value in self.states_closed_loop.items() if value == relation]:
-                        shift = result_dict[relation].shape[1]
-                        self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)  # shifts=-shift, dims=1)
-                        self.states[state][:, -shift:, :] = result_dict[relation]  # .detach() ## TODO: detach??
-                        # self.states[state].requires_grad = False
+        ## Update closed loop state if necessary
+        for relation in self.relations.keys():
+            for connect_in, connect_out in self.connect.items():
+                if relation == self.outputs[connect_out]:  ## we have to save the output
+                    self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
+            if relation in self.states_connect.values():
+                for state in [key for key, value in self.states_connect.items() if value == relation]:
+                    self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
+            if relation in self.states_closed_loop.values():
+                for state in [key for key, value in self.states_closed_loop.items() if value == relation]:
+                    shift = result_dict[relation].shape[1]
+                    self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)  # shifts=-shift, dims=1)
+                    self.states[state][:, -shift:, :] = result_dict[relation]  # .detach() ## TODO: detach??
+                    # self.states[state].requires_grad = False
 
         ## Return a dictionary with all the outputs final values
         output_dict = {key: result_dict[value] for key, value in self.outputs.items()}

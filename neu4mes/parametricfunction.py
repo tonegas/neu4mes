@@ -93,7 +93,7 @@ class ParamFun(NeuObj):
         if out_win_from_input == False:
             out_win_type = 'sw'
             out_win = out_shape[1]
-            print("The window dimension of the output is not referred to any input.")
+            #self.visualizer.warning("The window dimension of the output is not referred to any input.")
         self.output_dimension = {'dim': out_dim[0], out_win_type : out_win}
 
     def __set_params(self, n_input = None, parameters_dimensions = None, parameters = None):

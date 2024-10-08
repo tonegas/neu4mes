@@ -105,47 +105,44 @@ class Neu4mes:
             os.makedirs(self.folder_path, exist_ok=True)
 
 
-    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = 'auto', num_of_samples = 'auto', align_input = False):
+    def __call__(self, inputs = {}, sampled = False, closed_loop = {}, connect = {}, prediction_samples = 'auto', num_of_samples = 'auto'):#, align_input = False):
+        ## Copy dict for avoid python bug
         inputs = copy.deepcopy(inputs)
         closed_loop = copy.deepcopy(closed_loop)
         connect = copy.deepcopy(connect)
 
+        ## Check neuralize
         check(self.neuralized, ValueError, "The network is not neuralized.")
 
+        ## Bild the list of inputs
         model_inputs = list(self.model_def['Inputs'].keys())
         model_states = list(self.model_def['States'].keys())
         provided_inputs = list(inputs.keys())
         missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
         extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
-
-        # Closed loop inputs
-        input_windows = {}
-        for close_in, close_out in (closed_loop.items()|connect.items()):
-            check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
-            check(close_out in self.model_def['Outputs'], ValueError, f'the tag {close_out} is not an output of the network')
-            if close_in in inputs.keys():
-                input_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in]) - self.input_n_samples[close_in] + 1
-            else:
-                input_windows[close_in] = 1
-        for key in model_states:
-            if key in inputs.keys():
-                input_windows[key] = len(inputs[key]) if sampled else len(inputs[key]) - self.input_n_samples[key] + 1
-            else:
-                input_windows[key] = 1
-
-        # Connect inputs checks
-        for connect_in, connect_out in connect.items():
-            check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
-            check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
-
-        ## Ignoring extra inputs if not necessary
         if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
+            ## Ignoring extra inputs
             self.visualizer.warning(f'The complete model inputs are {model_inputs}, the provided input are {provided_inputs}. Ignoring {extra_inputs}...')
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
         non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(connect.keys()) - set(model_states))
         recurrent_inputs = set(closed_loop.keys())|set(connect.keys())|set(model_states)
+
+        ## Define input windows and check closed loop and connect
+        input_windows = {}
+        for in_var, out_var in (closed_loop.items() | connect.items()):
+            check(in_var in self.model_def['Inputs'], ValueError, f'the tag {in_var} is not an input variable.')
+            check(out_var in self.model_def['Outputs'], ValueError, f'the tag {out_var} is not an output of the network')
+            if in_var in inputs.keys():
+                input_windows[in_var] = len(inputs[in_var]) if sampled else len(inputs[in_var]) - self.input_n_samples[in_var] + 1
+            else:
+                input_windows[in_var] = 1
+        for key in model_states:
+            if key in inputs.keys():
+                input_windows[key] = len(inputs[key]) if sampled else len(inputs[key]) - self.input_n_samples[key] + 1
+            else:
+                input_windows[key] = 1
 
         ## Determine the Maximal number of samples that can be created
         if non_recurrent_inputs:
@@ -196,7 +193,6 @@ class Neu4mes:
             result_dict[key] = []
 
         ## Initialize the state variables
-        # TODO include this code maybe NO it is wrong
         if prediction_samples == None:
             self.model.init_states({}, connect = connect)
         else:
@@ -244,21 +240,19 @@ class Neu4mes:
                 else:
                     if prediction_samples is None:
                         self.model.reset_connect_variables(connect, X)
-                        # TODO include this code
                         self.model.reset_states(X)
                     elif i%(prediction_samples+1) == 0:
                         self.model.reset_connect_variables(connect, X, only=False)
-                        # TODO include this code
                         self.model.reset_states(X, only=False)
 
                 result, _ = self.model(X)
 
                 ## Update the recurrent variable
-                for close_in, close_out in closed_loop.items():
+                for close_in, out_var in closed_loop.items():
                     #if i >= input_windows[close_in]-1:
-                    dim = result[close_out].shape[1]  ## take the output time dimension
+                    dim = result[out_var].shape[1]  ## take the output time dimension
                     X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
-                    X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
+                    X[close_in][:, -dim:, :] = result[out_var] ## substitute with the predicted value
 
                 ## Append the prediction of the current sample to the result dictionary
                 for key in self.model_def['Outputs'].keys():
