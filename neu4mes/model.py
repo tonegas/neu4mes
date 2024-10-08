@@ -16,15 +16,15 @@ class Model(nn.Module):
         self.constants = model_def['Constants']
         self.sample_time = model_def['SampleTime']
         self.functions = model_def['Functions']
-        self.state_model = model_def['States']
+        self.state_model_main = model_def['States']
+        self.state_model = copy.deepcopy(self.state_model_main)
         self.minimizers = minimize_dict
         self.input_ns_backward = input_ns_backward
         self.input_n_samples = input_n_samples
         self.minimizers_keys = [minimize_dict[key]['A'].name for key in minimize_dict] + [minimize_dict[key]['B'].name for key in minimize_dict]
 
         #self.batch_size = 1
-        self.connect = {}
-        self.initialize_connect = False
+
 
         ## Build the network
         self.all_parameters = {}
@@ -32,10 +32,13 @@ class Model(nn.Module):
         self.relation_forward = {}
         self.relation_inputs = {}
         self.states = {}
-        self.states_updates = {}
+        self.states_closed_loop = {}
         self.states_connect = {}
         #self.constants = set()
+
         self.connect_variables = {}
+        self.connect = {}
+        self.initialize_connect = False
 
         ## Define the correct slicing
         json_inputs = self.inputs | self.state_model
@@ -86,13 +89,7 @@ class Model(nn.Module):
 
 
         ## Initialize state variables
-        self.reset_states()
-        ## save the states updates
-        for state, param in self.state_model.items():
-            if 'connect' in param.keys():
-                self.states_connect[state] = param['connect']
-            else:
-                self.states_updates[state] = param['closedLoop']
+        self.init_states(self.state_model_main, reset_states=True)
 
         ## Create all the relations
         for relation, inputs in self.relations.items():
@@ -177,27 +174,27 @@ class Model(nn.Module):
 
                     ## Update the connect variables if necessary
                     for connect_in, connect_out in self.connect.items():
-                        if connect_in in available_keys:
-                            continue
+                        # if connect_in in available_keys:
+                        #     continue
                         if relation == self.outputs[connect_out]:  ## we have to save the output
-                            # shift = result_dict[relation].shape[1]
-                            # self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
-                            # self.connect_variables[connect_in][:, -shift:, :] = result_dict[relation]
-                            # result_dict[connect_in] = self.connect_variables[connect_in].clone()
-                            window_size = self.input_n_samples[connect_in]
-                            relation_size = result_dict[relation].shape[1]
-                            if relation_size > window_size:
-                                result_dict[connect_in] = result_dict[relation][:, window_size:, :].clone()
-                            elif relation_size == window_size:
-                                result_dict[connect_in] = result_dict[relation].clone()
-                            else: ## input window is bigger than the output window
-                                if self.initialize_connect:
-                                    result_dict[connect_in] = self.connect_variables[connect_in].clone()
-                                    self.initialize_connect=False
-                                else:
-                                    result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)#relation_size, dims=1)
-                                result_dict[connect_in][:, -relation_size:, :] = result_dict[relation].clone()
-                                self.connect_variables[connect_in] = result_dict[connect_in].clone()
+                            shift = result_dict[relation].shape[1]
+                            self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
+                            self.connect_variables[connect_in][:, -shift:, :] = result_dict[relation]
+                            result_dict[connect_in] = self.connect_variables[connect_in].clone()
+                            # window_size = self.input_n_samples[connect_in]
+                            # relation_size = result_dict[relation].shape[1]
+                            # if relation_size > window_size:
+                            #     result_dict[connect_in] = result_dict[relation][:, window_size:, :].clone()
+                            # elif relation_size == window_size:
+                            #     result_dict[connect_in] = result_dict[relation].clone()
+                            # else: ## input window is bigger than the output window
+                            #     if self.initialize_connect:
+                            #         result_dict[connect_in] = self.connect_variables[connect_in].clone()
+                            #         self.initialize_connect=False
+                            #     else:
+                            #         result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)#relation_size, dims=1)
+                            #     result_dict[connect_in][:, -relation_size:, :] = result_dict[relation].clone()
+                            #     self.connect_variables[connect_in] = result_dict[connect_in].clone()
                             ## add the new input
                             available_keys.add(connect_in)
 
@@ -212,8 +209,14 @@ class Model(nn.Module):
 
             ## Update closed loop state if necessary
             for relation in self.relations.keys():
-                if relation in self.states_updates.values():
-                    for state in [key for key, value in self.states_updates.items() if value == relation]:
+                # for connect_in, connect_out in self.connect.items():
+                #     if relation == self.outputs[connect_out]:  ## we have to save the output
+                #         self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
+                # if relation in self.states_connect.values():
+                #     for state in [key for key, value in self.states_connect.items() if value == relation]:
+                #         self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
+                if relation in self.states_closed_loop.values():
+                    for state in [key for key, value in self.states_closed_loop.items() if value == relation]:
                         shift = result_dict[relation].shape[1]
                         self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)  # shifts=-shift, dims=1)
                         self.states[state][:, -shift:, :] = result_dict[relation]  # .detach() ## TODO: detach??
@@ -227,6 +230,21 @@ class Model(nn.Module):
             minimize_dict[key] = result_dict[self.outputs[key]] if key in self.outputs.keys() else result_dict[key]
                 
         return output_dict, minimize_dict
+
+
+    def init_states(self, state_model, connect = {}, reset_states = False):
+        ## Initialize state variables
+        if reset_states:
+            self.reset_states()
+        self.reset_connect_variables(copy.deepcopy(connect), only=False)
+        self.states_connect = {}
+        self.states_closed_loop = {}
+        ## save the states updates
+        for state, param in state_model.items():
+            if 'connect' in param.keys():
+                self.states_connect[state] = param['connect']
+            else:
+                self.states_closed_loop[state] = param['closedLoop']
 
     def reset_connect_variables(self, connect, values = None, only = True):
         if only == False:

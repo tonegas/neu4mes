@@ -105,7 +105,7 @@ class Neu4mes:
             os.makedirs(self.folder_path, exist_ok=True)
 
 
-    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = None, num_of_samples = None, align_input = False):
+    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples = 'auto', num_of_samples = 'auto', align_input = False):
         inputs = copy.deepcopy(inputs)
         closed_loop = copy.deepcopy(closed_loop)
         connect = copy.deepcopy(connect)
@@ -119,19 +119,19 @@ class Neu4mes:
         extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
 
         # Closed loop inputs
-        closed_loop_windows = {}
-        for close_in, close_out in closed_loop.items():
+        input_windows = {}
+        for close_in, close_out in (closed_loop.items()|connect.items()):
             check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
             check(close_out in self.model_def['Outputs'], ValueError, f'the tag {close_out} is not an output of the network')
             if close_in in inputs.keys():
-                closed_loop_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in])-self.input_n_samples[close_in]+1
+                input_windows[close_in] = len(inputs[close_in]) if sampled else len(inputs[close_in]) - self.input_n_samples[close_in] + 1
             else:
-                closed_loop_windows[close_in] = 1
+                input_windows[close_in] = 1
         for key in model_states:
             if key in inputs.keys():
-                closed_loop_windows[key] = len(inputs[key]) if sampled else len(inputs[key])-self.input_n_samples[key]+1
+                input_windows[key] = len(inputs[key]) if sampled else len(inputs[key]) - self.input_n_samples[key] + 1
             else:
-                closed_loop_windows[key] = 1
+                input_windows[key] = 1
 
         # Connect inputs checks
         for connect_in, connect_out in connect.items():
@@ -159,10 +159,10 @@ class Neu4mes:
             max_din_key = non_recurrent_inputs[max_dim_ind]
         else:
             if recurrent_inputs:
-                ps = 0 if prediction_samples is None else prediction_samples
+                ps = 0 if prediction_samples=='auto' or prediction_samples is None else prediction_samples
                 if provided_inputs:
-                    min_dim_ind, min_dim = argmin_min([closed_loop_windows[key]+ps for key in provided_inputs])
-                    max_dim_ind, max_dim = argmax_max([closed_loop_windows[key]+ps for key in provided_inputs])
+                    min_dim_ind, min_dim = argmin_min([input_windows[key] + ps for key in provided_inputs])
+                    max_dim_ind, max_dim = argmax_max([input_windows[key] + ps for key in provided_inputs])
                     min_din_key = provided_inputs[min_dim_ind]
                     max_din_key = provided_inputs[max_dim_ind]
                 else:
@@ -175,7 +175,10 @@ class Neu4mes:
         #     window_dim = max_dim
         # else:
         #     window_dim = min_dim
-        window_dim = min_dim
+        if num_of_samples != 'auto':
+            window_dim = min_dim = max_dim = num_of_samples
+        else:
+            window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
         ## warning the users about different time windows between samples
@@ -194,18 +197,23 @@ class Neu4mes:
 
         ## Initialize the state variables
         # TODO include this code maybe NO it is wrong
-        # if prediction_samples is not None:
+        if prediction_samples == None:
+            self.model.init_states({}, connect = connect)
+        else:
+            self.model.init_states(self.model_def['States'], connect = connect, reset_states = False)
+
+        #if prediction_samples != 'auto':
         #     self.model.reset_states(only=False)
-        self.model.reset_connect_variables(connect, only = False)
+        #    self.model.reset_connect_variables(connect, only = False)
 
         ## Cycle through all the samples provided
         with torch.inference_mode():
             X = {}
             for i in range(window_dim):
                 for key, val in inputs.items():
-                    if key in closed_loop.keys() or key in model_states:
-                        if i >= closed_loop_windows[key]:
-                            if key in model_states and key in X.keys():
+                    if key in (closed_loop|connect).keys() or key in model_states:
+                        if i >= input_windows[key]:
+                            if (key in model_states or key in connect.keys()) and key in X.keys():
                                 del X[key]
                             continue
 
@@ -230,21 +238,24 @@ class Neu4mes:
                     if X[key].ndim <= 2: ## add the time dimension
                         X[key] = X[key].unsqueeze(0)
 
-                self.model.reset_states(X)
-                if prediction_samples is None:
+                if prediction_samples == 'auto':
+                    self.model.reset_states(X)
                     self.model.reset_connect_variables(connect, X)
-                    # TODO include this code
-                    #self.model.reset_states(X)
-                elif i%(prediction_samples+1) == 0:
-                    self.model.reset_connect_variables(connect, X, only=False)
-                    # TODO include this code
-                    #self.model.reset_states(X, only=False)
+                else:
+                    if prediction_samples is None:
+                        self.model.reset_connect_variables(connect, X)
+                        # TODO include this code
+                        self.model.reset_states(X)
+                    elif i%(prediction_samples+1) == 0:
+                        self.model.reset_connect_variables(connect, X, only=False)
+                        # TODO include this code
+                        self.model.reset_states(X, only=False)
 
                 result, _ = self.model(X)
 
                 ## Update the recurrent variable
                 for close_in, close_out in closed_loop.items():
-                    #if i >= closed_loop_windows[close_in]-1:
+                    #if i >= input_windows[close_in]-1:
                     dim = result[close_out].shape[1]  ## take the output time dimension
                     X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
                     X[close_in][:, -dim:, :] = result[close_out] ## substitute with the predicted value
@@ -1075,6 +1086,7 @@ class Neu4mes:
         return aux_losses
 
     def resetStates(self, values = None, only = True):
+        self.model.init_states(self.model_def['States'], reset_states=False)
         self.model.reset_states(values, only)
 
     def save_model(self, path):

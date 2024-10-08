@@ -1028,14 +1028,14 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel()
         self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]},
                          test(prediction_samples=5))
-        self.assertEqual({'out1': [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0]},
-                         test({'in1':[1.0,2.0]},prediction_samples=5))
-        # self.assertEqual({'out1': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0]},
-        #                  test({'in1': [1.0, 2.0]}, prediction_samples=5))
-        self.assertEqual({'out1': [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]},
-                         test({'in2':[-1.0,-2.0,-3.0]},prediction_samples=5))
-        # self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0]},
-        #                  test({'in2':[-1.0,-2.0,-3.0]}, prediction_samples=5))
+        #self.assertEqual({'out1': [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0]},
+        #                 test({'in1':[1.0,2.0]},prediction_samples=5))
+        self.assertEqual({'out1': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0]},
+                          test({'in1': [1.0, 2.0]}, prediction_samples=5))
+        #self.assertEqual({'out1': [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]},
+        #                 test({'in2':[-1.0,-2.0,-3.0]},prediction_samples=5))
+        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0]},
+                          test({'in2':[-1.0,-2.0,-3.0]}, prediction_samples=5))
 
         dataset = {'in1': [0,2,7,1], 'in2': [-1,0,-3,7], 'out1': [3,4,5,1], 'out2': [-3,-4,-5,-1]}
         test.loadData(name='dataset2', source=dataset)
