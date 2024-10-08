@@ -1088,14 +1088,17 @@ class Neu4mes:
 
 
     def exportJSON(self,):
+        from pprint import pformat 
+        import json
         # Specify the JSON file name
         file_name = "model.json"
         # Combine the folder path and file name to form the complete file path
         file_path = os.path.join(self.folder_path, file_name)
         # Export the dictionary as a JSON file
         with open(file_path, 'w') as json_file:
-            pformat(self.model_def, width=80).strip().splitlines()
-            json_file.write(pformat(self.model_def, width=80).strip().replace('\'', '\"'))
+            # pformat(self.model_def_trained, width=80).strip().splitlines()
+            # json_file.write(pformat(self.model_def_trained, width=80).strip().replace('\'', '\"'))
+            json_file.write(json.dumps(self.model_def_trained))
         self.visualizer.warning(f"The model definition has been exported to {file_name} as a JSON file.")
         return file_path
 
