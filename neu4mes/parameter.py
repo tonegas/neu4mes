@@ -15,8 +15,8 @@ class Constant(NeuObj, Stream):
         else:
             check(len(shape) >= 2, ValueError,
               f"The shape of a Constant must have at least 2 dimensions or zero.")
-            dimensions = shape[1] if len(shape[1:]) == 1 else shape[1:]
-            self.dim = {'dim': list(dimensions)}
+            dimensions = shape[1] if len(shape[1:]) == 1 else list(shape[1:])
+            self.dim = {'dim': dimensions}
             if tw is not None:
                 check(sw is None, ValueError, "If tw is set sw must be None")
                 self.dim['tw'] = tw

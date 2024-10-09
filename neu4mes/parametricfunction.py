@@ -76,8 +76,8 @@ class ParamFun(NeuObj):
                 dim_win = dim[window]
             else:
                 dim_win = 1
-            if type(dim['dim']) is tuple:
-                inputs.append(torch.rand(size= (dim_win,) + dim['dim'] ))
+            if type(dim['dim']) in (list,tuple):
+                inputs.append(torch.rand(size= (dim_win,) + tuple(dim['dim'])))
             else:
                 inputs.append(torch.rand(size=(dim_win, dim['dim'])))
 
@@ -139,10 +139,11 @@ class ParamFun(NeuObj):
                                   'The element inside the \"parameters\" dict must be a Parameter or str')
                     elif type(parameters_dimensions) is dict and key in parameters_dimensions:
                         param_name = self.name + key
-                        check(isinstance(parameters_dimensions[key],(tuple,int)), TypeError,
+                        dim = parameters_dimensions[key]
+                        check(isinstance(dim,(list,tuple,int)), TypeError,
                               'The element inside the \"parameters_dimensions\" dict must be a tuple or int')
                         self.json['Functions'][self.name]['parameters'].append(param_name)
-                        self.json['Parameters'][param_name] = {'dim': parameters_dimensions[key]}
+                        self.json['Parameters'][param_name] = {'dim': list(dim) if type(dim) is tuple else dim}
                     else:
                         param_name = self.name + key
                         self.json['Functions'][self.name]['parameters'].append(param_name)
