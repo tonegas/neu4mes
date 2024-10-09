@@ -1,3 +1,5 @@
+from neu4mes.fuzzify import triangular, rectangular, custom_function
+
 import matplotlib.pyplot as plt
 import io
 import numpy as np
@@ -51,51 +53,66 @@ def generate_training_report(train_loss, val_loss, y_true, y_pred, output_file='
     c.save()
 
     print(f"Training report saved as {output_file}")
+#
+#
+# def triangular(x, idx_channel, chan_centers):
+#     # Compute the number of channels
+#     num_channels = len(chan_centers)
+#     # First dimension of activation
+#     if idx_channel == 0:
+#         if num_channels != 1:
+#             ampl    = chan_centers[1] - chan_centers[0]
+#             act_fcn = np.minimum(np.maximum(-(x - chan_centers[0])/ampl + 1, 0), 1)
+#         else:
+#             # In case the user only wants one channel
+#             act_fcn = 1
+#     elif idx_channel != 0 and idx_channel == (num_channels - 1):
+#         ampl    = chan_centers[-1] - chan_centers[-2]
+#         act_fcn = np.minimum(np.maximum((x - chan_centers[-2])/ampl, 0), 1)
+#     else:
+#         ampl_1  = chan_centers[idx_channel] - chan_centers[idx_channel - 1]
+#         ampl_2  = chan_centers[idx_channel + 1] - chan_centers[idx_channel]
+#         act_fcn = np.minimum(np.maximum((x - chan_centers[idx_channel - 1])/ampl_1, 0),np.maximum(-(x - chan_centers[idx_channel])/ampl_2 + 1, 0))
+#     return act_fcn
+#
+# def rectangular(x, idx_channel, chan_centers):
+#     ## compute number of channels
+#     num_channels = len(chan_centers)
+#     ## First dimension of activation
+#     if idx_channel == 0:
+#         if num_channels != 1:
+#             width = (chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
+#             act_fcn = np.where(x < (chan_centers[idx_channel] + width), 1.0, 0.0)
+#         else:
+#             # In case the user only wants one channel
+#             act_fcn = 1
+#     elif idx_channel != 0 and idx_channel == (num_channels - 1):
+#         width = (chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
+#         act_fcn = np.where(x >= (chan_centers[idx_channel] - width), 1.0, 0.0)
+#     else:
+#         width_forward = (chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
+#         width_backward = (chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
+#         act_fcn = np.where((x >= (chan_centers[idx_channel] - width_backward)) & (x < (chan_centers[idx_channel] + width_forward)), 1.0, 0.0)
+#     return act_fcn
+#
+# def custom_function(func, x, idx_channel, chan_centers):
+#     act_fcn = func(x-chan_centers[idx_channel])
+#     return act_fcn
 
+import sys
+from pprint import PrettyPrinter
 
-def triangular(x, idx_channel, chan_centers):
-    # Compute the number of channels
-    num_channels = len(chan_centers)
-    # First dimension of activation
-    if idx_channel == 0:
-        if num_channels != 1:
-            ampl    = chan_centers[1] - chan_centers[0]
-            act_fcn = np.minimum(np.maximum(-(x - chan_centers[0])/ampl + 1, 0), 1)
+class JsonPrettyPrinter(PrettyPrinter):
+    def _format(self, object, *args):
+        if isinstance(object, str):
+            width = self._width
+            self._width = sys.maxsize
+            try:
+                super()._format(object.replace('\'','_"_'), *args)
+            finally:
+                self._width = width
         else:
-            # In case the user only wants one channel
-            act_fcn = 1
-    elif idx_channel != 0 and idx_channel == (num_channels - 1):
-        ampl    = chan_centers[-1] - chan_centers[-2]
-        act_fcn = np.minimum(np.maximum((x - chan_centers[-2])/ampl, 0), 1)
-    else:
-        ampl_1  = chan_centers[idx_channel] - chan_centers[idx_channel - 1]
-        ampl_2  = chan_centers[idx_channel + 1] - chan_centers[idx_channel]
-        act_fcn = np.minimum(np.maximum((x - chan_centers[idx_channel - 1])/ampl_1, 0),np.maximum(-(x - chan_centers[idx_channel])/ampl_2 + 1, 0))
-    return act_fcn
-
-def rectangular(x, idx_channel, chan_centers):
-    ## compute number of channels
-    num_channels = len(chan_centers)
-    ## First dimension of activation
-    if idx_channel == 0:
-        if num_channels != 1:
-            width = (chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
-            act_fcn = np.where(x < (chan_centers[idx_channel] + width), 1.0, 0.0)
-        else:
-            # In case the user only wants one channel
-            act_fcn = 1
-    elif idx_channel != 0 and idx_channel == (num_channels - 1):
-        width = (chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = np.where(x >= (chan_centers[idx_channel] - width), 1.0, 0.0)
-    else:
-        width_forward = (chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2  
-        width_backward = (chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = np.where((x >= (chan_centers[idx_channel] - width_backward)) & (x < (chan_centers[idx_channel] + width_forward)), 1.0, 0.0)
-    return act_fcn
-
-def custom_function(func, x, idx_channel, chan_centers):
-    act_fcn = func(x-chan_centers[idx_channel])
-    return act_fcn
+            super()._format(object, *args)
 
 # -------------------------------------------------------
 # Testing the mono-dimensional (1D) linear activation function
@@ -119,7 +136,7 @@ def plot_fuzzify(params):
                 print(f"An error occurred: {e}")
 
     # Array of the independent variable
-    x_test = np.linspace(params['centers'][0] - 2, params['centers'][-1] + 2, num=1000) 
+    x_test = np.linspace(params['centers'][0] - 2, params['centers'][-1] + 2, num=1000)
     x_test = torch.from_numpy(x_test)
     # Array of the channel centers
     chan_centers = np.array(params['centers'])
