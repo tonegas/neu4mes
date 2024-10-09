@@ -1,4 +1,4 @@
-import inspect, copy
+import inspect, copy, textwrap
 import numpy as np
 import torch.nn as nn
 import torch
@@ -38,10 +38,12 @@ class Fuzzify(NeuObj):
             self.json['Functions'][self.name]['functions'] = []
             self.json['Functions'][self.name]['names'] = []
             for func in functions:
-                self.json['Functions'][self.name]['functions'].append(inspect.getsource(func))
+                code = textwrap.dedent(inspect.getsource(func)).replace('\"','\'')
+                self.json['Functions'][self.name]['functions'].append(code)
                 self.json['Functions'][self.name]['names'].append(func.__name__)
         else:
-            self.json['Functions'][self.name]['functions'] = inspect.getsource(functions)
+            code = textwrap.dedent(inspect.getsource(functions)).replace('\"','\'')
+            self.json['Functions'][self.name]['functions'] = code
             self.json['Functions'][self.name]['names'] = functions.__name__
 
     def __call__(self, obj:Stream) -> Stream:
@@ -138,12 +140,13 @@ class Fuzzify_Layer(nn.Module):
 
         if type(self.name) is list:
             self.n_func = len(self.name)
-            for func in self.function:
+            for func,name in zip(self.function,self.name):
                 ## Add the function to the globals
                 try:
-                    exec(func, globals())
+                    code = 'import torch\n@torch.fx.wrap\n' + func
+                    exec(code, globals())
                 except Exception as e:
-                    print(f"An error occurred: {e}")
+                    check(False, RuntimeError,f"An error occurred when running the function '{name}':\n {e}")
         else:
             self.n_func = 1
             if self.name not in ['Triangular', 'Rectangular']: ## custom function
@@ -152,7 +155,7 @@ class Fuzzify_Layer(nn.Module):
                     code = 'import torch\n@torch.fx.wrap\n' + self.function
                     exec(code, globals())
                 except Exception as e:
-                    print(f"An error occurred: {e}")
+                    check(False, RuntimeError,f"An error occurred when running the function '{self.name}':\n {e}")
 
     def forward(self, x):
         #res = torch.empty((x.size(0), x.size(1), self.dimension), dtype=torch.float32)

@@ -1,4 +1,4 @@
-import copy, inspect
+import copy, inspect, textwrap
 import numpy as np
 
 from neu4mes.relation import NeuObj, Stream
@@ -16,7 +16,7 @@ class Constant(NeuObj, Stream):
             check(len(shape) >= 2, ValueError,
               f"The shape of a Constant must have at least 2 dimensions or zero.")
             dimensions = shape[1] if len(shape[1:]) == 1 else shape[1:]
-            self.dim = {'dim': dimensions}
+            self.dim = {'dim': list(dimensions)}
             if tw is not None:
                 check(sw is None, ValueError, "If tw is set sw must be None")
                 self.dim['tw'] = tw
@@ -32,12 +32,12 @@ class Constant(NeuObj, Stream):
         Stream.__init__(self, name, self.json, self.dim)
 
 class Parameter(NeuObj, Stream):
-    def __init__(self, name:str, dimensions:int|tuple|None = None, tw:int|None = None, sw:int|None = None, values:list|None = None, init:None = None, init_params:None = None):
+    def __init__(self, name:str, dimensions:int|list|tuple|None = None, tw:int|None = None, sw:int|None = None, values:list|None = None, init:None = None, init_params:None = None):
         NeuObj.__init__(self, name)
         if values is None:
             if dimensions is None:
                 dimensions = 1
-            self.dim = {'dim': dimensions}
+            self.dim = {'dim': list(dimensions) if type(dimensions) is tuple else dimensions}
             if tw is not None:
                 check(sw is None, ValueError, "If tw is set sw must be None")
                 self.dim['tw'] = tw
@@ -74,7 +74,8 @@ class Parameter(NeuObj, Stream):
         if init is not None:
             check('values' not in self.json['Parameters'][self.name], ValueError, f"The parameter {self.name} is already initialized.")
             check(inspect.isfunction(init), ValueError,f"The init parameter must be a function.")
-            self.json['Parameters'][self.name]['init_fun'] = { 'code' : inspect.getsource(init), 'name' : init.__name__}
+            code = textwrap.dedent(inspect.getsource(init)).replace('\"', '\'')
+            self.json['Parameters'][self.name]['init_fun'] = { 'code' : code, 'name' : init.__name__}
             if init_params is not None:
                 self.json['Parameters'][self.name]['init_fun']['params'] = init_params
 

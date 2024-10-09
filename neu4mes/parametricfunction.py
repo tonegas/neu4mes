@@ -1,4 +1,4 @@
-import inspect, copy
+import inspect, copy, textwrap
 
 import torch.nn as nn
 
@@ -16,8 +16,9 @@ class ParamFun(NeuObj):
         self.param_fun = param_fun
         self.output_dimension = {}
         super().__init__('F'+paramfun_relation_name + str(NeuObj.count))
+        code = textwrap.dedent(inspect.getsource(param_fun)).replace('\"', '\'')
         self.json['Functions'][self.name] = {
-            'code' : inspect.getsource(param_fun),
+            'code' : code,
             'name' : param_fun.__name__
         }
         self.json['Functions'][self.name]['parameters'] = []
