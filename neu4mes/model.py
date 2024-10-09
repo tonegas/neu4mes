@@ -66,7 +66,7 @@ class Model(nn.Module):
             window = 'tw' if 'tw' in param_data.keys() else ('sw' if 'sw' in param_data.keys() else None)
             aux_sample_time = self.sample_time if 'tw' == window else 1
             sample_window = round(param_data[window] / aux_sample_time) if window else 1
-            param_size = (sample_window,)+param_data['dim'] if type(param_data['dim']) is tuple else (sample_window, param_data['dim'])
+            param_size = (sample_window,)+tuple(param_data['dim']) if type(param_data['dim']) is list else (sample_window, param_data['dim'])
             if 'values' in param_data:
                 self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=True)
             # TODO clean code
