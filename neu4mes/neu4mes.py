@@ -156,29 +156,26 @@ class Neu4mes:
             max_din_key = non_recurrent_inputs[max_dim_ind]
         else:
             if recurrent_inputs:
-                ps = 0 if prediction_samples=='auto' or prediction_samples is None else prediction_samples
+                #ps = 0 if prediction_samples=='auto' or prediction_samples is None else prediction_samples
                 if provided_inputs:
-                    min_dim_ind, min_dim = argmin_min([input_windows[key] + ps for key in provided_inputs])
-                    max_dim_ind, max_dim = argmax_max([input_windows[key] + ps for key in provided_inputs])
+                    min_dim_ind, min_dim = argmin_min([input_windows[key]  for key in provided_inputs])
+                    max_dim_ind, max_dim = argmax_max([input_windows[key]  for key in provided_inputs])
                     min_din_key = provided_inputs[min_dim_ind]
                     max_din_key = provided_inputs[max_dim_ind]
                 else:
-                    min_dim = max_dim = ps + 1
+                    min_dim = max_dim =  1
             else:
                 min_dim = max_dim = 0
 
-        # TODO include this code
-        # if recurrent_inputs:
-        #     window_dim = max_dim
-        # else:
-        #     window_dim = min_dim
+        ## Define the number of samples
         if num_of_samples != 'auto':
             window_dim = min_dim = max_dim = num_of_samples
         else:
+            # Use the minimum number of input samples if the net is not autonoma otherwise the minimum number of state samples
             window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
-        ## warning the users about different time windows between samples
+        ## Warning the users about different time windows between samples
         if min_dim != max_dim:
             self.visualizer.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
 
@@ -194,13 +191,10 @@ class Neu4mes:
 
         ## Initialize the state variables
         if prediction_samples == None:
+            # If the prediction sample is None the connection are removed
             self.model.init_states({}, connect = connect)
         else:
             self.model.init_states(self.model_def['States'], connect = connect, reset_states = False)
-
-        #if prediction_samples != 'auto':
-        #     self.model.reset_states(only=False)
-        #    self.model.reset_connect_variables(connect, only = False)
 
         ## Cycle through all the samples provided
         with torch.inference_mode():
@@ -234,14 +228,14 @@ class Neu4mes:
                     if X[key].ndim <= 2: ## add the time dimension
                         X[key] = X[key].unsqueeze(0)
 
-                if prediction_samples == 'auto':
+                ## Reset the state variable
+                if prediction_samples == 'auto' or prediction_samples is None:
+                    ## If prediction sample is auto or Non the state is reset with the available samples
                     self.model.reset_states(X)
                     self.model.reset_connect_variables(connect, X)
                 else:
-                    if prediction_samples is None:
-                        self.model.reset_connect_variables(connect, X)
-                        self.model.reset_states(X)
-                    elif i%(prediction_samples+1) == 0:
+                    ## Otherwise the variable are reset every prediction samples
+                    if i%(prediction_samples+1) == 0:
                         self.model.reset_connect_variables(connect, X, only=False)
                         self.model.reset_states(X, only=False)
 
