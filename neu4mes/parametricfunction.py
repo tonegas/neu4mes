@@ -1,4 +1,4 @@
-import inspect, copy
+import inspect, copy, textwrap
 
 import torch.nn as nn
 
@@ -16,8 +16,9 @@ class ParamFun(NeuObj):
         self.param_fun = param_fun
         self.output_dimension = {}
         super().__init__('F'+paramfun_relation_name + str(NeuObj.count))
+        code = textwrap.dedent(inspect.getsource(param_fun)).replace('\"', '\'')
         self.json['Functions'][self.name] = {
-            'code' : inspect.getsource(param_fun),
+            'code' : code,
             'name' : param_fun.__name__
         }
         self.json['Functions'][self.name]['parameters'] = []
@@ -75,8 +76,8 @@ class ParamFun(NeuObj):
                 dim_win = dim[window]
             else:
                 dim_win = 1
-            if type(dim['dim']) is tuple:
-                inputs.append(torch.rand(size= (dim_win,) + dim['dim'] ))
+            if type(dim['dim']) in (list,tuple):
+                inputs.append(torch.rand(size= (dim_win,) + tuple(dim['dim'])))
             else:
                 inputs.append(torch.rand(size=(dim_win, dim['dim'])))
 
@@ -93,7 +94,7 @@ class ParamFun(NeuObj):
         if out_win_from_input == False:
             out_win_type = 'sw'
             out_win = out_shape[1]
-            print("The window dimension of the output is not referred to any input.")
+            #self.visualizer.warning("The window dimension of the output is not referred to any input.")
         self.output_dimension = {'dim': out_dim[0], out_win_type : out_win}
 
     def __set_params(self, n_input = None, parameters_dimensions = None, parameters = None):
@@ -138,10 +139,11 @@ class ParamFun(NeuObj):
                                   'The element inside the \"parameters\" dict must be a Parameter or str')
                     elif type(parameters_dimensions) is dict and key in parameters_dimensions:
                         param_name = self.name + key
-                        check(isinstance(parameters_dimensions[key],(tuple,int)), TypeError,
+                        dim = parameters_dimensions[key]
+                        check(isinstance(dim,(list,tuple,int)), TypeError,
                               'The element inside the \"parameters_dimensions\" dict must be a tuple or int')
                         self.json['Functions'][self.name]['parameters'].append(param_name)
-                        self.json['Parameters'][param_name] = {'dim': parameters_dimensions[key]}
+                        self.json['Parameters'][param_name] = {'dim': list(dim) if type(dim) is tuple else dim}
                     else:
                         param_name = self.name + key
                         self.json['Functions'][self.name]['parameters'].append(param_name)

@@ -543,10 +543,15 @@ class Neu4mesTrainingTest(unittest.TestCase):
                                   'out2': [[[(4*-1+5*-5+1.0)*4.0+(0*-1+0*-5+1.0)*5.0]]],
                                   'out3': [[[(-15)*1.0+(4*-1+2*-5+1.0)*2.0+(6*-1+5*-5+1.0)*3.0+(4*-1+5*-5+1.0)*4.0+(0*-1+0*-5+1.0)*5.0]]],
                                   'out4': [[[(4*-1+5*-5+1.0)*4.0+(0*-1+0*-5+1.0)*5.0]]]}, test.internals['inout_0_3']['out'])
-        self.assertDictEqual({'inout': [[[0.0], [0.0], [0.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['state'])
-        self.assertDictEqual({'inout': [[[0.0], [0.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['state'])
+        self.assertDictEqual({'inout': [[[0.0],[0.0], [0.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['state'])
+        self.assertDictEqual({'inout': [[[0.0],[0.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['state'])
         self.assertDictEqual({'inout': [[[0.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['state'])
         self.assertDictEqual({'inout': [[[-15.0], [-13.0], [-30.0], [-28.0], [1.0]]]}, test.internals['inout_0_3']['state'])
+        # Replace instead of roll
+        # self.assertDictEqual({'inout': [[[0.0], [0.0], [-15.0], [-13.0], [0.0]]]}, test.internals['inout_0_0']['state'])
+        # self.assertDictEqual({'inout': [[[0.0], [-15.0], [-13.0], [-30.0], [0.0]]]}, test.internals['inout_0_1']['state'])
+        # self.assertDictEqual({'inout': [[[-15.0], [-13.0], [-30.0], [-28.0], [0.0]]]}, test.internals['inout_0_2']['state'])
+        # self.assertDictEqual({'inout': [[[-13.0], [-30.0], [-28.0], [1.0], [-15.0]]]}, test.internals['inout_0_3']['state'])
         self.assertListEqual([[[22273.5], [20993.0]]],test.model.all_parameters['W'].data.numpy().tolist())
         self.assertListEqual([[6154.0]], test.model.all_parameters['b'].data.numpy().tolist())
         self.assertListEqual([[4], [5]], test.model.all_parameters['a'].data.numpy().tolist())
@@ -574,6 +579,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertDictEqual({'inout': [[[0.0], [0.0], [0.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['state'])
         self.assertDictEqual({'inout': [[[0.0], [0.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['state'])
         self.assertDictEqual({'inout': [[[0.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['state'])
+        # Replace instead of rolling
+        # self.assertDictEqual({'inout': [[[0.0], [0.0], [-15.0], [-13.0], [0.0]]]}, test.internals['inout_0_0']['state'])
+        # self.assertDictEqual({'inout': [[[0.0], [-15.0], [-13.0], [-30.0], [0.0]]]}, test.internals['inout_0_1']['state'])
+        # self.assertDictEqual({'inout': [[[-15.0], [-13.0], [-30.0], [-28.0], [0.0]]]}, test.internals['inout_0_2']['state'])
         W = test.internals['inout_1_0']['param']['W']
         b = test.internals['inout_1_0']['param']['b']
         self.assertDictEqual({'in1': [[[4.0, 2.0], [6.0, 5.0]]], 'target': [[[0.0]]]}, test.internals['inout_1_0']['XY'])
@@ -582,6 +591,18 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertAlmostEqual({'inout': [[[0.0], [0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_0']['state'])
         self.assertAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]]]]}, test.internals['inout_1_1']['state'])
         self.assertAlmostEqual({'inout': [[[0.0], [W[0][0][0]*4.0+W[0][1][0]*2.0+b[0][0]], [W[0][0][0]*6.0+W[0][1][0]*5.0+b[0][0]], [W[0][0][0]*4.0+W[0][1][0]*5.0+b[0][0]],  [W[0][0][0]*0.0+W[0][1][0]*0.0+b[0][0]]]]}, test.internals['inout_1_2']['state'])
+        # Replace instead of rolling
+        # self.assertAlmostEqual({'inout': [[[0.0], [0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+        #                                    [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]], [0.0]]]},
+        #                        test.internals['inout_1_0']['state'])
+        # self.assertAlmostEqual({'inout': [
+        #     [[0.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+        #      [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [0.0]]]}, test.internals['inout_1_1']['state'])
+        # self.assertAlmostEqual({'inout': [
+        #     [[W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+        #      [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]], [0.0]]]},
+        #                        test.internals['inout_1_2']['state'])
+
         with self.assertRaises(KeyError):
             test.internals['inout_2_0']
 
@@ -603,6 +624,10 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertDictEqual({'inout': [[[8.0], [7.0], [6.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['state'])
         self.assertDictEqual({'inout': [[[7.0], [6.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['state'])
         self.assertDictEqual({'inout': [[[6.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['state'])
+        # Replace insead of rolling
+        # self.assertDictEqual({'inout': [[[8.0], [7.0], [-15.0], [-13.0], [9.0]]]}, test.internals['inout_0_0']['state'])
+        # self.assertDictEqual({'inout': [[[7.0], [-15.0], [-13.0], [-30.0], [8.0]]]}, test.internals['inout_0_1']['state'])
+        # self.assertDictEqual({'inout': [[[-15.0], [-13.0], [-30.0], [-28.0], [7.0]]]}, test.internals['inout_0_2']['state'])
         W = test.internals['inout_1_0']['param']['W']
         b = test.internals['inout_1_0']['param']['b']
         self.assertAlmostEqual({'inout': [[[7.0], [6.0], [5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
@@ -616,6 +641,18 @@ class Neu4mesTrainingTest(unittest.TestCase):
             [[5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
              [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]]]]},
                                test.internals['inout_1_2']['state'])
+        # replace insead of rolling
+        # self.assertAlmostEqual({'inout': [[[7.0], [6.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+        #                                    [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]], [8.0]]]},
+        #                        test.internals['inout_1_0']['state'])
+        # self.assertAlmostEqual({'inout': [[[6.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+        #                                    [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+        #                                    [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [7.0]]]},
+        #                        test.internals['inout_1_1']['state'])
+        # self.assertAlmostEqual({'inout': [
+        #     [[W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+        #      [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]], [6.0]]]},
+        #                        test.internals['inout_1_2']['state'])
 
     def test_training_values_fir_connect_train_linear_more_window(self):
         NeuObj.reset_count()
@@ -839,8 +876,12 @@ class Neu4mesTrainingTest(unittest.TestCase):
                         train_batch_size=1,
                         prediction_samples=2, connect={'inout':'out1'})
         self.assertDictEqual({'inout': [[[8.0], [7.0], [6.0], [-15.0], [-13.0]]]}, test.internals['inout_0_0']['connect'])
-        self.assertDictEqual({'inout': [[[7.0], [6.0], [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['connect'])
+        self.assertDictEqual({'inout': [[[7.0], [6.0],  [-15.0], [-13.0], [-30.0]]]}, test.internals['inout_0_1']['connect'])
         self.assertDictEqual({'inout': [[[6.0], [-15.0], [-13.0], [-30.0], [-28.0]]]}, test.internals['inout_0_2']['connect'])
+        # Replace instead of rolling
+        # self.assertDictEqual({'inout': [[[8.0], [7.0], [-15.0], [-13.0], [9.0]]]}, test.internals['inout_0_0']['connect'])
+        # self.assertDictEqual({'inout': [[[7.0], [-15.0], [-13.0], [-30.0], [8.0]]]}, test.internals['inout_0_1']['connect'])
+        # self.assertDictEqual({'inout': [[[-15.0], [-13.0], [-30.0], [-28.0], [7.0]]]}, test.internals['inout_0_2']['connect'])
         W = test.internals['inout_1_0']['param']['W']
         b = test.internals['inout_1_0']['param']['b']
         self.assertAlmostEqual({'inout': [[[7.0], [6.0], [5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
@@ -854,6 +895,20 @@ class Neu4mesTrainingTest(unittest.TestCase):
             [[5.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
              [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]]]]},
                                test.internals['inout_1_2']['connect'])
+        # Replace insead of rolling
+        # self.assertAlmostEqual({'inout': [[[7.0], [6.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+        #                                    [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]], [8.0]]]},
+        #                        test.internals['inout_1_0']['connect'])
+        # self.assertAlmostEqual({'inout': [[[6.0], [W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]],
+        #                                    [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+        #                                    [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [7.0]]]},
+        #                        test.internals['inout_1_1']['connect'])
+        # self.assertAlmostEqual({'inout': [
+        #     [[W[0][0][0] * 4.0 + W[0][1][0] * 2.0 + b[0][0]], [W[0][0][0] * 6.0 + W[0][1][0] * 5.0 + b[0][0]],
+        #      [W[0][0][0] * 4.0 + W[0][1][0] * 5.0 + b[0][0]], [W[0][0][0] * 0.0 + W[0][1][0] * 0.0 + b[0][0]], [6.0]]]},
+        #                        test.internals['inout_1_2']['connect'])
+
+
 
     def test_training_values_fir_and_liner_closed_loop(self):
         NeuObj.reset_count()
@@ -879,7 +934,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1.0],'in2': [1.0]}))
         self.assertEqual({'out1': [1.0], 'out2': [3.0]}, test())
         test.resetStates()
-        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2':  [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}, test(prediction_samples=5))
+        self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2':  [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}, test(prediction_samples=5, num_of_samples=6))
 
         dataset = {'in1': [1], 'in2': [1.0], 'out1': [3], 'out2': [3]}
         test.loadData(name='dataset', source=dataset)
@@ -1027,15 +1082,15 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.addClosedLoop(output2, input2)
         test.neuralizeModel()
         self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]},
-                         test(prediction_samples=5))
+                         test(prediction_samples=5, num_of_samples=6))
         #self.assertEqual({'out1': [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0]},
         #                 test({'in1':[1.0,2.0]},prediction_samples=5))
         self.assertEqual({'out1': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 1.0]},
-                          test({'in1': [1.0, 2.0]}, prediction_samples=5))
+                          test({'in1': [1.0, 2.0]}, prediction_samples=5, num_of_samples=7))
         #self.assertEqual({'out1': [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0], 'out2': [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]},
         #                 test({'in2':[-1.0,-2.0,-3.0]},prediction_samples=5))
         self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0]},
-                          test({'in2':[-1.0,-2.0,-3.0]}, prediction_samples=5))
+                          test({'in2':[-1.0,-2.0,-3.0]}, prediction_samples=5, num_of_samples=8))
 
         dataset = {'in1': [0,2,7,1], 'in2': [-1,0,-3,7], 'out1': [3,4,5,1], 'out2': [-3,-4,-5,-1]}
         test.loadData(name='dataset2', source=dataset)
@@ -1088,11 +1143,11 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.addMinimize('error2', target_out2.last(), output2)
         test.neuralizeModel()
         self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]},
-                         test(prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}))
+                         test(prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}, num_of_samples=6))
         self.assertEqual({'out1': [1.0, 2.0, 2.0, 2.0, 2.0, 2.0,2.0], 'out2': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]},
-                         test({'in1':[1.0,2.0]},prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}))
+                         test({'in1':[1.0,2.0]},prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}, num_of_samples=7))
         self.assertEqual({'out1': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'out2': [0.0, -1.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]},
-                         test({'in2':[-1.0,-2.0,-3.0]},prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}))
+                         test({'in2':[-1.0,-2.0,-3.0]},prediction_samples=5, closed_loop={'in2':'out2','in1':'out1'}, num_of_samples=8))
 
         dataset = {'in1': [0,2,7,1], 'in2': [-1,0,-3,7], 'out1': [3,4,5,1], 'out2': [-3,-4,-5,-1]}
         test.loadData(name='dataset2', source=dataset)

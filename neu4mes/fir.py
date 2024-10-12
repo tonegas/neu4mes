@@ -1,4 +1,4 @@
-import copy, inspect
+import copy, inspect, textwrap
 
 import torch.nn as nn
 import torch
@@ -69,7 +69,8 @@ class Fir(NeuObj, AutoToStream):
             check('values' not in self.json['Parameters'][self.namep], ValueError, f"The parameter {self.namep} is already initialized.")
             check(inspect.isfunction(self.parameter_init), ValueError,
                   f"The parameter_init parameter must be a function.")
-            self.json['Parameters'][self.namep]['init_fun'] = { 'code' : inspect.getsource(self.parameter_init), 'name' : self.parameter_init.__name__ }
+            code = textwrap.dedent(inspect.getsource(self.parameter_init)).replace('\"', '\'')
+            self.json['Parameters'][self.namep]['init_fun'] = { 'code' : code, 'name' : self.parameter_init.__name__ }
             if self.parameter_init_params is not None:
                 self.json['Parameters'][self.namep]['init_fun']['params'] = self.parameter_init_params
 

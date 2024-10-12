@@ -1,4 +1,4 @@
-import copy, inspect
+import copy, inspect, textwrap
 import torch.nn as nn
 import torch
 
@@ -39,7 +39,7 @@ class Linear(NeuObj, AutoToStream):
             check(type(W) is Parameter or type(W) is str, TypeError, 'The "W" must be of type Parameter or str.')
             window = 'tw' if 'tw' in W.dim else ('sw' if 'sw' in W.dim else None)
             check(window == None or W.dim['sw'] == 1, ValueError, 'The "W" must not have window dimension.')
-            check(len(W.dim['dim']) == 2, ValueError,'The "W" dimensions must be a tuple of 2.')
+            check(len(W.dim['dim']) == 2, ValueError,'The "W" dimensions must be a list of 2.')
             self.output_dimension = W.dim['dim'][1]
             if output_dimension is not None:
                 check(W.dim['dim'][1] == output_dimension, ValueError, 'output_dimension must be equal to the second dim of "W".')
@@ -72,13 +72,14 @@ class Linear(NeuObj, AutoToStream):
             check(self.W.dim['dim'][0] == obj.dim['dim'], ValueError,
                   'the input dimension must be equal to the first dim of the parameter')
         else:
-            self.json['Parameters'][self.Wname] = { 'dim': (obj.dim['dim'],self.output_dimension,) }
+            self.json['Parameters'][self.Wname] = { 'dim': [obj.dim['dim'],self.output_dimension,] }
 
         if self.W_init is not None:
             check('values' not in self.json['Parameters'][self.Wname], ValueError, f"The parameter {self.Wname} is already initialized.")
             check(inspect.isfunction(self.W_init), ValueError,
                   f"The W_init parameter must be a function.")
-            self.json['Parameters'][self.Wname]['init_fun'] = { 'code' : inspect.getsource(self.W_init), 'name' : self.W_init.__name__}
+            code = textwrap.dedent(inspect.getsource(self.W_init)).replace('\"', '\'')
+            self.json['Parameters'][self.Wname]['init_fun'] = { 'code' : code, 'name' : self.W_init.__name__}
             if self.W_init_params is not None:
                 self.json['Parameters'][self.Wname]['init_fun']['params'] = self.W_init_params
 
@@ -87,7 +88,8 @@ class Linear(NeuObj, AutoToStream):
             check('values' not in self.json['Parameters'][self.bname], ValueError, f"The parameter {self.bname} is already initialized.")
             check(inspect.isfunction(self.b_init), ValueError,
                   f"The b_init parameter must be a function.")
-            self.json['Parameters'][self.bname]['init_fun'] = { 'code' : inspect.getsource(self.b_init), 'name' : self.b_init.__name__ }
+            code = textwrap.dedent(inspect.getsource(self.b_init)).replace('\"', '\'')
+            self.json['Parameters'][self.bname]['init_fun'] = { 'code' : code, 'name' : self.b_init.__name__ }
             if self.b_init_params is not None:
                 self.json['Parameters'][self.bname]['init_fun']['params'] = self.b_init_params
 
