@@ -57,7 +57,11 @@ training_params = {'num_of_epochs':200, 'val_batch_size':128, 'train_batch_size'
 vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=optimizer_params, add_optimizer_defaults=optimizer_defaults, training_params=training_params)
 
 ## Neural network Predict
-# sample = vehicle.get_random_samples(dataset='validationset', window=1)
+# sample = vehicle.getSamples(dataset='validationset', window=5)
+# result = vehicle(sample, sampled=True)
+# print(result)
+# result = vehicle(sample)
+# print(result)
 # start = time.time()
 # for _ in range(10000):
 #     result = vehicle(sample, sampled=True)

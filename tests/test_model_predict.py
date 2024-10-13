@@ -1212,6 +1212,17 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual([[-72.0, -84.0, -96.0]], results['out2'])
         self.assertEqual([[-96.0, -120.0, -144.0]], results['out3'])
 
+    def test_predict_fuzzify(self):
+        input = Input('in')
+        fuzzi = Fuzzify(6, range=[0, 5], functions='Rectangular')(input.last())
+        out = Output('out', fuzzi)
+        test = Neu4mes(visualizer=None)
+        test.addModel('out',[out])
+        test.neuralizeModel()
+        results = test({'in': [0, 1, 2]})
+        self.assertEqual((3, 1, 6), np.array(results['out']).shape)
+        self.assertEqual([[[1.0, 0.0, 0.0, 0.0, 0.0, 0.0]],[[0.0, 1.0, 0.0, 0.0, 0.0, 0.0]],[[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]]], results['out'])
+
 
 if __name__ == '__main__':
     unittest.main()

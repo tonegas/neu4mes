@@ -114,7 +114,8 @@ class Model(nn.Module):
                         layer_inputs.append(self.functions[item])
                         if 'params_and_consts' in self.functions[item].keys() and len(self.functions[item]['params_and_consts']) >= 0: ## Parametric function that takes parameters
                             layer_inputs.append([all_params_and_consts[par] for par in self.functions[item]['params_and_consts']])
-                        layer_inputs.append(self.functions[item]['map_over_dim'])
+                        if 'map_over_dim' in self.functions[item].keys():
+                            layer_inputs.append(self.functions[item]['map_over_dim'])
                     else: 
                         layer_inputs.append(item)
 
