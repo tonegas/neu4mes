@@ -105,7 +105,7 @@ class ParamFun(NeuObj):
                 idx = i + len(funinfo.args) - len(self.parameters_dimensions)
                 param_name = self.name + str(idx)
                 self.json['Functions'][self.name]['parameters'].append(param_name)
-                self.json['Parameters'][param_name] = {'dim': self.parameters_dimensions[funinfo.args[idx]]}
+                self.json['Parameters'][param_name] = {'dim': list(self.parameters_dimensions[i])}
 
         # Create the missing constants from list
         if type(self.constants) is list:
@@ -124,10 +124,16 @@ class ParamFun(NeuObj):
         missing_params = n_new_constants_and_params - len(self.json['Functions'][self.name]['parameters']) - len(self.json['Functions'][self.name]['constants'])
         if missing_params or type(self.constants) is dict or type(self.parameters) is dict or type(self.parameters_dimensions) is dict:
             #check(n_input is not None, TypeError, 'if \"parameter\" or \"parameters_dimensions\" are dict the number of input must be set')
-            n_input = len(funinfo.args) - n_new_constants_and_params
+            n_input = len(funinfo.args) - missing_params
+            n_elem_dict = (len(self.constants if type(self.constants) is dict else [])
+                           + len(self.parameters if type(self.parameters) is dict else [])
+                           + len(self.parameters_dimensions if type(self.parameters_dimensions) is dict else []))
             for i, key in enumerate(funinfo.args):
                 if i >= n_input:
                     if type(self.parameters) is dict and key in self.parameters:
+                        if self.parameters_dimensions:
+                            check(key in self.parameters_dimensions, TypeError,
+                                  f'The parameter {key} must be removed from \"parameters_dimensions\".')
                         param = self.parameters[key]
                         if type(self.parameters[key]) is Parameter:
                             self.json['Functions'][self.name]['parameters'].append(param.name)
@@ -138,6 +144,7 @@ class ParamFun(NeuObj):
                         else:
                             check(type(param) is Parameter or type(param) is str, TypeError,
                                   'The element inside the \"parameters\" dict must be a Parameter or str')
+                        n_elem_dict -= 1
                     elif type(self.parameters_dimensions) is dict and key in self.parameters_dimensions:
                         param_name = self.name + key
                         dim = self.parameters_dimensions[key]
@@ -145,21 +152,24 @@ class ParamFun(NeuObj):
                               'The element inside the \"parameters_dimensions\" dict must be a tuple or int')
                         self.json['Functions'][self.name]['parameters'].append(param_name)
                         self.json['Parameters'][param_name] = {'dim': list(dim) if type(dim) is tuple else dim}
+                        n_elem_dict -= 1
                     elif type(self.constants) is dict and key in self.constants:
                         const = self.constants[key]
                         if type(self.constants[key]) is Constant:
                             self.json['Functions'][self.name]['constants'].append(const.name)
                             self.json['Constants'][const.name] = copy.deepcopy(const.json['Constants'][const.name])
-                        elif type(self.parameters[key]) is str:
+                        elif type(self.constants[key]) is str:
                             self.json['Functions'][self.name]['constants'].append(const)
                             self.json['Constants'][const] = {'dim': 1}
                         else:
                             check(type(const) is Constant or type(const) is str, TypeError,
                                   'The element inside the \"constants\" dict must be a Constant or str')
+                        n_elem_dict -= 1
                     else:
                         param_name = self.name + key
                         self.json['Functions'][self.name]['parameters'].append(param_name)
                         self.json['Parameters'][param_name] = {'dim': 1}
+            check(n_elem_dict == 0, ValueError, 'Some of the input parameters are not used in the function.')
 
     def __infer_output_dimensions(self, input_types, input_dimensions):
         import torch
@@ -255,9 +265,10 @@ class ParamFun(NeuObj):
 
 
 class Parametric_Layer(nn.Module):
-    def __init__(self, func, params):
+    def __init__(self, func, params, consts):
         super().__init__()
         self.name = func['name']
+        self.consts = consts
         self.params = params
         ## Add the function to the globals
         try:
@@ -267,7 +278,7 @@ class Parametric_Layer(nn.Module):
             print(f"An error occurred: {e}")
 
     def forward(self, *inputs):
-        args = list(inputs) + self.params
+        args = list(inputs) + self.consts + self.params
         # Retrieve the function object from the globals dictionary
         function_to_call = globals()[self.name]
         # Call the function using the retrieved function object
@@ -275,6 +286,6 @@ class Parametric_Layer(nn.Module):
         return result
 
 def createParamFun(self, *func_params):
-    return Parametric_Layer(func=func_params[0], params=func_params[1])
+    return Parametric_Layer(func=func_params[0], params=func_params[1], consts=func_params[2])
 
 setattr(Model, paramfun_relation_name, createParamFun)

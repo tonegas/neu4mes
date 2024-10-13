@@ -248,6 +248,72 @@ class Neu4mesJson(unittest.TestCase):
         with self.assertRaises(ValueError):
             Linear(W = W15,b = b15)(input2) + Linear(W = W45, b = b45)(input4)
 
+    def test_input_param_const(self):
+        input2 = Input('in2')
+        def fun_test(x,y,z,k):
+            return x*y*z*k
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test)(input2.tw(0.01))
+        self.assertEqual({'dim': 1, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0k': {'dim': 1},'FParamFun0y': {'dim': 1},'FParamFun0z': {'dim': 1}}, out.json['Parameters'])
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test)(input2.tw(0.01),input2.tw(0.01))
+        self.assertEqual({'dim': 1, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0k': {'dim': 1}, 'FParamFun0z': {'dim': 1}}, out.json['Parameters'])
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test,parameters=['t'])(input2.tw(0.01),input2.tw(0.01))
+        self.assertEqual({'dim': 1, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0k': {'dim': 1}, 't': {'dim': 1}}, out.json['Parameters'])
+
+        out = ParamFun(fun_test,parameters=['t','r'])(input2.tw(0.01),input2.tw(0.01))
+        self.assertEqual({'dim': 1, 'tw': 0.01}, out.dim)
+        self.assertEqual({'r': {'dim': 1}, 't': {'dim': 1}}, out.json['Parameters'])
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test,parameters={'k':'t'})(input2.tw(0.01),input2.tw(0.01))
+        self.assertEqual({'dim': 1, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0z': {'dim': 1}, 't': {'dim': 1}}, out.json['Parameters'])
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test,parameters_dimensions={'k':(1,2)})(input2.tw(0.01),input2.tw(0.01))
+        self.assertEqual({'dim': 2, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0k': {'dim': [1,2]}, 'FParamFun0z': {'dim': 1}}, out.json['Parameters'])
+
+        with self.assertRaises(ValueError):
+            ParamFun(fun_test,parameters_dimensions={'k':(1,2)},parameters=['r'])(input2.tw(0.01),input2.tw(0.01))
+        with self.assertRaises(ValueError):
+           ParamFun(fun_test,parameters_dimensions=[(1,2)],parameters={'z':'gg'})(input2.tw(0.01),input2.tw(0.01))
+        with self.assertRaises(ValueError):
+            ParamFun(fun_test,parameters_dimensions=[(1,2)],parameters=['pp'])(input2.tw(0.01))
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test,parameters_dimensions={'k':(1,2)})(input2.tw(0.01),input2.tw(0.01),input2.tw(0.01))
+        self.assertEqual({'dim': 2, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0k': {'dim': [1,2]}}, out.json['Parameters'])
+
+        with self.assertRaises(ValueError):
+            ParamFun(fun_test,parameters_dimensions={'z':(1,2)})(input2.tw(0.01),input2.tw(0.01),input2.tw(0.01))
+
+        with self.assertRaises(ValueError):
+            ParamFun(fun_test,parameters={'z':'g'})(input2.tw(0.01),input2.tw(0.01),input2.tw(0.01))
+
+        with self.assertRaises(ValueError):
+            ParamFun(fun_test,constants={'z':'g'})(input2.tw(0.01),input2.tw(0.01),input2.tw(0.01))
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test,parameters=['pp'],constants=['el'])(input2.tw(0.01))
+        self.assertEqual({'dim': 1, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0k': {'dim': 1}, 'pp': {'dim': 1}}, out.json['Parameters'])
+        self.assertEqual({'el': {'dim': 1}}, out.json['Constants'])
+
+        NeuObj.reset_count()
+        out = ParamFun(fun_test,parameters={'y':'pp'},constants={'k':'el'})(input2.tw(0.01))
+        self.assertEqual({'dim': 1, 'tw': 0.01}, out.dim)
+        self.assertEqual({'FParamFun0k': {'dim': 1}, 'pp': {'dim': 1}}, out.json['Parameters'])
+        self.assertEqual({'el': {'dim': 1}}, out.json['Constants'])
 
 if __name__ == '__main__':
     unittest.main()

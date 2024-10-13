@@ -111,7 +111,9 @@ class Model(nn.Module):
                         layer_inputs.append(self.all_constants[item])
                     elif item in list(self.functions.keys()): ## the relation takes a custom function
                         layer_inputs.append(self.functions[item])
-                        if 'parameters' in self.functions[item].keys(): ## Parametric function that takes parameters
+                        if 'constants' in self.functions[item].keys() and len(self.functions[item]['constants']) >= 0: ## Parametric function that takes parameters
+                            layer_inputs.append([self.all_constants[par] for par in self.functions[item]['constants']])
+                        if 'parameters' in self.functions[item].keys() and len(self.functions[item]['parameters']) >= 0: ## Parametric function that takes parameters
                             layer_inputs.append([self.all_parameters[par] for par in self.functions[item]['parameters']])
                     else: 
                         layer_inputs.append(item)
