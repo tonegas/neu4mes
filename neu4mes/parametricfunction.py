@@ -219,10 +219,10 @@ class ParamFun(NeuObj):
             inputs_win.append(dim_win)
 
         if self.map_over_batch:
-            self.json['Functions'][self.name]['map_over_batch'] = list(input_map_dim)
+            self.json['Functions'][self.name]['map_over_dim'] = list(input_map_dim)
             function_to_call = torch.func.vmap(self.param_fun,in_dims=input_map_dim)
         else:
-            self.json['Functions'][self.name]['map_over_batch'] = False
+            self.json['Functions'][self.name]['map_over_dim'] = False
             function_to_call = self.param_fun
         out = function_to_call(*inputs)
         out_shape = out.shape
