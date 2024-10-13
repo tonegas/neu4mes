@@ -74,7 +74,7 @@ print("------------------------EXAMPLE 4------------------------")
 def myFun(K1,K2,p1):
     import torch
     return torch.stack([K1,2*K1,3*K1,4*K1],dim=2).squeeze(-1)*p1+K2
-parfun = ParamFun(myFun, n_input=2, parameters_dimensions = {'p1':(1,4)})
+parfun = ParamFun(myFun, parameters_dimensions = {'p1':(1,4)})
 out = Output('out',parfun(x.last(),F.last()))
 example = Neu4mes()
 example.addModel('out',out)
@@ -122,8 +122,8 @@ print("------------------------EXAMPLE 7------------------------")
 # In this case the parameter are passed t
 def myFun(K1,p1):
     return K1*p1
-K = Parameter('k1', dimensions =  1, tw = 1,values=[[2.0],[3.0],[4.0],[5.0]])
-R = Parameter('r1', dimensions =  1, tw = 1,values=[[5.0]])
+K = Parameter('k1', dimensions =  1, tw = 1, values=[[2.0],[3.0],[4.0],[5.0]])
+R = Parameter('r1', dimensions =  1, tw = 1, values=[[5.0],[4.0],[3.0],[2.0]])
 parfun = ParamFun(myFun)
 out = Output('out',parfun(x.tw(1),K)+parfun(x.tw(1),R))
 example = Neu4mes()

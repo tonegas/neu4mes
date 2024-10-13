@@ -126,8 +126,8 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 1, 'tw' : 1}, out.dim)
         out = ParamFun(myFun_out5)(input.tw(2))
         self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
-        with self.assertRaises(RuntimeError):
-            out = ParamFun(myFun_out5)(input.tw(2),input.tw(1))
+        out = ParamFun(myFun_out5)(input.tw(2),input.tw(1))
+        self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
         inpart = ParamFun(myFun_out5)(input.tw(2))
         out = Part(inpart,0,4)
         self.assertEqual({'dim': 4,'tw': 2}, out.dim)
@@ -203,8 +203,8 @@ class Neu4mesJson(unittest.TestCase):
         self.assertEqual({'dim': 5, 'tw' : 1}, out.dim)
         out = ParamFun(myFun)(input.tw(2))
         self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
-        with self.assertRaises(RuntimeError):
-            out = ParamFun(myFun)(input.tw(2),input.tw(1))
+        out = ParamFun(myFun)(input.tw(2),input.tw(1))
+        self.assertEqual({'dim': 5, 'tw': 2}, out.dim)
 
     def test_parameter_and_linear(self):
         input = Input('in').last()
