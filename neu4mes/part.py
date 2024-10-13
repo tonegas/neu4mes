@@ -78,7 +78,7 @@ class Select_Layer(nn.Module):
         self.idx = idx
 
     def forward(self, x):
-        assert x.ndim >= 3, 'The Part Relation Works only for 3D inputs'
+        #assert x.ndim >= 3, 'The Part Relation Works only for 3D inputs'
         return x[:, :, self.idx:self.idx + 1]
 
 ## Select an element i on the third dimension
@@ -145,7 +145,7 @@ class SampleSelect_Layer(nn.Module):
         self.idx = idx
 
     def forward(self, x):
-        assert x.ndim >= 2, 'The Part Relation Works only for 2D inputs'
+        #assert x.ndim >= 2, 'The Part Relation Works only for 2D inputs'
         return x[:, self.idx:self.idx + 1, :]
 
 def createSampleSelect(self, *inputs):

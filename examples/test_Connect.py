@@ -17,7 +17,7 @@ data_d_t = linear_function(data_c, 5, 1)
 
 dataset = {'a': data_a, 'b_t': data_b_t, 'c':data_c, 'b_in': data_b_in, 'd_t':data_d_t }
 
-example = 2
+example = 1
 
 if example == 1:
     print('#### EXAMPLE 1 - Recurrent Training with connected inputs ####')
@@ -46,7 +46,7 @@ if example == 1:
             'train_batch_size': 8, 
             'val_batch_size': 8, 
             'test_batch_size':1, 
-            'learning_rate':0.1}
+            'lr':0.1}
 
     ## training dei parametri di tutti i modelli
     model.trainModel(splits=[100,0,0], training_params=params, prediction_samples=4, connect={'b_in':'b'})
@@ -80,7 +80,7 @@ elif example == 2:
             'train_batch_size': 8, 
             'val_batch_size': 8, 
             'test_batch_size':1, 
-            'learning_rate':0.1}
+            'lr':0.1}
 
     ## training dei parametri di tutti i modelli
     model.trainModel(splits=[100,0,0], training_params=params, prediction_samples=4)

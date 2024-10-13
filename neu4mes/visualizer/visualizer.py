@@ -39,7 +39,15 @@ class Visualizer():
     def showBuiltModel(self):
         pass
 
+
+    def showWeights(self, batch = None, epoch = None):
+        pass
+
+
     def showDataset(self, name):
+        pass
+
+    def showStartTraining(self):
         pass
 
     def showTraining(self, epoch, train_losses, val_losses):
@@ -51,10 +59,8 @@ class Visualizer():
     def showTrainingTime(self, time):
         pass
 
-    def showResults(self):
-        for name_data in self.n4m.performance.keys():
-            self.showOneResult(name_data)
-
-    def showOneResult(self, name_data):
+    def showResult(self, name_data):
         pass
 
+    def showResults(self):
+        pass

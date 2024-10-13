@@ -12,9 +12,6 @@ relation.CHECK_NAMES = False
 
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
-# 3 Tests
-# Test the value of the weight after the training
-
 class Neu4mesTrainingTest(unittest.TestCase):
     def TestAlmostEqual(self, data1, data2, precision=4):
         assert np.asarray(data1, dtype=np.float32).ndim == np.asarray(data2, dtype=np.float32).ndim, f'Inputs must have the same dimension! Received {type(data1)} and {type(data2)}'

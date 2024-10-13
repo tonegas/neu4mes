@@ -35,7 +35,7 @@ from neu4mes.parametricfunction import ParamFun
 from neu4mes.fuzzify import Fuzzify
 from neu4mes.part import TimePart, TimeSelect, SamplePart, SampleSelect, Part, Select, VectToSample
 from neu4mes.localmodel import LocalModel
-from neu4mes.parameter import Parameter
+from neu4mes.parameter import Parameter, Constant
 from neu4mes.timeoperation import Int
 from neu4mes.logger import logging
 from neu4mes.visualizer import Visualizer, TextVisualizer, MPLVisulizer

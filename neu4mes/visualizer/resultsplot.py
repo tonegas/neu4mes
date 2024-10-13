@@ -34,8 +34,8 @@ A_t = np.transpose(np.array(A))
 B_t = np.transpose(np.array(B))
 for ind_win in range(A_t.shape[0]):
     for ind_dim in range(A_t.shape[1]):
-        plt.plot(np.arange(0,len(A_t[ind_win,ind_dim])*sample_time,sample_time), A_t[ind_win,ind_dim], label=f'A win[{ind_win}] dim[{ind_dim}]')
-        plt.plot(np.arange(0,len(B_t[ind_win,ind_dim])*sample_time,sample_time), B_t[ind_win,ind_dim], '-.', label=f'B win[{ind_win}] dim[{ind_dim}]')
+        plt.plot(np.arange(0,len(A_t[ind_win,ind_dim])*sample_time,sample_time), A_t[ind_win,ind_dim], label=f'real')
+        plt.plot(np.arange(0,len(B_t[ind_win,ind_dim])*sample_time,sample_time), B_t[ind_win,ind_dim], '-.', label=f'prediction')
 
 plt.grid(True)
 plt.legend(loc='best')

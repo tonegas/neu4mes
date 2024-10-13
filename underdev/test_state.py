@@ -94,38 +94,6 @@ mass_spring_damper.trainModel(test_percentage = 10, show_results = True, predict
 #mass_spring_damper.trainModel(models=['contr'],connect={'out.in':'contr.out'},horizon=10,step=1,parameters={'par':{'multipliers':0}})
 #mass_spring_damper.trainModel(models=['contr'],connect={'out.in':'contr.out'},horizon=10,step=1,parameters={'par':{'multipliers':3}})
 
-{'Functions': {},
- 'Inputs': {'F': {'dim': 1, 'sw': [-1, 0], 'tw': [0, 0]},
-            'dx': {'dim': 1, 'sw': [0, 1], 'tw': [0, 0]},
-            'x': {'dim': 1, 'sw': [0, 1], 'tw': [-0.2, 0]}},
- 'States': {'x': {'dim': 1, 'sw': [0, 1], 'tw': [-0.2, 0], 'update':'Add17'},
-            'xy': {'dim': 1, 'sw': [0, 1], 'tw': [-0.2, 0], 'update':'Add9'}},
- 'Outputs': {'dx[k+1]': 'Fir18', 'x[k+1]': 'Add9'},
- 'Parameters': {'PFir3': {'dim': 1, 'tw': 0.2},
-                'PFir4': {'dim': 1, 'sw': 1},
-                'PFir5': {'dim': 1, 'tw': 0.2},
-                'PFir6': {'dim': 1, 'sw': 1},
-                'PFir7': {'dim': 1, 'sw': 1}},
- 'Relations': {'Add17': ['Add', ['Fir13', 'Fir16']],
-               'Add9': ['Add', ['Fir5', 'Fir8']],
-               'Fir13': ['Fir', ['TimePart12'], 'PFir5'],
-               'Fir16': ['Fir', ['SamplePart15'], 'PFir6'],
-               'Fir18': ['Fir', ['Add17'], 'PFir7'],
-               'Fir5': ['Fir', ['TimePart4'], 'PFir3'],
-               'Fir8': ['Fir', ['SamplePart7'], 'PFir4'],
-               'SamplePart15': ['SamplePart', ['F'], [-1, 0]],
-               'SamplePart21': ['SamplePart', ['x'], [0, 1]],
-               'SamplePart23': ['SamplePart', ['dx'], [0, 1]],
-               'SamplePart7': ['SamplePart', ['F'], [-1, 0]],
-               'TimePart12': ['TimePart', ['x'], [-0.2, 0]],
-               'TimePart4': ['TimePart', ['x'], [-0.2, 0]]},
- 'SampleTime': 0.05}
-
-
-
-
-
-
 # Caso 2
 x = State('x_state') # Questa è una variabile che si considera come stato
 F = Input('F')
@@ -150,32 +118,3 @@ mass_spring_damper.trainModel(test_percentage = 10, show_results = True)
 # Training ricorrente in questo caso inizializzo lo stato x con i valori letti dal dataset e
 # poi uso lo stato in modo ricorrente per 1 sec
 mass_spring_damper.trainModel(test_percentage = 10, show_results = True, prediction_horizon = 1)
-
-
-{'Functions': {},
- 'Inputs': {'F': {'dim': 1, 'sw': [-1, 0], 'tw': [0, 0]},
-            'dx': {'dim': 1, 'sw': [0, 1], 'tw': [0, 0]},
-            'x': {'dim': 1, 'sw': [0, 1], 'tw': [-0.2, 0]},
-            'x_state': {'dim': 1, 'sw': [0, 1], 'tw': [-0.2, 0]}},
- 'States': {'x_state': {'dim': 1, 'sw': [0, 1], 'tw': [-0.2, 0], 'update':'Add17'},
-            'y': {'dim': 1, 'sw': [0, 1], 'tw': [-0.2, 0], 'update':'Add9'}},
- 'Outputs': {'dx[k+1]': 'Fir18', 'x[k+1]': 'Add9'},
- 'Parameters': {'PFir3': {'dim': 1, 'tw': 0.2},
-                'PFir4': {'dim': 1, 'sw': 1},
-                'PFir5': {'dim': 1, 'tw': 0.2},
-                'PFir6': {'dim': 1, 'sw': 1},
-                'PFir7': {'dim': 1, 'sw': 1}},
- 'Relations': {'Add17': ['Add', ['Fir13', 'Fir16']],
-               'Add9': ['Add', ['Fir5', 'Fir8']],
-               'Fir13': ['Fir', ['TimePart12'], 'PFir5'],
-               'Fir16': ['Fir', ['SamplePart15'], 'PFir6'],
-               'Fir18': ['Fir', ['Add17'], 'PFir7'],
-               'Fir5': ['Fir', ['TimePart4'], 'PFir3'],
-               'Fir8': ['Fir', ['SamplePart7'], 'PFir4'],
-               'SamplePart15': ['SamplePart', ['F'], [-1, 0]],
-               'SamplePart21': ['SamplePart', ['x'], [0, 1]],
-               'SamplePart23': ['SamplePart', ['dx'], [0, 1]],
-               'SamplePart7': ['SamplePart', ['F'], [-1, 0]],
-               'TimePart12': ['TimePart', ['x'], [-0.2, 0]],
-               'TimePart4': ['TimePart', ['x'], [-0.2, 0]]},
- 'SampleTime': 0.05}

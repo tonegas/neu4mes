@@ -1,6 +1,7 @@
 from pprint import pformat
 
 from neu4mes.relation import Stream
+from neu4mes.utilis import check
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -14,3 +15,11 @@ class Output(Stream):
         self.json['Outputs'][name] = {}
         self.json['Outputs'][name] = relation.name
         log.debug("\n"+pformat(self.json))
+
+    def closedLoop(self, obj):
+        check(False, TypeError,
+              f"The {self} must be a Stream and not a {type(self)}.")
+
+    def connect(self, obj):
+        check(False, TypeError,
+              f"The {self} must be a Stream and not a {type(self)}.")

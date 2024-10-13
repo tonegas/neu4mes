@@ -26,7 +26,7 @@ class Add(Stream, ToStream):
               f"The type of {obj1} is {type(obj1)} and is not supported for add operation.")
         check(type(obj2) is Stream,TypeError,
               f"The type of {obj2} is {type(obj2)} and is not supported for add operation.")
-        check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
+        check(obj1.dim == obj2.dim or obj2.dim == {'dim':1}, ValueError,
               f"For addition operators (+) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
         super().__init__(add_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         self.json['Relations'][self.name] = [add_relation_name,[obj1.name,obj2.name]]
@@ -39,7 +39,7 @@ class Sub(Stream, ToStream):
               f"The type of {obj1} is {type(obj1)} and is not supported for sub operation.")
         check(type(obj2) is Stream,TypeError,
               f"The type of {obj2} is {type(obj2)} and is not supported for sub operation.")
-        check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
+        check(obj1.dim == obj2.dim or obj2.dim == {'dim':1}, ValueError,
               f"For subtraction operators (-) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
         super().__init__(sub_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         self.json['Relations'][self.name] = [sub_relation_name,[obj1.name,obj2.name]]
@@ -51,7 +51,7 @@ class Mul(Stream, ToStream):
               f"The type of {obj1} is {type(obj1)} and is not supported for mul operation.")
         check(type(obj2) is Stream, TypeError,
               f"The type of {obj2} is {type(obj2)} and is not supported for mul operation.")
-        check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
+        check(obj1.dim == obj2.dim or obj2.dim == {'dim':1}, ValueError,
               f"For multiplication operators (*) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
         super().__init__(mul_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         self.json['Relations'][self.name] = [mul_relation_name,[obj1.name,obj2.name]]
@@ -63,7 +63,7 @@ class Div(Stream, ToStream):
               f"The type of {obj1} is {type(obj1)} and is not supported for div operation.")
         check(type(obj2) is Stream, TypeError,
               f"The type of {obj2} is {type(obj2)} and is not supported for div operation.")
-        check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
+        check(obj1.dim == obj2.dim or obj2.dim == {'dim':1}, ValueError,
               f"For division operators (*) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
         super().__init__(div_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         self.json['Relations'][self.name] = [div_relation_name,[obj1.name,obj2.name]]
@@ -75,7 +75,7 @@ class Pow(Stream, ToStream):
               f"The type of {obj1} is {type(obj1)} and is not supported for exp operation.")
         check(type(obj2) is Stream, TypeError,
               f"The type of {obj2} is {type(obj2)} but must be int or float and is not supported for exp operation.")
-        check(obj1.dim == obj2.dim or obj2.dim == {}, ValueError,
+        check(obj1.dim == obj2.dim or obj2.dim == {'dim':1}, ValueError,
               f"For division operators (*) the dimension of {obj1.name} = {obj1.dim} must be the same of {obj2.name} = {obj2.dim}.")
         super().__init__(pow_relation_name + str(Stream.count),merge(obj1.json,obj2.json),obj1.dim)
         self.json['Relations'][self.name] = [pow_relation_name,[obj1.name,obj2.name]]

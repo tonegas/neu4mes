@@ -14,7 +14,7 @@ relation.CHECK_NAMES = False
 log = logging.getLogger(__name__)
 log.setLevel(logging.CRITICAL)
 
-# 17 Tests
+# 16 Tests
 # This file test the data loading in particular:
 # The shape and the value of the inputs
 

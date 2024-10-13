@@ -1,11 +1,33 @@
-
 import copy
+import torch
 from pprint import pformat
+import numpy as np
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
+
+
+def tensor_to_list(data):
+    if isinstance(data, torch.Tensor):
+        # Converte il tensore in una lista
+        return data.tolist()
+    elif isinstance(data, dict):
+        # Ricorsione per i dizionari
+        return {key: tensor_to_list(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        # Ricorsione per le liste
+        return [tensor_to_list(item) for item in data]
+    elif isinstance(data, tuple):
+        # Ricorsione per tuple
+        return tuple(tensor_to_list(item) for item in data)
+    elif isinstance(data, torch.nn.modules.container.ParameterDict):
+        # Ricorsione per parameter dict
+        return {key: tensor_to_list(value) for key, value in data.items()}
+    else:
+        # Altri tipi di dati rimangono invariati
+        return data
 
 def merge(source, destination, main = True):
     if main:
