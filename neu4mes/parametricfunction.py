@@ -1,6 +1,7 @@
 import inspect, copy, textwrap
 import math
 
+import torch
 import torch.nn as nn
 
 from neu4mes.relation import NeuObj, Stream, toStream
@@ -14,24 +15,25 @@ paramfun_relation_name = 'ParamFun'
 class ParamFun(NeuObj):
     def __init__(self, param_fun:callable,
                  constants:list|dict|None = None,
-                 parameters_dimensions:list|dict|None = None, parameters:list|dict|None = None) -> Stream:
+                 parameters_dimensions:list|dict|None = None, parameters:list|dict|None = None,
+                 map_over_batch:bool = False) -> Stream:
         self.relation_name = paramfun_relation_name
+
         # input parameters
         self.param_fun = param_fun
         self.constants = constants
         self.parameters_dimensions = parameters_dimensions
         self.parameters = parameters
+        self.map_over_batch = map_over_batch
 
         self.output_dimension = {}
         super().__init__('F'+paramfun_relation_name + str(NeuObj.count))
         code = textwrap.dedent(inspect.getsource(param_fun)).replace('\"', '\'')
         self.json['Functions'][self.name] = {
             'code' : code,
-            'name' : param_fun.__name__
+            'name' : param_fun.__name__,
         }
         self.json['Functions'][self.name]['params_and_consts'] = []
-        #self.json['Functions'][self.name]['constants'] = []
-        #self.__set_params(n_input = n_input, constants = constants, parameters_dimensions = parameters_dimensions, parameters = parameters)
 
     def __call__(self, *obj):
         stream_name = paramfun_relation_name + str(Stream.count)
@@ -109,11 +111,7 @@ class ParamFun(NeuObj):
                 else:
                     check(type(param) is Parameter or type(param) is str, TypeError,
                           'The element inside the \"parameters\" list must be a Parameter or str')
-            # check(n_input is None, ValueError,
-            #       '\"n_input\" must be None if \"parameters\" is set using list')
         elif type(self.parameters_dimensions) is list:
-            # check(n_input is None, ValueError,
-            #       '\"n_input\" must be None if \"parameters\" is set using list')
             for i, param_dim in enumerate(self.parameters_dimensions):
                 idx = i + len(funinfo.args) - len(self.parameters_dimensions)
                 param_name = self.name + str(idx)
@@ -123,7 +121,6 @@ class ParamFun(NeuObj):
         # Create the missing parameters and constants from dict
         missing_params = n_new_constants_and_params - len(self.json['Functions'][self.name]['params_and_consts'])
         if missing_params or type(self.constants) is dict or type(self.parameters) is dict or type(self.parameters_dimensions) is dict:
-            #check(n_input is not None, TypeError, 'if \"parameter\" or \"parameters_dimensions\" are dict the number of input must be set')
             n_input = len(funinfo.args) - missing_params
             n_elem_dict = (len(self.constants if type(self.constants) is dict else [])
                            + len(self.parameters if type(self.parameters) is dict else [])
@@ -196,6 +193,7 @@ class ParamFun(NeuObj):
         inputs = []
         inputs_win_type = []
         inputs_win = []
+        input_map_dim = ()
 
         for t, dim in zip(all_inputs_type,all_inputs_dim):
             window = 'tw' if 'tw' in dim else ('sw' if 'sw' in dim else None)
@@ -206,45 +204,27 @@ class ParamFun(NeuObj):
             else:
                 dim_win = 1
             if t in (Parameter, Constant):
+                if self.map_over_batch:
+                    input_map_dim += (None,)
                 if type(dim['dim']) is list:
                     inputs.append(torch.rand(size=(dim_win,) + tuple(dim['dim'])))
                 else:
                     inputs.append(torch.rand(size=(dim_win, dim['dim'])))
             else:
                 inputs.append(torch.rand(size=(batch_dim, dim_win, dim['dim'])))
+                if self.map_over_batch:
+                    input_map_dim += (0,)
 
             inputs_win_type.append(window)
             inputs_win.append(dim_win)
 
-        # for name in self.json['Functions'][self.name]['parameters']:
-        #     dim = self.json['Parameters'][name]
-        #     window = 'tw' if 'tw' in dim else ('sw' if 'sw' in dim else None)
-        #     if window == 'tw':
-        #         dim_win = round(dim[window] * n_samples_sec)
-        #     elif window == 'sw':
-        #         dim_win = dim[window]
-        #     else:
-        #         dim_win = 1
-        #     if type(dim['dim']) in (list,tuple):
-        #         inputs.append(torch.rand(size= (dim_win,) + tuple(dim['dim'])))
-        #     else:
-        #         inputs.append(torch.rand(size=(dim_win, dim['dim'])))
-
-        # for name in self.json['Functions'][self.name]['constants']:
-        #     dim = self.json['Constants'][name]
-        #     window = 'tw' if 'tw' in dim else ('sw' if 'sw' in dim else None)
-        #     if window == 'tw':
-        #         dim_win = round(dim[window] * n_samples_sec)
-        #     elif window == 'sw':
-        #         dim_win = dim[window]
-        #     else:
-        #         dim_win = 1
-        #     if type(dim['dim']) in (list,tuple):
-        #         inputs.append(torch.rand(size= (dim_win,) + tuple(dim['dim'])))
-        #     else:
-        #         inputs.append(torch.rand(size=(dim_win, dim['dim'])))
-
-        out = self.param_fun(*inputs)
+        if self.map_over_batch:
+            self.json['Functions'][self.name]['map_over_batch'] = list(input_map_dim)
+            function_to_call = torch.func.vmap(self.param_fun,in_dims=input_map_dim)
+        else:
+            self.json['Functions'][self.name]['map_over_batch'] = False
+            function_to_call = self.param_fun
+        out = function_to_call(*inputs)
         out_shape = out.shape
         check(out_shape[0] == batch_dim, ValueError, "The batch output dimension it is not correct.")
         out_dim = list(out_shape[2:])
@@ -263,10 +243,15 @@ class ParamFun(NeuObj):
 
 
 class Parametric_Layer(nn.Module):
-    def __init__(self, func, params_and_consts):
+    def __init__(self, func, params_and_consts, map_over_batch):
         super().__init__()
         self.name = func['name']
         self.params_and_consts = params_and_consts
+        if type(map_over_batch) is list:
+            self.map_over_batch = True
+            self.input_map_dim = tuple(map_over_batch)
+        else:
+            self.map_over_batch = False
         ## Add the function to the globals
         try:
             code = 'import torch\n@torch.fx.wrap\n' + func['code']
@@ -279,10 +264,12 @@ class Parametric_Layer(nn.Module):
         # Retrieve the function object from the globals dictionary
         function_to_call = globals()[self.name]
         # Call the function using the retrieved function object
+        if self.map_over_batch:
+            function_to_call = torch.func.vmap(function_to_call,in_dims=self.input_map_dim)
         result = function_to_call(*args)
         return result
 
 def createParamFun(self, *func_params):
-    return Parametric_Layer(func=func_params[0], params_and_consts=func_params[1])
+    return Parametric_Layer(func=func_params[0], params_and_consts=func_params[1], map_over_batch=func_params[2])
 
 setattr(Model, paramfun_relation_name, createParamFun)
