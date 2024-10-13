@@ -1169,6 +1169,49 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual((2, 3), np.array(results['in_S4']).shape)
         self.TestAlmostEqual([[-1, 0, 2],[-2, 0, -6]], results['in_S4'])
 
+    def test_predict_paramfun_param_const(self):
+        input2 = Input('in2')
+        pp = Parameter('pp', values=[[7],[8],[9]])
+        ll = Constant('ll', values=[[12],[13],[14]])
+        oo = Constant('oo', values=[[1],[2],[3]])
+        pp, oo, input2.tw(0.03), ll
+        def fun_test(x, y, z, k):
+            return (x + y) * (z - k)
+
+        NeuObj.reset_count()
+        out = Output('out',ParamFun(fun_test,parameters=[pp],constants=[ll,oo])(input2.tw(0.03)))
+        test = Neu4mes()
+        test.addModel('out',[out])
+        test.neuralizeModel(0.01)
+        results = test({'in2': [0, 1, 2]})
+        self.assertEqual((1, 3), np.array(results['out']).shape)
+        self.assertEqual([[-72.0, -84.0, -96.0]], results['out'])
+
+        NeuObj.reset_count()
+        out = Output('out',ParamFun(fun_test,parameters={'z':pp},constants={'y':ll,'k':oo})(input2.tw(0.03)))
+        test = Neu4mes()
+        test.addModel('out',[out])
+        test.neuralizeModel(0.01)
+        results = test({'in2': [0, 1, 2]})
+        self.assertEqual((1, 3), np.array(results['out']).shape)
+        self.assertEqual([[72.0, 84.0, 96.0]], results['out'])
+
+        NeuObj.reset_count()
+        parfun = ParamFun(fun_test)
+        out1 = Output('out1', parfun(input2.tw(0.03), ll, pp, oo))
+        out2 = Output('out2', parfun(input2.tw(0.03), ll, oo, pp))
+        out3 = Output('out3', parfun(pp, oo, input2.tw(0.03), ll))
+        test = Neu4mes()
+        test.addModel('out',[out1,out2,out3])
+        test.neuralizeModel(0.01)
+        results = test({'in2': [0, 1, 2]})
+        self.assertEqual((1, 3), np.array(results['out1']).shape)
+        self.assertEqual((1, 3), np.array(results['out2']).shape)
+        self.assertEqual((1, 3), np.array(results['out3']).shape)
+        self.assertEqual([[72.0, 84.0, 96.0]], results['out1'])
+        self.assertEqual([[-72.0, -84.0, -96.0]], results['out2'])
+        self.assertEqual([[-96.0, -120.0, -144.0]], results['out3'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -29,8 +29,8 @@ class ParamFun(NeuObj):
             'code' : code,
             'name' : param_fun.__name__
         }
-        self.json['Functions'][self.name]['parameters'] = []
-        self.json['Functions'][self.name]['constants'] = []
+        self.json['Functions'][self.name]['params_and_consts'] = []
+        #self.json['Functions'][self.name]['constants'] = []
         #self.__set_params(n_input = n_input, constants = constants, parameters_dimensions = parameters_dimensions, parameters = parameters)
 
     def __call__(self, *obj):
@@ -62,7 +62,7 @@ class ParamFun(NeuObj):
             self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
 
         # Create the missing parameters
-        missing_params = n_new_constants_and_params - len(self.json['Functions'][self.name]['parameters']) - len(self.json['Functions'][self.name]['constants'])
+        missing_params = n_new_constants_and_params - len(self.json['Functions'][self.name]['params_and_consts'])
         check(missing_params == 0, ValueError, f"The function is called with different number of inputs.")
 
         stream_json = copy.deepcopy(self.json)
@@ -82,16 +82,29 @@ class ParamFun(NeuObj):
     def __set_params_and_consts(self, n_new_constants_and_params):
         funinfo = inspect.getfullargspec(self.param_fun)
 
+        # Create the missing constants from list
+        if type(self.constants) is list:
+            for const in self.constants:
+                if type(const) is Constant:
+                    self.json['Functions'][self.name]['params_and_consts'].append(const.name)
+                    self.json['Constants'][const.name] = copy.deepcopy(const.json['Constants'][const.name])
+                elif type(const) is str:
+                    self.json['Functions'][self.name]['params_and_consts'].append(const)
+                    self.json['Constants'][const] = {'dim': 1}
+                else:
+                    check(type(const) is Constant or type(const) is str, TypeError,
+                          'The element inside the \"constants\" list must be a Constant or str')
+
         # Create the missing parameters from list
         if type(self.parameters) is list:
             check(self.parameters_dimensions is None, ValueError,
                   '\"parameters_dimensions\" must be None if \"parameters\" is set using list')
             for param in self.parameters:
                 if type(param) is Parameter:
-                    self.json['Functions'][self.name]['parameters'].append(param.name)
+                    self.json['Functions'][self.name]['params_and_consts'].append(param.name)
                     self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param.name])
                 elif type(param) is str:
-                    self.json['Functions'][self.name]['parameters'].append(param)
+                    self.json['Functions'][self.name]['params_and_consts'].append(param)
                     self.json['Parameters'][param] = {'dim': 1}
                 else:
                     check(type(param) is Parameter or type(param) is str, TypeError,
@@ -104,24 +117,11 @@ class ParamFun(NeuObj):
             for i, param_dim in enumerate(self.parameters_dimensions):
                 idx = i + len(funinfo.args) - len(self.parameters_dimensions)
                 param_name = self.name + str(idx)
-                self.json['Functions'][self.name]['parameters'].append(param_name)
+                self.json['Functions'][self.name]['params_and_consts'].append(param_name)
                 self.json['Parameters'][param_name] = {'dim': list(self.parameters_dimensions[i])}
 
-        # Create the missing constants from list
-        if type(self.constants) is list:
-            for const in self.constants:
-                if type(const) is Constant:
-                    self.json['Functions'][self.name]['constants'].append(const.name)
-                    self.json['Constants'][const.name] = copy.deepcopy(const.json['Constants'][const.name])
-                elif type(const) is str:
-                    self.json['Functions'][self.name]['constants'].append(const)
-                    self.json['Constants'][const] = {'dim': 1}
-                else:
-                    check(type(const) is Constant or type(const) is str, TypeError,
-                          'The element inside the \"constants\" list must be a Constant or str')
-
         # Create the missing parameters and constants from dict
-        missing_params = n_new_constants_and_params - len(self.json['Functions'][self.name]['parameters']) - len(self.json['Functions'][self.name]['constants'])
+        missing_params = n_new_constants_and_params - len(self.json['Functions'][self.name]['params_and_consts'])
         if missing_params or type(self.constants) is dict or type(self.parameters) is dict or type(self.parameters_dimensions) is dict:
             #check(n_input is not None, TypeError, 'if \"parameter\" or \"parameters_dimensions\" are dict the number of input must be set')
             n_input = len(funinfo.args) - missing_params
@@ -136,10 +136,10 @@ class ParamFun(NeuObj):
                                   f'The parameter {key} must be removed from \"parameters_dimensions\".')
                         param = self.parameters[key]
                         if type(self.parameters[key]) is Parameter:
-                            self.json['Functions'][self.name]['parameters'].append(param.name)
+                            self.json['Functions'][self.name]['params_and_consts'].append(param.name)
                             self.json['Parameters'][param.name] = copy.deepcopy(param.json['Parameters'][param.name])
                         elif type(self.parameters[key]) is str:
-                            self.json['Functions'][self.name]['parameters'].append(param)
+                            self.json['Functions'][self.name]['params_and_consts'].append(param)
                             self.json['Parameters'][param] = {'dim': 1}
                         else:
                             check(type(param) is Parameter or type(param) is str, TypeError,
@@ -150,16 +150,16 @@ class ParamFun(NeuObj):
                         dim = self.parameters_dimensions[key]
                         check(isinstance(dim,(list,tuple,int)), TypeError,
                               'The element inside the \"parameters_dimensions\" dict must be a tuple or int')
-                        self.json['Functions'][self.name]['parameters'].append(param_name)
+                        self.json['Functions'][self.name]['params_and_consts'].append(param_name)
                         self.json['Parameters'][param_name] = {'dim': list(dim) if type(dim) is tuple else dim}
                         n_elem_dict -= 1
                     elif type(self.constants) is dict and key in self.constants:
                         const = self.constants[key]
                         if type(self.constants[key]) is Constant:
-                            self.json['Functions'][self.name]['constants'].append(const.name)
+                            self.json['Functions'][self.name]['params_and_consts'].append(const.name)
                             self.json['Constants'][const.name] = copy.deepcopy(const.json['Constants'][const.name])
                         elif type(self.constants[key]) is str:
-                            self.json['Functions'][self.name]['constants'].append(const)
+                            self.json['Functions'][self.name]['params_and_consts'].append(const)
                             self.json['Constants'][const] = {'dim': 1}
                         else:
                             check(type(const) is Constant or type(const) is str, TypeError,
@@ -167,7 +167,7 @@ class ParamFun(NeuObj):
                         n_elem_dict -= 1
                     else:
                         param_name = self.name + key
-                        self.json['Functions'][self.name]['parameters'].append(param_name)
+                        self.json['Functions'][self.name]['params_and_consts'].append(param_name)
                         self.json['Parameters'][param_name] = {'dim': 1}
             check(n_elem_dict == 0, ValueError, 'Some of the input parameters are not used in the function.')
 
@@ -177,12 +177,10 @@ class ParamFun(NeuObj):
 
         all_inputs_dim = input_dimensions
         all_inputs_type = input_types
-        for name in self.json['Functions'][self.name]['constants']:
-            all_inputs_dim.append(self.json['Constants'][name])
+        params_and_consts = self.json['Constants'] | self.json['Parameters']
+        for name in self.json['Functions'][self.name]['params_and_consts']:
+            all_inputs_dim.append(params_and_consts[name])
             all_inputs_type.append(Constant)
-        for name in self.json['Functions'][self.name]['parameters']:
-            all_inputs_dim.append(self.json['Parameters'][name])
-            all_inputs_type.append(Parameter)
 
         n_samples_sec = 0.1
         is_int = False
@@ -265,11 +263,10 @@ class ParamFun(NeuObj):
 
 
 class Parametric_Layer(nn.Module):
-    def __init__(self, func, params, consts):
+    def __init__(self, func, params_and_consts):
         super().__init__()
         self.name = func['name']
-        self.consts = consts
-        self.params = params
+        self.params_and_consts = params_and_consts
         ## Add the function to the globals
         try:
             code = 'import torch\n@torch.fx.wrap\n' + func['code']
@@ -278,7 +275,7 @@ class Parametric_Layer(nn.Module):
             print(f"An error occurred: {e}")
 
     def forward(self, *inputs):
-        args = list(inputs) + self.consts + self.params
+        args = list(inputs) + self.params_and_consts
         # Retrieve the function object from the globals dictionary
         function_to_call = globals()[self.name]
         # Call the function using the retrieved function object
@@ -286,6 +283,6 @@ class Parametric_Layer(nn.Module):
         return result
 
 def createParamFun(self, *func_params):
-    return Parametric_Layer(func=func_params[0], params=func_params[1], consts=func_params[2])
+    return Parametric_Layer(func=func_params[0], params_and_consts=func_params[1])
 
 setattr(Model, paramfun_relation_name, createParamFun)

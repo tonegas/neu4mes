@@ -145,3 +145,31 @@ example.addModel('out',out)
 example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1]}))
 #
+
+print("------------------------EXAMPLE 9------------------------")
+# Example 5
+# Parametric function with a constant vector
+P1 = 7.0
+def myFun(K1,p1):
+    return K1*p1
+parfun = ParamFun(myFun,constants=[Constant('r',values=P1)])
+out = Output('out',parfun(x.sw(4)))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1]}))
+#
+
+print("------------------------EXAMPLE 10------------------------")
+# Example 5
+# Parametric function with a constant vector
+P1 = 12.0
+def myFun(K1,p1):
+    return K1*p1
+parfun = ParamFun(myFun,constants=[Constant('rr',values=P1)])
+out = Output('out',parfun(x.sw(4)))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1]}))
+#
