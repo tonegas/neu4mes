@@ -1180,7 +1180,7 @@ class MyTestCase(unittest.TestCase):
 
         NeuObj.reset_count()
         out = Output('out',ParamFun(fun_test,parameters=[pp],constants=[ll,oo])(input2.tw(0.03)))
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel('out',[out])
         test.neuralizeModel(0.01)
         results = test({'in2': [0, 1, 2]})
@@ -1189,7 +1189,7 @@ class MyTestCase(unittest.TestCase):
 
         NeuObj.reset_count()
         out = Output('out',ParamFun(fun_test,parameters={'z':pp},constants={'y':ll,'k':oo})(input2.tw(0.03)))
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel('out',[out])
         test.neuralizeModel(0.01)
         results = test({'in2': [0, 1, 2]})
@@ -1201,7 +1201,7 @@ class MyTestCase(unittest.TestCase):
         out1 = Output('out1', parfun(input2.tw(0.03), ll, pp, oo))
         out2 = Output('out2', parfun(input2.tw(0.03), ll, oo, pp))
         out3 = Output('out3', parfun(pp, oo, input2.tw(0.03), ll))
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel('out',[out1,out2,out3])
         test.neuralizeModel(0.01)
         results = test({'in2': [0, 1, 2]})

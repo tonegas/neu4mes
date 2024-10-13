@@ -922,7 +922,7 @@ class MyTestCase(unittest.TestCase):
         outputCo = Output('outCo', matmulfun(parfun_out, co1.sw(3)))
 
 
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', [output,outputCl,outputCo])
         test.neuralizeModel()
 
