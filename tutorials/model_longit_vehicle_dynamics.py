@@ -51,29 +51,5 @@ def filter_function(sample):
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
-optimizer_params = [{'params':'gravity','weight_decay': 0.1}]
-optimizer_defaults = {'weight_decay': 0.00001}
-training_params = {'num_of_epochs':200, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003}
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=optimizer_params, add_optimizer_defaults=optimizer_defaults, training_params=training_params)
-
-## Neural network Predict
-# sample = vehicle.get_random_samples(dataset='validationset', window=1)
-# start = time.time()
-# for _ in range(10000):
-#     result = vehicle(sample, sampled=True)
-# print('Inference Time: ', time.time() - start)
-# print('Predicted accelleration: ', result['accelleration'])
-# print('True accelleration: ', sample['acc'])
-
-# python, python_onnx, onnx = vehicle.exportTracer()
-# #vehicle.import_onnx(onnx)
-# #vehicle.exportONNX(file_name)
-#
-# ## Import the tracer model
-# vehicle.importTracer(file_path=python)
-# start = time.time()
-# for _ in range(10000):
-#     result = vehicle(sample, sampled=True)
-# print('Inference Time: ', time.time() - start)
-# print('Predicted accelleration: ', result['accelleration'])
-# print('True accelleration: ', sample['acc'])
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=[{'params':'grav','weight_decay': 0.1}], add_optimizer_defaults={'weight_decay': 0.00001}, training_params={'num_of_epochs':300, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003})
+vehicle.neuralizeModel(0.05)

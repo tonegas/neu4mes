@@ -76,6 +76,9 @@ class Model(nn.Module):
                 values = np.zeros(param_size)
                 for indexes in product(*(range(v) for v in param_size)):
                     if 'params' in param_data['init_fun']:
+                        for key,value in param_data['init_fun']['params'].items():
+                            if type(value) is str and value == 'DT':
+                                param_data['init_fun']['params'][key] = self.sample_time
                         values[indexes] = function_to_call(indexes, param_size, param_data['init_fun']['params'])
                     else:
                         values[indexes] = function_to_call(indexes, param_size)
@@ -90,6 +93,7 @@ class Model(nn.Module):
 
         ## Initialize state variables
         self.init_states(self.state_model_main, reset_states=True)
+        all_params_and_consts = self.all_parameters | self.all_constants
 
         ## Create all the relations
         for relation, inputs in self.relations.items():
@@ -111,8 +115,10 @@ class Model(nn.Module):
                         layer_inputs.append(self.all_constants[item])
                     elif item in list(self.functions.keys()): ## the relation takes a custom function
                         layer_inputs.append(self.functions[item])
-                        if 'parameters' in self.functions[item].keys(): ## Parametric function that takes parameters
-                            layer_inputs.append([self.all_parameters[par] for par in self.functions[item]['parameters']])
+                        if 'params_and_consts' in self.functions[item].keys() and len(self.functions[item]['params_and_consts']) >= 0: ## Parametric function that takes parameters
+                            layer_inputs.append([all_params_and_consts[par] for par in self.functions[item]['params_and_consts']])
+                        if 'map_over_dim' in self.functions[item].keys():
+                            layer_inputs.append(self.functions[item]['map_over_dim'])
                     else: 
                         layer_inputs.append(item)
 

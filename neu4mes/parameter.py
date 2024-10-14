@@ -34,15 +34,18 @@ class Constant(NeuObj, Stream):
 class Parameter(NeuObj, Stream):
     def __init__(self, name:str, dimensions:int|list|tuple|None = None, tw:int|None = None, sw:int|None = None, values:list|None = None, init:None = None, init_params:None = None):
         NeuObj.__init__(self, name)
+        dimensions = list(dimensions) if type(dimensions) is tuple else dimensions
         if values is None:
             if dimensions is None:
                 dimensions = 1
-            self.dim = {'dim': list(dimensions) if type(dimensions) is tuple else dimensions}
+            self.dim = {'dim': dimensions}
             if tw is not None:
                 check(sw is None, ValueError, "If tw is set sw must be None")
                 self.dim['tw'] = tw
-            if sw is not None:
+            elif sw is not None:
                 self.dim['sw'] = sw
+            else:
+                self.dim['sw'] = 1
 
             # deepcopy dimention information inside Parameters
             self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
@@ -50,7 +53,7 @@ class Parameter(NeuObj, Stream):
             shape = np.array(values).shape
             check(len(shape) >= 2, ValueError,
                   f"The shape of a parameter must have at least 2 dimensions.")
-            values_dimensions = shape[1] if len(shape[1:]) == 1 else shape[1:]
+            values_dimensions = shape[1] if len(shape[1:]) == 1 else list(shape[1:])
             if dimensions is None:
                 dimensions = values_dimensions
             else:

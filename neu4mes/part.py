@@ -1,5 +1,5 @@
 import copy
-
+import torch
 import torch.nn as nn
 
 from neu4mes.relation import ToStream, Stream
@@ -37,6 +37,28 @@ class Part_Layer(nn.Module):
 ## Select elements on the third dimension in the range [i,j]
 def createPart(self, *inputs):
     return Part_Layer(i=inputs[0][0], j=inputs[0][1])
+
+vecttosample_relation_name = 'VectToSample'
+class VectToSample(Stream, ToStream):
+    def __init__(self, obj):
+        check(type(obj) is Stream, TypeError,
+              f"The type of {obj} is {type(obj)} and is not supported for VectTotime operation.")
+        window = 'tw' if 'tw' in obj.dim.keys() else ('sw' if 'sw' in obj.dim.keys() else None)
+        check(window is None or (window=='sw' and obj.dim[window] == 1), TypeError, f"The Stream {obj.name} have a time dimension.")
+        dim = {'dim':1,'sw':obj.dim['dim']}
+        super().__init__(vecttosample_relation_name + str(Stream.count),obj.json,dim)
+        self.json['Relations'][self.name] = [vecttosample_relation_name,[obj.name]]
+
+class VectToSample_Layer(nn.Module):
+    def __init__(self):
+        super(VectToSample_Layer, self).__init__()
+
+    def forward(self, x):
+        x = torch.transpose(x,1,2)
+        return x
+
+def createVectToSample(self, *inputs):
+    return VectToSample_Layer()
 
 class Select(Stream, ToStream):
     def __init__(self, obj, i):
@@ -189,3 +211,5 @@ setattr(Model, samplepart_relation_name, createSamplePart)
 setattr(Model, sampleselect_relation_name, createSampleSelect)
 
 setattr(Model, timepart_relation_name, createTimePart)
+
+setattr(Model, vecttosample_relation_name, createVectToSample)

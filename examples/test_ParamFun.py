@@ -63,7 +63,7 @@ print(example({'x':[1,2,3],'F':[1,2,3]}))
 #
 
 print("------------------------EXAMPLE 4------------------------")
-#Example 4
+# Example 4
 # This case I define the specific size of the parameters
 # the first p1 is a 4 row column vector
 # The output size of the function is 1
@@ -74,7 +74,7 @@ print("------------------------EXAMPLE 4------------------------")
 def myFun(K1,K2,p1):
     import torch
     return torch.stack([K1,2*K1,3*K1,4*K1],dim=2).squeeze(-1)*p1+K2
-parfun = ParamFun(myFun, n_input=2, parameters_dimensions = {'p1':(1,4)})
+parfun = ParamFun(myFun, parameters_dimensions = {'p1':(1,4)})
 out = Output('out',parfun(x.last(),F.last()))
 example = Neu4mes()
 example.addModel('out',out)
@@ -100,8 +100,7 @@ print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
 #
 
 print("------------------------EXAMPLE 6------------------------")
-# Example 5
-# Parametric function with a constant scalar
+# Example 6
 P1 = 7.0
 def myFun(K1,p1):
     return K1*p1
@@ -114,16 +113,11 @@ print(example({'x':[1,1,1,1]}))
 #
 
 print("------------------------EXAMPLE 7------------------------")
-# Example 5
-# This case I create a 2 parameters that are passed to the parametric function
-# The parametric function takes a scalar parameter
-# The function has two inputs, the first two are inputs and the second is a K or R parameter
-# The function creates a tensor performs a dot product between input 1 and p1 (which is effectively K Parameter)
-# In this case the parameter are passed t
+# Example 7
 def myFun(K1,p1):
     return K1*p1
-K = Parameter('k1', dimensions =  1, tw = 1,values=[[2.0],[3.0],[4.0],[5.0]])
-R = Parameter('r1', dimensions =  1, tw = 1,values=[[5.0]])
+K = Parameter('k1', dimensions =  1, tw = 1, values=[[2.0],[3.0],[4.0],[5.0]])
+R = Parameter('r1', dimensions =  1, tw = 1, values=[[5.0],[4.0],[3.0],[2.0]])
 parfun = ParamFun(myFun)
 out = Output('out',parfun(x.tw(1),K)+parfun(x.tw(1),R))
 example = Neu4mes()
@@ -133,8 +127,7 @@ print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
 #
 
 print("------------------------EXAMPLE 8------------------------")
-# Example 5
-# Parametric function with a constant vector
+# Example 8
 P1 = [[5.0],[4.0],[3.0],[2.0]]
 def myFun(K1,p1):
     return K1*p1
@@ -148,15 +141,55 @@ print(example({'x':[1,1,1,1]}))
 
 print("------------------------EXAMPLE 9------------------------")
 # Example 9
-# Parametric function with a constant scalar and a learnable parameter
 P1 = 7.0
-R = Parameter('R', dimensions =  1, tw = 1,values=[[5.0]])
-def myFun(K1,p1,R):
-    return K1*p1 + R
-parfun = ParamFun(myFun, parameters = [R])
-out = Output('out',parfun(x.tw(1),P1))
+def myFun(K1,p1):
+    return K1*p1
+parfun = ParamFun(myFun,constants=[Constant('r',values=P1)])
+out = Output('out',parfun(x.sw(4)))
 example = Neu4mes()
 example.addModel('out',out)
 example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1]}))
+#
+
+print("------------------------EXAMPLE 10------------------------")
+# Example 10
+P1 = 12.0
+def myFun(K1,p1):
+    return K1*p1
+parfun = ParamFun(myFun,constants=[Constant('rr',values=P1)])
+out = Output('out',parfun(x.sw(4)))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,1,1,1]}))
+#
+
+print("------------------------EXAMPLE 11------------------------")
+# Example 11
+def myFun(inin, p1):
+    print(f'inin:{inin.shape}')
+    print(f'p1:{p1.shape}')
+    return inin * p1
+parfun = ParamFun(myFun, map_over_batch=True)
+out = Output('out',parfun(x.sw(4)))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,3,3,1]}))
+#
+
+print("------------------------EXAMPLE 12------------------------")
+# Example 12
+def myFun(inin, p1):
+    print(f'inin:{inin.shape}')
+    print(f'p1:{p1.shape}')
+    return inin * p1
+parfun = ParamFun(myFun, map_over_batch=True)
+p = Constant('co',values=[[2]])
+out = Output('out',parfun(p,x.sw(4)))
+example = Neu4mes()
+example.addModel('out',out)
+example.neuralizeModel(0.25)
+print(example({'x':[1,3,3,1]}))
 #

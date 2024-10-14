@@ -22,6 +22,9 @@ class MPLVisulizer(TextVisualizer):
 
         signal.signal(signal.SIGINT, signal_handler)
 
+    def showStartTraining(self):
+        pass
+
     def showTraining(self, epoch, train_losses, val_losses):
         if epoch == 0:
             for key in self.n4m.minimize_dict.keys():
