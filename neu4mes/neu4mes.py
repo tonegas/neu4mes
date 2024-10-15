@@ -2,21 +2,19 @@
 import copy, os, json, random, torch
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from pprint import pformat
 
 # Neu4mes packages
 from neu4mes.input import closedloop_name, connect_name
-from neu4mes.relation import NeuObj, MAIN_JSON
+from neu4mes.relation import MAIN_JSON
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.relation import Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check, argmax_max, argmin_min, merge, tensor_to_list
-from neu4mes.export import plot_fuzzify, generate_training_report, model_to_python, model_to_onnx, model_to_python_onnx
+from neu4mes.utils import check, argmax_max, argmin_min, merge, tensor_to_list
+from neu4mes.export import plot_fuzzify, model_to_python, model_to_onnx, model_to_python_onnx
 from neu4mes.optimizer import Optimizer, SGD, Adam
-from neu4mes.export import JsonPrettyPrinter
+from neu4mes.exporter import Exporter, StandardExporter
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -24,8 +22,7 @@ log = logging.getLogger(__name__)
 log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 class Neu4mes:
-    name = None
-    def __init__(self, visualizer = 'Standard', seed = None, workspace = None, log_internal =  False):
+    def __init__(self, visualizer = 'Standard', exporter = 'Standard', seed = None, workspace = None, log_internal =  False, save_history = False):
 
         # Visualizer
         if visualizer == 'Standard':
@@ -35,6 +32,15 @@ class Neu4mes:
         else:
             self.visualizer = Visualizer()
         self.visualizer.set_n4m(self)
+
+        # Exporter
+        if exporter == 'Standard':
+            self.exporter = StandardExporter(workspace, save_history)
+        elif exporter != None:
+            self.visualizer = exporter
+        else:
+            self.visualizer = Exporter()
+        self.exporter.set_n4m(self)
 
         ## Set the random seed for reproducibility
         if seed:
@@ -99,14 +105,6 @@ class Neu4mes:
         # Validation Parameters
         self.performance = {}
         self.prediction = {}
-
-        # Export parameters
-        if workspace is not None:
-            self.workspace = workspace
-            os.makedirs(self.workspace, exist_ok=True)
-            self.folder = datetime.now().strftime("%Y_%m_%d_%H_%M")
-            self.folder_path = os.path.join(self.workspace, self.folder)
-            os.makedirs(self.folder_path, exist_ok=True)
 
     def __call__(self, inputs = {}, sampled = False, closed_loop = {}, connect = {}, prediction_samples = 'auto', num_of_samples = 'auto'):#, align_input = False):
         ## Copy dict for avoid python bug
@@ -239,8 +237,9 @@ class Neu4mes:
                 else:
                     ## Otherwise the variable are reset every prediction samples
                     if i%(prediction_samples+1) == 0:
-                        self.model.reset_connect_variables(connect, X, only=False)
                         self.model.reset_states(X, only=False)
+                        self.model.reset_connect_variables(connect, X, only=False)
+
 
                 result, _ = self.model(X)
 
@@ -277,15 +276,20 @@ class Neu4mes:
             print('The Dataset must first be loaded using <loadData> function!')
             return {}
 
-    def addConnect(self, stream_out, state_list_in):
-        from neu4mes.input import Connect
-        self.__update_state(stream_out, state_list_in, Connect)
-        self.__update_model()
-
-    def addClosedLoop(self, stream_out, state_list_in):
-        from neu4mes.input import ClosedLoop
-        self.__update_state(stream_out, state_list_in, ClosedLoop)
-        self.__update_model()
+    # Use this function for build the model_def from the ditionaries: model_dict, minimize_dict, update_state_dict
+    def __update_model(self, model_def = MAIN_JSON, model_dict = {}, minimize_dict = {}, update_state_dict = {}):
+        self.model_def = copy.deepcopy(model_def)
+        model_dict = copy.deepcopy(model_dict) if model_dict != {} else self.model_dict
+        minimize_dict = copy.deepcopy(minimize_dict) if minimize_dict != {} else self.minimize_dict
+        update_state_dict = copy.deepcopy(update_state_dict) if update_state_dict != {} else self.update_state_dict
+        for key, stream_list in model_dict.items():
+            for stream in stream_list:
+                self.model_def = merge(self.model_def, stream.json)
+        for key, minimize in minimize_dict.items():
+            self.model_def = merge(self.model_def, minimize['A'].json)
+            self.model_def = merge(self.model_def, minimize['B'].json)
+        for key, update_state in update_state_dict.items():
+            self.model_def = merge(self.model_def, update_state.json)
 
     def __update_state(self, stream_out, state_list_in, UpdateState):
         from neu4mes.input import  State
@@ -302,6 +306,16 @@ class Neu4mes:
                 stream_name = self.model_def['Outputs'][stream_out.name]
                 stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
             self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
+
+    def addConnect(self, stream_out, state_list_in):
+        from neu4mes.input import Connect
+        self.__update_state(stream_out, state_list_in, Connect)
+        self.__update_model()
+
+    def addClosedLoop(self, stream_out, state_list_in):
+        from neu4mes.input import ClosedLoop
+        self.__update_state(stream_out, state_list_in, ClosedLoop)
+        self.__update_model()
 
     def addModel(self, name, stream_list):
         if isinstance(stream_list, (Output,Stream)):
@@ -339,23 +353,7 @@ class Neu4mes:
         self.__update_model()
         self.visualizer.showaddMinimize(name)
 
-    def __update_model(self, model_dict = {}, minimize_dict = {}, update_state_dict = {}):
-        if self.model_def_loaded is not None:
-            self.model_def = copy.deepcopy(self.model_def_loaded)
-        else:
-            self.model_def = copy.deepcopy(MAIN_JSON)
-        model_dict = copy.deepcopy(model_dict) if model_dict != {} else self.model_dict
-        minimize_dict = copy.deepcopy(minimize_dict) if minimize_dict != {} else self.minimize_dict
-        update_state_dict = copy.deepcopy(update_state_dict) if update_state_dict != {} else self.update_state_dict
-        for key, stream_list in model_dict.items():
-            for stream in stream_list:
-                self.model_def = merge(self.model_def, stream.json)
-        for key, minimize in minimize_dict.items():
-            self.model_def = merge(self.model_def, minimize['A'].json)
-            self.model_def = merge(self.model_def, minimize['B'].json)
-        for key, update_state in update_state_dict.items():
-            self.model_def = merge(self.model_def, update_state.json)
-
+    # Use this function to get the parameters form the torch model and set the model_def_trained
     def __get_torch_model(self, clear_model = False):
         if self.model is not None and clear_model == False:
             self.model_def_trained = copy.deepcopy(self.model_def)
@@ -368,18 +366,15 @@ class Neu4mes:
             model_def = copy.deepcopy(self.model_def)
         return model_def
 
-    def __neuralize_model(self, sample_time=1, clear_model=False):
-        check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
-        self.model_def["SampleTime"] = sample_time
-
-        ## Get the trained model
-        model_def = self.__get_torch_model(clear_model)
+    # Use this function to create the torch model from a model_def
+    def __neuralize_model(self, model_def):
+        sample_time = model_def['SampleTime']
 
         check(model_def['Inputs'] | model_def['States'] != {}, RuntimeError, "No model is defined!")
-        json_inputs = model_def['Inputs'] | self.model_def['States']
+        json_inputs = model_def['Inputs'] | model_def['States']
 
         for key,value in model_def['States'].items():
-            check(closedloop_name in self.model_def['States'][key] or connect_name in self.model_def['States'][key],
+            check(closedloop_name in model_def['States'][key] or connect_name in model_def['States'][key],
                   KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
 
         for key, value in json_inputs.items():
@@ -406,16 +401,28 @@ class Neu4mes:
         ## Build the network
         self.model = Model(model_def, self.minimize_dict, self.input_ns_backward, self.input_n_samples)
         self.neuralized = True
-        return model_def
 
-    def neuralizeModel(self, sample_time = 1, clear_model = False):
-        model_def = self.__neuralize_model(sample_time, clear_model)
+    # Use this function for finilize the model_def with the samples time and build the torch model
+    def neuralizeModel(self, sample_time = None, clear_model = False):
+        # Set sample time on the model_def
+        if sample_time is None:
+            if 'SampleTime' not in self.model_def or self.model_def['SampleTime'] == 0:
+                sample_time = 1
+            else:
+                sample_time = self.model_def['SampleTime']
+        else:
+            check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
+        self.model_def["SampleTime"] = sample_time
+
+        ## Get the trained model
+        model_def = self.__get_torch_model(clear_model)
+        self.__neuralize_model(model_def)
         self.visualizer.showModel(model_def)
         self.visualizer.showModelInputWindow()
         self.visualizer.showBuiltModel()
 
     def loadData(self, name, source, format=None, skiplines=0, delimiter=',', header=None):
-        assert self.neuralized == True, "The network is not neuralized yet."
+        check(self.neuralized, ValueError, "The network is not neuralized.")
         check(delimiter in ['\t', '\n', ';', ',', ' '], ValueError, 'delimiter not valid!')
 
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
@@ -661,7 +668,7 @@ class Neu4mes:
                     num_of_epochs = None,
                     train_batch_size = None, val_batch_size = None, test_batch_size = None,
                     optimizer = None,
-                    lr = None, lr_param = None, #weight_decay = None, weight_decay_param = None,
+                    lr = None, lr_param = None,
                     optimizer_params = None, optimizer_defaults = None,
                     training_params = None,
                     add_optimizer_params = None, add_optimizer_defaults = None
@@ -909,7 +916,7 @@ class Neu4mes:
         #     self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
         self.visualizer.showResults()
 
-        ## Get trained model from torch
+        ## Get trained model from torch and set the model_def_trained
         self.__get_torch_model()
 
         return train_losses, val_losses, test_losses
@@ -1079,101 +1086,45 @@ class Neu4mes:
             self.performance[name_data]['total']['fvu'] = np.mean([self.performance[name_data][key]['fvu']['total'] for key in self.minimize_dict.keys()])
             self.performance[name_data]['total']['aic'] = np.mean([self.performance[name_data][key]['aic']['value']for key in self.minimize_dict.keys()])
 
-    def saveTorchModel(self, name = 'net', model_folder = None): #TODO, model = None):
-        self.__neuralize_model()
-        file_name = name + ".pt"
-        model_path = os.path.join(self.folder_path, file_name) if model_folder is None else os.path.join(model_folder,file_name)
-        torch.save(self.model.state_dict(), model_path)
-
-    def loadTorchModel(self, name = 'net', model_folder = None): #TODO, model = None):
-        check(self.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
-        file_name = name + ".pt"
-        model_path = os.path.join(self.folder_path, file_name) if model_folder is None else os.path.join(model_folder,file_name)
-        self.__neuralize_model()
-        self.model.load_state_dict(torch.load(model_path))
-
-    def __save_model(self, model, name = 'net', model_folder = None):
-        # Specify the JSON file name
-        file_name = name + ".json"
-        # Combine the folder path and file name to form the complete file path
-        model_path = os.path.join(self.folder_path, file_name) if model_folder is None else os.path.join(model_folder,file_name)
-        # Export the dictionary as a JSON file
-        with open(model_path, 'w') as json_file:
-            #json.dump(self.model_def, json_file, indent=4)
-            json_file.write(JsonPrettyPrinter().pformat(model).replace('\'', '\"').replace('_"_', '\'').replace('None', 'null'))
-            #json_file.write(JsonPrettyPrinter().pformat(model).replace('None','null'))
-            #data = json.dumps(self.model_def)
-            #json_file.write(pformat(data).replace('\\\\n', '\\n').replace('\'', '').replace('(','').replace(')',''))
-            #json_file.write(pformat(data).replace('\'', '\"'))
-        self.visualizer.warning(f"The model definition has been exported to {file_name} as a JSON file.")
+    def getWorkspace(self):
+        return self.exporter.getWorkspace()
 
     def saveModel(self, name = 'net', model_path = None):
-        self.__neuralize_model()
-        self.__save_model(self.model_def, name, model_path)
+        if self.model_def is not None:
+            self.exporter.saveModel(self.model_def, name, model_path)
         if self.model_def_trained is not None:
-            self.__save_model(self.model_def_trained, name + '.trained', model_path)
-
-    def __load_model(self, name = 'net', model_folder = None):
-        # Specify the JSON file name
-        file_name = name + ".json"
-        # Combine the folder path and file name to form the complete file path
-        model_path = os.path.join(self.folder_path, file_name) if model_folder is None else os.path.join(model_folder,file_name)
-        try:
-            json_file = open(model_path, )
-            model =  json.load(json_file)
-        except Exception as e:
-            self.visualizer.warning(f"The file {model_path} it is not found or not conformed.\n Error: {e}")
-            raise e
-        return model
+            self.exporter.saveModel(self.model_def_trained, name + '.trained', model_path)
 
     def loadModel(self, name = None, model_folder = None):
         if name is None:
-            try:
-                name = 'net'
-                self.model_def_loaded = self.__load_model(name, model_folder)
-            except:
-                pass
-            try:
-                name = 'net'
-                self.model_def_loaded = self.__load_model(name + '.trained', model_folder)
-            except:
-                pass
+            name = 'net'
+            self.model_def_loaded = self.exporter.loadModel(name + '.trained', model_folder)
+            if self.model_def_loaded is None:
+                self.model_def_loaded = self.exporter.loadModel(name, model_folder)
         else:
-            try:
-                self.model_def_loaded = self.__load_model(name, model_folder)
-            except:
-                pass
-        self.__update_model()
-        self.__neuralize_model()
+            self.model_def_loaded = self.exporter.loadModel(name, model_folder)
+        if self.model_def_loaded:
+            self.__update_model(self.model_def_loaded)
+            self.__neuralize_model(self.model_def_loaded)
 
-    def exportTracer(self,):
-        if not self.neuralized:
-            self.visualizer.warning('Export Error: the model is not neuralized yet.')
-            return
+    def exportPythonModel(self, name = 'net', model_path = None):
+        check(self.model_def['States'] == {}, TypeError, "The network has state variables. The export to python is not possible.")
+        if self.model_def is not None:
+            self.exporter.saveModel(self.model_def, name, model_path)
+            self.exporter.exportPythonModel(name, model_path)
 
-        ## Export to python file
-        python_path = model_to_python(self.model_def, self.model, folder_path=self.folder_path)
-        ## Export to python file (onnx compatible)
-        python_onnx_path = model_to_python_onnx(self.model_def, tracer_path=python_path)
-        ## Export to onnx file
-        self.importTracer(python_onnx_path)
-        self.model.eval()
-        onnx_path = model_to_onnx(self.model, self.model_def, self.input_n_samples, python_path)
+    def importPythonModel(self, name = None, model_folder = None):
+        if name is None:
+            name = 'net'
+        self.model_def_loaded = self.exporter.loadModel(name, model_folder)
+        self.__update_model(model_def=self.model_def_loaded)
+        self.__neuralize_model(self.model_def_loaded)
+        self.model = self.exporter.importPythonModel(name, model_folder)
+        self.__get_torch_model()
 
-        self.visualizer.warning(f"The pytorch model has been exported to {self.folder}.")
-        return python_path, python_onnx_path, onnx_path
-
-    def importTracer(self, file_path):
-        import sys
-        import os
-        # Add the directory containing your file to sys.path
-        directory = os.path.dirname(file_path)
-        sys.path.insert(0, directory)
-        # Import the module by filename (without .py)
-        module_name = os.path.basename(file_path)[:-3]
-        module = __import__(module_name)
-
-        self.model = module.TracerModel()
+    def exportOnnx(self, name = 'net', model_path = None):
+        if self.model_def is not None:
+            self.exporter.exportOnnxModel(name, model_path)
 
     def import_onnx(self, onnx_path, data):
         import onnxruntime

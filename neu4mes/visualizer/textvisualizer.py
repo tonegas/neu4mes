@@ -253,3 +253,27 @@ class TextVisualizer(Visualizer):
             self.__title(" Detalied Results ")
             print(color(pformat(self.n4m.performance), GREEN))
             self.__line()
+
+    def saveModel(self, name, path):
+        if self.verbose >= 1:
+            self.__title(f" Save {name} ")
+            self.__param("Model saved in:", path)
+            self.__line()
+
+    def loadModel(self, name, path):
+        if self.verbose >= 1:
+            self.__title(f" Load {name} ")
+            self.__param("Model loaded from:", path)
+            self.__line()
+
+    def exportModel(self, name, path):
+        if self.verbose >= 1:
+            self.__title(f" Export {name} ")
+            self.__param("Model exported in:", path)
+            self.__line()
+
+    def importModel(self, name, path):
+        if self.verbose >= 1:
+            self.__title(f" Import {name} ")
+            self.__param("Model imported from:", path)
+            self.__line()

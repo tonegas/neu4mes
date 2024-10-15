@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from neu4mes.relation import ToStream, Stream
 from neu4mes.model import Model
-from neu4mes.utilis import check
+from neu4mes.utils import check
 
 part_relation_name = 'Part'
 select_relation_name = 'Select'

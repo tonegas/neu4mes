@@ -2,7 +2,7 @@ import inspect
 
 from neu4mes.relation import NeuObj
 from neu4mes.part import Select
-from neu4mes.utilis import check
+from neu4mes.utils import check
 
 localmodel_relation_name = 'LocalModel'
 

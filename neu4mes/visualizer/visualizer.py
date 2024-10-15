@@ -64,3 +64,15 @@ class Visualizer():
 
     def showResults(self):
         pass
+
+    def saveModel(self, name, path):
+        pass
+
+    def loadModel(self, name, path):
+        pass
+
+    def exportModel(self, name, path):
+        pass
+
+    def importModel(self, name, path):
+        pass

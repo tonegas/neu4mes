@@ -3,7 +3,7 @@ import torch
 
 from neu4mes.relation import ToStream, Stream, toStream
 from neu4mes.model import Model
-from neu4mes.utilis import check, merge
+from neu4mes.utils import check, merge
 
 
 # Binary operators

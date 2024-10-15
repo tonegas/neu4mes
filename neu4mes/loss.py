@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from neu4mes.utilis import check
+from neu4mes.utils import check
 
 available_losses = ['mse', 'rmse', 'mae']
 

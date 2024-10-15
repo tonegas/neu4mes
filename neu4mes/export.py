@@ -168,6 +168,7 @@ def plot_fuzzify(params):
     ax.legend()
     return fig
 
+
 def model_to_python(model_def, model, folder_path):
     ## create the python file path
     file_name = 'tracer_model.py'
@@ -188,28 +189,31 @@ def model_to_python(model_def, model, folder_path):
                     file.write("def neu4mes_fuzzify_slicing(res, i, x):\n")
                     file.write("    res[:, :, i:i+1] = x\n\n")
                     saved_functions.append('slicing')
-                
+
                 function_name = model_def['Functions'][name]['names']
                 function_code = model_def['Functions'][name]['functions']
                 if isinstance(function_code, list):
                     for i, fun_code in enumerate(function_code):
                         if fun_code != 'Rectangular' and fun_code != 'Triangular':
                             if function_name[i] not in saved_functions:
-                                fun_code = fun_code.replace(f'def {function_name[i]}', f'def neu4mes_fuzzify_{function_name[i]}')
+                                fun_code = fun_code.replace(f'def {function_name[i]}',
+                                                            f'def neu4mes_fuzzify_{function_name[i]}')
                                 file.write(fun_code)
                                 file.write("\n")
                                 saved_functions.append(function_name[i])
                 else:
-                    if (function_name != 'Rectangular') and (function_name != 'Triangular') and (function_name not in saved_functions):
-                        function_code = function_code.replace(f'def {function_name}', f'def neu4mes_fuzzify_{function_name}')
+                    if (function_name != 'Rectangular') and (function_name != 'Triangular') and (
+                            function_name not in saved_functions):
+                        function_code = function_code.replace(f'def {function_name}',
+                                                              f'def neu4mes_fuzzify_{function_name}')
                         file.write(function_code)
                         file.write("\n")
                         saved_functions.append(function_name)
-                
+
 
             elif 'ParamFun' in name:
                 function_name = model_def['Functions'][name]['name']
-                #torch.fx.wrap(self.model_def['Functions'][name]['name'])
+                # torch.fx.wrap(self.model_def['Functions'][name]['name'])
                 if function_name not in saved_functions:
                     code = model_def['Functions'][name]['code']
                     code = code.replace(f'def {function_name}', f'def neu4mes_parametricfunction_{function_name}')
@@ -229,25 +233,29 @@ def model_to_python(model_def, model, folder_path):
                 if 'Fir' in key or 'Linear' in key:
                     if 'weights' in attr.split('.')[3]:
                         param = model_def['Relations'][key][2]
-                        value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
-                        file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
+                        value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else \
+                        model.all_parameters[param].data
+                        file.write(
+                            f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
                     elif 'bias' in attr.split('.')[3]:
                         param = model_def['Relations'][key][3]
-                        #value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
+                        # value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
                         value = model.all_parameters[param].data
-                        file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
+                        file.write(
+                            f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
                     elif 'dropout' in attr.split('.')[3]:
                         param = model_def['Relations'][key][4]
                         file.write(f"        self.{key} = torch.nn.Dropout(p={param})\n")
-                    #param = model_def['Relations'][key][2] if 'weights' in attr.split('.')[3] else model_def['Relations'][key][3]
-                    #value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
-                    #file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
+                    # param = model_def['Relations'][key][2] if 'weights' in attr.split('.')[3] else model_def['Relations'][key][3]
+                    # value = model.all_parameters[param].data.squeeze(0) if 'Linear' in key else model.all_parameters[param].data
+                    # file.write(f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.{value}, requires_grad=True)\n")
             elif 'all_parameters' in attr:
                 key = attr.split('.')[-1]
-                file.write(f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.{model.all_parameters[key].data}, requires_grad=True)\n")
-        
+                file.write(
+                    f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.{model.all_parameters[key].data}, requires_grad=True)\n")
+
         file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
-        for line in trace.code.split("\n")[len(saved_functions)+1:]:
+        for line in trace.code.split("\n")[len(saved_functions) + 1:]:
             if 'self.relation_forward' in line:
                 if 'dropout' in line:
                     attribute = line.split()[0]
@@ -259,7 +267,8 @@ def model_to_python(model_def, model, folder_path):
                     attribute = line.split()[-1]
                     relation = attribute.split('.')[2]
                     relation_type = attribute.split('.')[3]
-                    param = model_def['Relations'][relation][2] if 'weights' == relation_type else model_def['Relations'][relation][3]
+                    param = model_def['Relations'][relation][2] if 'weights' == relation_type else \
+                    model_def['Relations'][relation][3]
                     new_attribute = f'self.all_parameters.{param}'
                     file.write(f"    {line.replace(attribute, new_attribute)}\n")
             else:

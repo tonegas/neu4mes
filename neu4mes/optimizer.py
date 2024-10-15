@@ -1,7 +1,7 @@
 import copy
 import torch
 
-from neu4mes.utilis import check
+from neu4mes.utils import check
 
 class Optimizer:
     def __init__(self, name, optimizer_defaults = {}, optimizer_params = []):
