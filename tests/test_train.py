@@ -145,11 +145,9 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.addMinimize('error23', input2.next(), output23)
         test.neuralizeModel(0.01)
 
-        data_in1 = np.linspace(0,5,6)
-        data_in2 = np.linspace(10,15,6)
-        data_out1 = 2
-        data_out2 = -3
-        dataset = {'in1': data_in1, 'in2': data_in2, 'out1': data_in1*data_out1, 'out2': data_in2*data_out2}
+        data_in1 = [1, 1, 1, 1, 1, 2]
+        data_in2 = [1, 1, 1, 1, 1, 2]
+        dataset = {'in1': data_in1, 'in2': data_in2}
 
         test.loadData(name='dataset', source=dataset)
 
@@ -160,48 +158,63 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
         self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
         self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
-        test.trainModel(models='model1', splits=[100,0,0])
-        # self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[0.20872743427753448],[0.20891857147216797],[0.20914430916309357],[0.20934967696666718],[0.20958690345287323]])
+        test.trainModel(optimizer='SGD', models='model1', splits=[100,0,0], lr=1, num_of_epochs=1)
+        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
         self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        #self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[0.20872743427753448],[0.20891857147216797],[0.20914430916309357],[0.20934967696666718],[0.20958690345287323]])
+        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
         self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[0.20872743427753448],[0.20891857147216797],[0.20914430916309357],[0.20934967696666718],[0.20958690345287323]])
+        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
         self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
 
-        test.neuralizeModel(0.01, clear_model=True)
         ## Train only model2
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        test.trainModel(models='model2', splits=[100,0,0])
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21510866284370422], [0.21509192883968353], [0.21507103741168976], [0.21505486965179443], [0.21503786742687225]])
-
         test.neuralizeModel(0.01, clear_model=True)
+        test.trainModel(optimizer='SGD', models='model2', splits=[100,0,0], lr=1, num_of_epochs=1)
+        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
+        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
+        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
+        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+
         ## Train both models
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        test.trainModel(models=['model1','model2'], splits=[100,0,0])
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[0.2097606211900711],[0.20982888340950012],[0.20994682610034943],[0.21001523733139038],[0.21013548970222473]])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21503083407878876],[0.2150345891714096],[0.21503330767154694],[0.21502918004989624],[0.21503430604934692]])
-
         test.neuralizeModel(0.01, clear_model=True)
+        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1)
+        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+
         ## Train both models but set the gain of a to zero and the gain of b to double
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        test.trainModel(models=['model1','model2'], splits=[100,0,0], lr_param={'a':0, 'b':2})
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21878866851329803],[0.21873562037944794],[0.2186843752861023],[0.2186216115951538],[0.21856670081615448]])
-
         test.neuralizeModel(0.01, clear_model=True)
+        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1, lr_param={'a1':0, 'b1':2})
+        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
+        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-11],[-11],[-11],[-11],[-11]])
+        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+
         ## Train both models but set the minimize gain of error1 to zero and the minimize gain of error2 to double
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        train_loss, _, _ = test.trainModel(models=['model1','model2'], splits=[100,0,0], minimize_gain={'error1':0, 'error2':2})
-        self.assertListEqual(train_loss['error1'], [0.0 for i in range(test.num_of_epochs)])
-        self.assertListEqual(test.model.all_parameters['a'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(train_loss['error2'], [3894.033935546875, 1339.185546875, 182.2778778076172, 68.74202728271484, 359.0768127441406, 499.3464050292969, 368.579345703125, 146.50833129882812, 16.411840438842773, 18.409034729003906,
-                                                    70.48310089111328, 85.69669342041016, 52.13644790649414, 12.842440605163574, 1.1463165283203125, 10.94512939453125, 18.03199005126953, 12.468052864074707, 3.2584829330444336, 0.3026407063007355])
-        self.assertListEqual(test.model.all_parameters['b'].data.numpy().tolist(), [[0.21512822806835175],[0.21512599289417267],[0.2151111513376236],[0.21510501205921173],[0.21509882807731628]])
-    
+        test.neuralizeModel(0.01, clear_model=True)
+        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1, minimize_gain={'error11':0})
+        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
+        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+
+        ## Train both models but set the minimize gain of error1 to zero and the minimize gain of error2 to double
+        test.neuralizeModel(0.01, clear_model=True)
+        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1, minimize_gain={'error11':-1,'error22':2})
+        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[7],[7],[7],[7],[7]])
+        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-11],[-11],[-11],[-11],[-11]])
+        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+
 if __name__ == '__main__':
     unittest.main()

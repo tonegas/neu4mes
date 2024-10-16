@@ -513,6 +513,7 @@ class Neu4mes:
             ## Check if the inputs are correct
             #assert set(model_inputs).issubset(source.keys()), f'The dataset is missing some inputs. Inputs needed for the model: {model_inputs}'
 
+            # Merge a list of
             for key in model_inputs:
                 if key not in source.keys():
                     continue
@@ -977,7 +978,7 @@ class Neu4mes:
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.minimize_dict.items()):
                     loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
-                    loss = loss * loss_gains[key] if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
+                    loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                     horizon_losses[ind].append(loss)
 
                 ## remove the states variables from the data
@@ -1031,14 +1032,14 @@ class Neu4mes:
             total_loss = 0
             for ind, (key, value) in enumerate(self.minimize_dict.items()):
                 loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
-                loss = loss * loss_gains[key] if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
+                loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                 aux_losses[ind][idx//batch_size]= loss.item()
                 total_loss += loss
             ## Gradient step
             if train:
                 total_loss.backward()
                 self.optimizer.step()
-                self.visualizer.showWeights()
+                self.visualizer.showWeights(batch = idx/batch_size)
 
         ## return the losses
         return aux_losses

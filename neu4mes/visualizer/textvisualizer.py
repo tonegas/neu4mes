@@ -69,14 +69,14 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 2:
             par = self.n4m.run_training_params
             dim = len(self.n4m.minimize_dict)
+            COLOR = RED
             if epoch is not None:
-                COLOR = GREEN
-                print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|',GREEN), end='')
-                print(color((f'Params').center(20 * (dim + 1) - 1, '-') + '|',GREEN))
+                print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|',COLOR), end='')
+                print(color((f' Params end epochs {epoch + 1} ').center(20 * (dim + 1) - 1, '-') + '|',COLOR))
+
             if batch is not None:
-                COLOR = RED
-                print(color('|' + (f"{batch}").center(10, ' ') + '|', COLOR), end='')
-                print(color((f'Params').center(20 * (dim + 1) - 1, '-') + '|', COLOR))
+                print(color('|' + (f"{batch + 1}").center(10, ' ') + '|', COLOR), end='')
+                print(color((f' Params end batch {batch + 1} ').center(20 * (dim + 1) - 1, '-') + '|', COLOR))
 
             for key,param in self.n4m.model.all_parameters.items():
                 print(color('|' + (f"{key}").center(10, ' ') + '|', COLOR), end='')
