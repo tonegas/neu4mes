@@ -20,3 +20,9 @@ Jupyter Notebook:
 - we get this warning:
 /Users/mattiapiccinini/Documents/Research/Neu4Mes/tutorials/../neu4mes/model.py:71: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_new.cpp:278.)
   self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=True)
+
+Questions:
+- inference in closed_loop with prediction_samples, in ARD and parking
+- how do I implement the covariance as a state? I do not have it in the dataset, but I may create a column for it full of zeros or constant values. 
+  In this way, P can be set and reset with a value from the dataset
+- I prepared the dataset with an additional column to indicate when a new dataset begins.
