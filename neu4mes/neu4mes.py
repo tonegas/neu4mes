@@ -282,12 +282,27 @@ class Neu4mes:
         model_dict = copy.deepcopy(model_dict) if model_dict != {} else self.model_dict
         minimize_dict = copy.deepcopy(minimize_dict) if minimize_dict != {} else self.minimize_dict
         update_state_dict = copy.deepcopy(update_state_dict) if update_state_dict != {} else self.update_state_dict
+
+        # Add models to the model_def
         for key, stream_list in model_dict.items():
             for stream in stream_list:
                 self.model_def = merge(self.model_def, stream.json)
+        if len(model_dict) > 1:
+            self.model_def['Models'] = {}
+            for key, stream_list in model_dict.items():
+                self.model_def['Models'][key] = []
+                for stream in stream_list:
+                    self.model_def['Models'][key].append(stream.name)
+
+        self.model_def['Minimize'] = {}
         for key, minimize in minimize_dict.items():
             self.model_def = merge(self.model_def, minimize['A'].json)
             self.model_def = merge(self.model_def, minimize['B'].json)
+            self.model_def['Minimize'][key] = {}
+            self.model_def['Minimize'][key]['A'] = minimize['A'].name
+            self.model_def['Minimize'][key]['B'] = minimize['B'].name
+            self.model_def['Minimize'][key]['loss'] = minimize['loss']
+
         for key, update_state in update_state_dict.items():
             self.model_def = merge(self.model_def, update_state.json)
 
@@ -617,7 +632,8 @@ class Neu4mes:
                 models = [models]
             for model_name, model_params in self.model_dict.items():
                 if model_name in models:
-                    params_to_train = params_to_train.union(set(model_params[0].json['Parameters'].keys()))
+                    for param in model_params:
+                        params_to_train = params_to_train.union(set(param.json['Parameters'].keys()))
         else:
             self.__get_parameter(models=list(self.model_dict.keys()))
             params_to_train = all_parameters.keys()
