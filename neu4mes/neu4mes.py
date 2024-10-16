@@ -289,10 +289,16 @@ class Neu4mes:
                 self.model_def = merge(self.model_def, stream.json)
         if len(model_dict) > 1:
             self.model_def['Models'] = {}
-            for key, stream_list in model_dict.items():
-                self.model_def['Models'][key] = []
-                for stream in stream_list:
-                    self.model_def['Models'][key].append(stream.name)
+            for model_name, model_params in model_dict.items():
+                self.model_def['Models'][model_name] = {'Inputs':[], 'States':[], 'Outputs':[], 'Parameters':[], 'Constants':[]}
+                for param in model_params:
+                    self.model_def['Models'][model_name]['Outputs'].append(param.name)
+                    self.model_def['Models'][model_name]['Parameters'] += list(set(param.json['Parameters'].keys()))
+                    self.model_def['Models'][model_name]['Constants'] += list(set(param.json['Constants'].keys()))
+                    self.model_def['Models'][model_name]['Inputs'] += list(set(param.json['Inputs'].keys()))
+                    self.model_def['Models'][model_name]['States'] += list(set(param.json['States'].keys()))
+        elif len(model_dict) == 1:
+            self.model_def['Models'] = list(model_dict.keys())[0]
 
         self.model_def['Minimize'] = {}
         for key, minimize in minimize_dict.items():
@@ -623,20 +629,23 @@ class Neu4mes:
         add_optimizer_params = copy.deepcopy(self.__get_parameter(add_optimizer_params=add_optimizer_params))
         add_optimizer_defaults = copy.deepcopy(self.__get_parameter(add_optimizer_defaults=add_optimizer_defaults))
 
-        ## Get params to train
+        ## Get parameter to be trained
+        json_models = []
         models = self.__get_parameter(models=models)
-        all_parameters = self.model.all_parameters
+        if 'Models' in self.model_def:
+            json_models = list(self.model_def['Models'].keys()) if type(self.model_def['Models']) is dict else [self.model_def['Models']]
+        if models is None:
+            models = json_models
+        self.run_training_params['models'] = models
         params_to_train = set()
-        if models:
-            if isinstance(models, str):
-                models = [models]
-            for model_name, model_params in self.model_dict.items():
-                if model_name in models:
-                    for param in model_params:
-                        params_to_train = params_to_train.union(set(param.json['Parameters'].keys()))
-        else:
-            self.__get_parameter(models=list(self.model_dict.keys()))
-            params_to_train = all_parameters.keys()
+        if isinstance(models, str):
+            models = [models]
+        for model in models:
+            check(model in json_models, ValueError, f'The model {model} is not in the model definition')
+            if type(self.model_def['Models']) is dict:
+                params_to_train |= set(self.model_def['Models'][model]['Parameters'])
+            else:
+                params_to_train |= set(self.model_def['Parameters'].keys())
 
         # Get the optimizer
         if type(optimizer) is str:
@@ -648,7 +657,7 @@ class Neu4mes:
             check(issubclass(type(optimizer), Optimizer), TypeError,
                   "The optimizer must be an Optimizer or str")
 
-        optimizer.set_params_to_train(all_parameters, params_to_train)
+        optimizer.set_params_to_train(self.model.all_parameters, params_to_train)
 
         optimizer.add_defaults('lr', self.run_training_params['lr'])
         optimizer.add_option_to_params('lr', self.run_training_params['lr_param'])
