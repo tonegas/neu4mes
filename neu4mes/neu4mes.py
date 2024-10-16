@@ -282,12 +282,33 @@ class Neu4mes:
         model_dict = copy.deepcopy(model_dict) if model_dict != {} else self.model_dict
         minimize_dict = copy.deepcopy(minimize_dict) if minimize_dict != {} else self.minimize_dict
         update_state_dict = copy.deepcopy(update_state_dict) if update_state_dict != {} else self.update_state_dict
+
+        # Add models to the model_def
         for key, stream_list in model_dict.items():
             for stream in stream_list:
                 self.model_def = merge(self.model_def, stream.json)
+        if len(model_dict) > 1:
+            self.model_def['Models'] = {}
+            for model_name, model_params in model_dict.items():
+                self.model_def['Models'][model_name] = {'Inputs':[], 'States':[], 'Outputs':[], 'Parameters':[], 'Constants':[]}
+                for param in model_params:
+                    self.model_def['Models'][model_name]['Outputs'].append(param.name)
+                    self.model_def['Models'][model_name]['Parameters'] += list(set(param.json['Parameters'].keys()))
+                    self.model_def['Models'][model_name]['Constants'] += list(set(param.json['Constants'].keys()))
+                    self.model_def['Models'][model_name]['Inputs'] += list(set(param.json['Inputs'].keys()))
+                    self.model_def['Models'][model_name]['States'] += list(set(param.json['States'].keys()))
+        elif len(model_dict) == 1:
+            self.model_def['Models'] = list(model_dict.keys())[0]
+
+        self.model_def['Minimize'] = {}
         for key, minimize in minimize_dict.items():
             self.model_def = merge(self.model_def, minimize['A'].json)
             self.model_def = merge(self.model_def, minimize['B'].json)
+            self.model_def['Minimize'][key] = {}
+            self.model_def['Minimize'][key]['A'] = minimize['A'].name
+            self.model_def['Minimize'][key]['B'] = minimize['B'].name
+            self.model_def['Minimize'][key]['loss'] = minimize['loss']
+
         for key, update_state in update_state_dict.items():
             self.model_def = merge(self.model_def, update_state.json)
 
@@ -492,6 +513,7 @@ class Neu4mes:
             ## Check if the inputs are correct
             #assert set(model_inputs).issubset(source.keys()), f'The dataset is missing some inputs. Inputs needed for the model: {model_inputs}'
 
+            # Merge a list of
             for key in model_inputs:
                 if key not in source.keys():
                     continue
@@ -608,19 +630,23 @@ class Neu4mes:
         add_optimizer_params = copy.deepcopy(self.__get_parameter(add_optimizer_params=add_optimizer_params))
         add_optimizer_defaults = copy.deepcopy(self.__get_parameter(add_optimizer_defaults=add_optimizer_defaults))
 
-        ## Get params to train
+        ## Get parameter to be trained
+        json_models = []
         models = self.__get_parameter(models=models)
-        all_parameters = self.model.all_parameters
+        if 'Models' in self.model_def:
+            json_models = list(self.model_def['Models'].keys()) if type(self.model_def['Models']) is dict else [self.model_def['Models']]
+        if models is None:
+            models = json_models
+        self.run_training_params['models'] = models
         params_to_train = set()
-        if models:
-            if isinstance(models, str):
-                models = [models]
-            for model_name, model_params in self.model_dict.items():
-                if model_name in models:
-                    params_to_train = params_to_train.union(set(model_params[0].json['Parameters'].keys()))
-        else:
-            self.__get_parameter(models=list(self.model_dict.keys()))
-            params_to_train = all_parameters.keys()
+        if isinstance(models, str):
+            models = [models]
+        for model in models:
+            check(model in json_models, ValueError, f'The model {model} is not in the model definition')
+            if type(self.model_def['Models']) is dict:
+                params_to_train |= set(self.model_def['Models'][model]['Parameters'])
+            else:
+                params_to_train |= set(self.model_def['Parameters'].keys())
 
         # Get the optimizer
         if type(optimizer) is str:
@@ -632,7 +658,7 @@ class Neu4mes:
             check(issubclass(type(optimizer), Optimizer), TypeError,
                   "The optimizer must be an Optimizer or str")
 
-        optimizer.set_params_to_train(all_parameters, params_to_train)
+        optimizer.set_params_to_train(self.model.all_parameters, params_to_train)
 
         optimizer.add_defaults('lr', self.run_training_params['lr'])
         optimizer.add_option_to_params('lr', self.run_training_params['lr_param'])
@@ -802,11 +828,11 @@ class Neu4mes:
         ## Define the loss functions
         minimize_gain = self.__get_parameter(minimize_gain = minimize_gain)
         self.run_training_params['minimize'] = {}
-        for name, values in self.minimize_dict.items():
+        for name, values in self.model_def['Minimize'].items():
             self.losses[name] = CustomLoss(values['loss'])
             self.run_training_params['minimize'][name] = {}
-            self.run_training_params['minimize'][name]['A'] = values['A'].name
-            self.run_training_params['minimize'][name]['B'] = values['B'].name
+            self.run_training_params['minimize'][name]['A'] = values['A']
+            self.run_training_params['minimize'][name]['B'] = values['B']
             self.run_training_params['minimize'][name]['loss'] = values['loss']
             if name in minimize_gain:
                 self.run_training_params['minimize'][name]['gain'] = minimize_gain[name]
@@ -826,14 +852,14 @@ class Neu4mes:
 
         ## Create the train, validation and test loss dictionaries
         train_losses, val_losses, test_losses = {}, {}, {}
-        for key in self.minimize_dict.keys():
+        for key in self.model_def['Minimize'].keys():
             train_losses[key] = []
             if n_samples_val > 0:
                 val_losses[key] = []
 
         ## Check the needed keys are in the datasets
         keys = set(self.model_def['Inputs'].keys())
-        keys |= {value['A'].name for value in self.minimize_dict.values()}|{value['B'].name for value in self.minimize_dict.values()}
+        keys |= {value['A'] for value in self.model_def['Minimize'].values()}|{value['B'] for value in self.model_def['Minimize'].values()}
         keys -= set(self.model_def['Relations'].keys())
         keys -= set(self.model_def['States'].keys())
         keys -= set(self.model_def['Outputs'].keys())
@@ -859,7 +885,7 @@ class Neu4mes:
             else:
                 losses = self.__Train(XY_train,n_samples_train, train_batch_size, minimize_gain, shuffle=shuffle_data, train=True)
             ## save the losses
-            for ind, key in enumerate(self.minimize_dict.keys()):
+            for ind, key in enumerate(self.model_def['Minimize'].keys()):
                 train_losses[key].append(torch.mean(losses[ind]).tolist())
 
             if n_samples_val > 0:
@@ -870,7 +896,7 @@ class Neu4mes:
                 else:
                     losses = self.__Train(XY_val, n_samples_val, val_batch_size, minimize_gain, shuffle=False, train=False)
                 ## save the losses
-                for ind, key in enumerate(self.minimize_dict.keys()):
+                for ind, key in enumerate(self.model_def['Minimize'].keys()):
                     val_losses[key].append(torch.mean(losses[ind]).tolist())
 
             ## Early-stopping
@@ -897,7 +923,7 @@ class Neu4mes:
             else:
                 losses = self.__Train(XY_test, n_samples_test, test_batch_size, minimize_gain, shuffle=False, train=False)
             ## save the losses
-            for ind, key in enumerate(self.minimize_dict.keys()):
+            for ind, key in enumerate(self.model_def['Minimize'].keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
         self.resultAnalysis(train_dataset, XY_train, connect, closed_loop)
@@ -926,7 +952,7 @@ class Neu4mes:
         initial_value = random.randint(0, step - 1) if shuffle else 0
 
         ## Initialize the train losses vector
-        aux_losses = torch.zeros([len(self.minimize_dict), n_samples//batch_size])
+        aux_losses = torch.zeros([len(self.model_def['Minimize']), n_samples//batch_size])
 
         ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
         ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
@@ -938,7 +964,7 @@ class Neu4mes:
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
             ## collect the horizon labels
             XY_horizon = {key: val[idx:idx+batch_size+prediction_samples] for key, val in data.items()}
-            horizon_losses = {ind: [] for ind in range(len(self.minimize_dict))}
+            horizon_losses = {ind: [] for ind in range(len(self.model_def['Minimize']))}
 
             ## Reset state variables with zeros or using inputs
             self.model.reset_states(XY, only = False)
@@ -950,9 +976,9 @@ class Neu4mes:
                     self.__save_internal('inout_'+str(idx)+'_'+str(horizon_idx),{'XY':XY,'out':out,'state':self.model.states,'param':self.model.all_parameters,'connect':self.model.connect_variables})
 
                 ## Loss Calculation
-                for ind, (key, value) in enumerate(self.minimize_dict.items()):
-                    loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
-                    loss = loss * loss_gains[key] if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
+                for ind, (key, value) in enumerate(self.model_def['Minimize'].items()):
+                    loss = self.losses[key](minimize_out[value['A']], minimize_out[value['B']])
+                    loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                     horizon_losses[ind].append(loss)
 
                 ## remove the states variables from the data
@@ -975,7 +1001,7 @@ class Neu4mes:
 
             ## Calculate the total loss
             total_loss = 0
-            for ind in range(len(self.minimize_dict)):
+            for ind in range(len(self.model_def['Minimize'])):
                 total_loss += sum(horizon_losses[ind])/(prediction_samples+1)
                 aux_losses[ind][idx//batch_size] = total_loss.item()
 
@@ -993,7 +1019,7 @@ class Neu4mes:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}
         ## Initialize the train losses vector
-        aux_losses = torch.zeros([len(self.minimize_dict),n_samples//batch_size])
+        aux_losses = torch.zeros([len(self.model_def['Minimize']),n_samples//batch_size])
         for idx in range(0, (n_samples - batch_size + 1), batch_size):
             ## Build the input tensor
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
@@ -1004,16 +1030,16 @@ class Neu4mes:
             _, minimize_out = self.model(XY)  ## Forward pass
             ## Loss Calculation
             total_loss = 0
-            for ind, (key, value) in enumerate(self.minimize_dict.items()):
-                loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
-                loss = loss * loss_gains[key] if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
+            for ind, (key, value) in enumerate(self.model_def['Minimize'].items()):
+                loss = self.losses[key](minimize_out[value['A']], minimize_out[value['B']])
+                loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                 aux_losses[ind][idx//batch_size]= loss.item()
                 total_loss += loss
             ## Gradient step
             if train:
                 total_loss.backward()
                 self.optimizer.step()
-                self.visualizer.showWeights()
+                self.visualizer.showWeights(batch = idx/batch_size)
 
         ## return the losses
         return aux_losses
@@ -1034,13 +1060,13 @@ class Neu4mes:
             self.model.reset_connect_variables(connect, XY_data, only=False)
 
             _, minimize_out = self.model(XY_data)
-            for ind, (key, value) in enumerate(self.minimize_dict.items()):
-                A[key] = minimize_out[value['A'].name]
-                B[key] = minimize_out[value['B'].name]
-                loss = self.losses[key](minimize_out[value['A'].name], minimize_out[value['B'].name])
+            for ind, (key, value) in enumerate(self.model_def['Minimize'].items()):
+                A[key] = minimize_out[value['A']]
+                B[key] = minimize_out[value['B']]
+                loss = self.losses[key](minimize_out[value['A']], minimize_out[value['B']])
                 aux_losses[key] = loss.detach().numpy()
 
-            for ind, (key, value) in enumerate(self.minimize_dict.items()):
+            for ind, (key, value) in enumerate(self.model_def['Minimize'].items()):
                 A_np = A[key].detach().numpy()
                 B_np = B[key].detach().numpy()
                 self.performance[name_data][key] = {}
@@ -1083,8 +1109,8 @@ class Neu4mes:
 
             self.performance[name_data]['total'] = {}
             self.performance[name_data]['total']['mean_error'] = np.mean([value for key,value in aux_losses.items()])
-            self.performance[name_data]['total']['fvu'] = np.mean([self.performance[name_data][key]['fvu']['total'] for key in self.minimize_dict.keys()])
-            self.performance[name_data]['total']['aic'] = np.mean([self.performance[name_data][key]['aic']['value']for key in self.minimize_dict.keys()])
+            self.performance[name_data]['total']['fvu'] = np.mean([self.performance[name_data][key]['fvu']['total'] for key in self.model_def['Minimize'].keys()])
+            self.performance[name_data]['total']['aic'] = np.mean([self.performance[name_data][key]['aic']['value']for key in self.model_def['Minimize'].keys()])
 
     def getWorkspace(self):
         return self.exporter.getWorkspace()
@@ -1159,7 +1185,7 @@ class Neu4mes:
         with torch.inference_mode():
             out, minimize_out = self.model(data)
 
-        for key, value in self.minimize_dict.items():
+        for key, value in self.model_def['Minimize'].items():
             # Create loss plot
             plt.figure(figsize=(10, 5))
             plt.plot(train_loss[key], label='train loss')
