@@ -1,3 +1,19 @@
+"""                                                                                                                                                                                                                                                                                                                                                                        
+___  ______________ _____ _     _____ _   _ _____    _____ _   _  _____    _     _____ _   _ _____ _____ _____    _   _ _____ _   _ _____ _____  _      _____   ________   ___   _   
+|  \/  |  _  |  _  \  ___| |   |_   _| \ | |  __ \  |_   _| | | ||  ___|  | |   |  _  | \ | |  __ \_   _|_   _|  | | | |  ___| | | |_   _/  __ \| |    |  ___|  |  _  \ \ / / \ | |  
+| .  . | | | | | | | |__ | |     | | |  \| | |  \/    | | | |_| || |__    | |   | | | |  \| | |  \/ | |   | |    | | | | |__ | |_| | | | | /  \/| |    | |__    | | | |\ V /|  \| |  
+| |\/| | | | | | | |  __|| |     | | | . ` | | __     | | |  _  ||  __|   | |   | | | | . ` | | __  | |   | |    | | | |  __||  _  | | | | |    | |    |  __|   | | | | \ / | . ` |  
+| |  | \ \_/ / |/ /| |___| |_____| |_| |\  | |_\ \    | | | | | || |___   | |___\ \_/ / |\  | |_\ \_| |_  | |_   \ \_/ / |___| | | |_| |_| \__/\| |____| |___   | |/ /  | | | |\  |_ 
+\_|  |_/\___/|___/ \____/\_____/\___/\_| \_/\____/    \_/ \_| |_/\____/   \_____/\___/\_| \_/\____/\___/  \_(_)   \___/\____/\_| |_/\___/ \____/\_____/\____/   |___/   \_/ \_| \_(_)
+                                                                                                                                                                                     
+This tutorial implements a physics-driven neural model of the vehicle longitudinal dynamics. 
+This model is depicted in Fig. 2 of the paper titled:
+
+"Modelling longitudinal vehicle dynamics with neural networks"
+
+(available at https://www.tandfonline.com/doi/full/10.1080/00423114.2019.1638947)                                                                                                                                                                          
+"""  
+
 import sys
 import os
 # append a new directory to sys.path
@@ -51,5 +67,8 @@ def filter_function(sample):
 vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingset')
 
 # Neural network train
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=[{'params':'grav','weight_decay': 0.1}], add_optimizer_defaults={'weight_decay': 0.00001}, training_params={'num_of_epochs':300, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003})
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, 
+                   add_optimizer_params=[{'params':'gravity','weight_decay': 0.1}], 
+                   add_optimizer_defaults={'weight_decay': 0.00001}, 
+                   training_params={'num_of_epochs':300, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003})
 vehicle.neuralizeModel(0.05)

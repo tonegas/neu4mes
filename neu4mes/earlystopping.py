@@ -3,14 +3,26 @@
 
 # "Classical" early stopping based on the validation loss:
 # Stop if the validation loss has not improved for a certain number of epochs
-def early_stop_valid_patience(train_losses, val_losses, params):
-  patience = params['patience']
-  val_losses_steer = val_losses['steer_error']
-  if len(val_losses_steer) > patience:
-    # Index of the minimum validation loss
-    min_val_loss_index = val_losses_steer.index(min(val_losses_steer))
-    # Check if the patience has been exceeded
-    if min_val_loss_index < len(val_losses_steer) - patience:
+def early_stop_patience(train_losses, val_losses, params):
+  patience = params['patience'] if 'patience' in params.keys() else 50
+  if val_losses:
+    losses = val_losses
+  else:
+    # if there is no validation set, use the training losses
+    losses = train_losses    
+
+  if 'error' in params.keys():
+    # if the type of loss to be used is provided by the user
+    losses_use = losses[params['error']]
+  else:
+    # take the mean of all the losses for all the keys of the dictionary
+    import numpy as np
+    losses_use = [np.mean([losses[key][index] for key in losses.keys()]) for index in range(len(losses[list(losses.keys())[0]]))]
+  if len(losses_use) > patience:
+    # index of the minimum validation loss
+    min_val_loss_index = losses_use.index(min(losses_use))
+    # check if the patience has been exceeded
+    if min_val_loss_index < len(losses_use) - patience:
       return True
   return False
 
