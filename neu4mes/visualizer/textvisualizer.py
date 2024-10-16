@@ -36,9 +36,9 @@ class TextVisualizer(Visualizer):
 
     def showaddMinimize(self,variable_name):
         if self.verbose >= 2:
-            self.__title(f" Minimize Error of {variable_name} with {self.n4m.minimize_dict[variable_name]['loss']} ")
-            self.__paramjson(f"Model {self.n4m.minimize_dict[variable_name]['A'].name}", self.n4m.minimize_dict[variable_name]['A'].json)
-            self.__paramjson(f"Model {self.n4m.minimize_dict[variable_name]['B'].name}", self.n4m.minimize_dict[variable_name]['B'].json)
+            self.__title(f" Minimize Error of {variable_name} with {self.n4m.model_def['Minimizers'][variable_name]['loss']} ")
+            self.__paramjson(f"Model {self.n4m.model_def['Minimizers'][variable_name]['A'].name}", self.n4m.model_def['Minimizers'][variable_name]['A'].json)
+            self.__paramjson(f"Model {self.n4m.model_def['Minimizers'][variable_name]['B'].name}", self.n4m.model_def['Minimizers'][variable_name]['B'].json)
             self.__line()
 
     def showModelInputWindow(self):
@@ -68,7 +68,7 @@ class TextVisualizer(Visualizer):
     def showWeights(self, batch = None, epoch = None):
         if self.verbose >= 2:
             par = self.n4m.run_training_params
-            dim = len(self.n4m.minimize_dict)
+            dim = len(self.n4m.model_def['Minimizers'])
             COLOR = RED
             if epoch is not None:
                 print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|',COLOR), end='')
@@ -99,20 +99,20 @@ class TextVisualizer(Visualizer):
     def showStartTraining(self):
         if self.verbose >= 1:
             par = self.n4m.run_training_params
-            dim = len(self.n4m.minimize_dict)
-            self.__title(" Neu4mes Training ", 12+(len(self.n4m.minimize_dict)+1)*20)
+            dim = len(self.n4m.model_def['Minimizers'])
+            self.__title(" Neu4mes Training ", 12+(len(self.n4m.model_def['Minimizers'])+1)*20)
             print(color('|'+(f'Epoch').center(10,' ')+'|'),end='')
-            for key in self.n4m.minimize_dict.keys():
+            for key in self.n4m.model_def['Minimizers'].keys():
                 print(color((f'{key}').center(19, ' ') + '|'), end='')
             print(color((f'Total').center(19, ' ') + '|'))
 
             print(color('|' + (f' ').center(10, ' ') + '|'), end='')
-            for key in self.n4m.minimize_dict.keys():
+            for key in self.n4m.model_def['Minimizers'].keys():
                 print(color((f'Loss').center(19, ' ') + '|'),end='')
             print(color((f'Loss').center(19, ' ') + '|'))
 
             print(color('|' + (f' ').center(10, ' ') + '|'), end='')
-            for key in self.n4m.minimize_dict.keys():
+            for key in self.n4m.model_def['Minimizers'].keys():
                 if par['n_samples_val']:
                     print(color((f'train').center(9, ' ') + '|'),end='')
                     print(color((f'val').center(9, ' ') + '|'),end='')
@@ -131,13 +131,13 @@ class TextVisualizer(Visualizer):
             eng = lambda val: np.format_float_scientific(val, precision=3)
             par = self.n4m.run_training_params
             show_epoch = 1 if par['num_of_epochs'] <= 20 else 10
-            dim = len(self.n4m.minimize_dict)
+            dim = len(self.n4m.model_def['Minimizers'])
             if epoch < par['num_of_epochs']:
                 print('', end='\r')
                 print('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|', end='')
                 train_loss = []
                 val_loss = []
-                for key in self.n4m.minimize_dict.keys():
+                for key in self.n4m.model_def['Minimizers'].keys():
                     train_loss.append(train_losses[key][epoch])
                     if val_losses:
                         val_loss.append(val_losses[key][epoch])
@@ -155,7 +155,7 @@ class TextVisualizer(Visualizer):
                 if (epoch + 1) % show_epoch == 0:
                     print('', end='\r')
                     print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|'), end='')
-                    for key in self.n4m.minimize_dict.keys():
+                    for key in self.n4m.model_def['Minimizers'].keys():
                         if val_losses:
                             print(color((f'{eng(train_losses[key][epoch])}').center(9, ' ') + '|'), end='')
                             print(color((f'{eng(val_losses[key][epoch])}').center(9, ' ') + '|'), end='')
@@ -198,7 +198,7 @@ class TextVisualizer(Visualizer):
                 self.__param('early stopping:', par['early_stopping'])
                 self.__paramjson('early stopping params:', par['early_stopping_params'])
 
-            self.__paramjson('minimize:', par['minimize'])
+            self.__paramjson('minimizers:', par['minimizers'])
 
             if par['recurrent_train']:
                 self.__param("prediction samples:", str(par['prediction_samples']))
@@ -216,7 +216,7 @@ class TextVisualizer(Visualizer):
     def showResult(self, name_data):
         eng = lambda val: np.format_float_scientific(val, precision=3)
         if self.verbose >= 1:
-            loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.minimize_dict.items())])
+            loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.model_def['Minimizers'].items())])
             self.__title(f" Neu4mes Model Results for {name_data} ", 12 + (len(loss_type_list) + 2) * 20)
             print(color('|' + (f'Loss').center(10, ' ') + '|'), end='')
             for loss in loss_type_list:
@@ -231,7 +231,7 @@ class TextVisualizer(Visualizer):
             print(color((f'lower better').center(19, ' ') + '|'))
 
             print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
-            for ind, (key, value) in enumerate(self.n4m.minimize_dict.items()):
+            for ind, (key, value) in enumerate(self.n4m.model_def['Minimizers'].items()):
                 print(color('|'+(f'{key}').center(10, ' ') + '|'), end='')
                 for loss in list(loss_type_list):
                     if value["loss"] == loss:

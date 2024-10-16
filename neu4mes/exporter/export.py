@@ -1,4 +1,6 @@
 import sys, os, torch
+from collections import OrderedDict
+
 from torch.fx import symbolic_trace
 
 from pprint import PrettyPrinter
@@ -35,7 +37,6 @@ def load_model(model_path):
     json_file = open(model_path, )
     return json.load(json_file)
 
-
 def export_python_model(model_def, model, model_path):
     # Get the symbolic tracer
     with torch.no_grad():
@@ -44,12 +45,13 @@ def export_python_model(model_def, model, model_path):
     saved_functions = []
 
     with open(model_path, 'w') as file:
-        file.write("import torch.nn as nn\n")
+        #file.write("import torch.nn as nn\n")
         file.write("import torch\n\n")
 
         for name in model_def['Functions'].keys():
             if 'Fuzzify' in name:
                 if 'slicing' not in saved_functions:
+                    #file.write("@torch.fx.wrap\n")
                     file.write("def neu4mes_fuzzify_slicing(res, i, x):\n")
                     file.write("    res[:, :, i:i+1] = x\n\n")
                     saved_functions.append('slicing')
@@ -62,6 +64,7 @@ def export_python_model(model_def, model, model_path):
                             if function_name[i] not in saved_functions:
                                 fun_code = fun_code.replace(f'def {function_name[i]}',
                                                             f'def neu4mes_fuzzify_{function_name[i]}')
+                                #file.write("@torch.fx.wrap\n")
                                 file.write(fun_code)
                                 file.write("\n")
                                 saved_functions.append(function_name[i])
@@ -70,6 +73,7 @@ def export_python_model(model_def, model, model_path):
                             function_name not in saved_functions):
                         function_code = function_code.replace(f'def {function_name}',
                                                               f'def neu4mes_fuzzify_{function_name}')
+                        #file.write("@torch.fx.wrap\n")
                         file.write(function_code)
                         file.write("\n")
                         saved_functions.append(function_name)
@@ -149,11 +153,11 @@ def export_python_model(model_def, model, model_path):
             else:
                 file.write(f"    {line}\n")
 
-def export_pythononnx_model(model_def, model_path, model_onnx_path):
+def export_pythononnx_model(input_order, model_path, model_onnx_path):
     # Define the mapping dictionary
     trace_mapping = {}
     forward = 'def forward(self,'
-    for key in model_def['Inputs'].keys():
+    for key in input_order:
         value = f'kwargs[\'{key}\']'
         trace_mapping[value] = key
         forward = forward + f' {key},'
@@ -170,14 +174,20 @@ def export_pythononnx_model(model_def, model_path, model_onnx_path):
     with open(model_onnx_path, 'w') as file:
         file.write(file_content)
 
-def export_onnx_model(model_def, model, input_n_samples, model_path):
+def import_python_model(name, model_folder):
+    sys.path.insert(0, model_folder)
+    module_name = os.path.basename(name)
+    module = __import__(module_name)
+    return module.TracerModel()
+
+def export_onnx_model(input_order, output_order, model_def, model, input_n_samples, model_path):
     dummy_inputs = []
     input_names = []
-    for key, item in model_def['Inputs'].items():
+    for key in input_order:
         input_names.append(key)
         window_size = input_n_samples[key]
-        dummy_inputs.append(torch.randn(size=(1, window_size, item['dim'])))
-    output_names = [name for name in model_def['Outputs'].keys()]
+        dummy_inputs.append(torch.randn(size=(1, window_size, model_def['Inputs'][key]['dim'])))
+    output_names = output_order
     dummy_inputs = tuple(dummy_inputs)
 
     torch.onnx.export(
