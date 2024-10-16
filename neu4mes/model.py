@@ -129,6 +129,7 @@ class Model(nn.Module):
 
         ## Add the gradient to all the relations and parameters that requires it
         self.relation_forward = nn.ParameterDict(self.relation_forward)
+        self.all_constants = nn.ParameterDict(self.all_constants)
         self.all_parameters = nn.ParameterDict(self.all_parameters)
 
         ## list of network outputs

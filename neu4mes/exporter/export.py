@@ -40,7 +40,7 @@ def export_python_model(model_def, model, model_path):
     # Get the symbolic tracer
     with torch.no_grad():
         trace = symbolic_trace(model)
-    attributes = [line for line in trace.code.split() if 'self.' in line]
+    attributes = set([line for line in trace.code.split() if 'self.' in line])
     saved_functions = []
 
     with open(model_path, 'w') as file:
@@ -89,9 +89,13 @@ def export_python_model(model_def, model, model_path):
         file.write("    def __init__(self):\n")
         file.write("        super().__init__()\n")
         file.write("        self.all_parameters = {}\n")
+        file.write("        self.all_constants = {}\n")
         for attr in attributes:
-            if 'constant' in attr:
-                file.write(f"        {attr} = torch.tensor({getattr(trace, attr.replace('self.', ''))})\n")
+            if 'all_constant' in attr:
+                key = attr.split('.')[-1]
+                file.write(
+                    f"        self.all_constants[\"{key}\"] = torch.tensor({model.all_constants[key].tolist()})\n")
+                #file.write(f"        {attr} = torch.tensor({getattr(trace, attr.replace('self.', ''))})\n")
             elif 'relation_forward' in attr:
                 key = attr.split('.')[2]
                 if 'Fir' in key or 'Linear' in key:
@@ -118,6 +122,7 @@ def export_python_model(model_def, model, model_path):
                     f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.tensor({model.all_parameters[key].tolist()}), requires_grad=True)\n")
 
         file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
+        file.write("        self.all_constants = torch.nn.ParameterDict(self.all_constants)\n")
         file.write("    def init_states(self, state_model, connect = {}, reset_states = False):\n")
         file.write("        pass\n")
         file.write("    def reset_connect_variables(self, connect, values = None, only = True):\n")
