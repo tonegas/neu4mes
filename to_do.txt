@@ -1,0 +1,22 @@
+General things to do:
+- when training with early stopping, the training loop should finally return the model with the best validation loss, and not the model of the last epoch. Or at least the user should be able to decide whether to return the model of the last epoch or the model with the best validation loss. (This could be for example defined within the early stopping method.) In the current version, it is not clear which model is returned at the end.
+- read the csv data using the headers 
+- model export and load: when exporting a model in a json, save the json with the model name, rather than with the current date and time.
+- open loop training followed by closed loop training: define a state instead of an input and use prediction window = 0 to train the model in open loop
+- method to print the trained NN weights
+- method to plot the trained NN weights
+- print the total number of trainable parameters in the model
+- the option "range" in fuzzify must yield an error if it receives a list with more than 2 elements
+- the framework is not repeatable, even if a random seed is set. This is due to the shuffling of the data during training. Investigate this.
+- rewrite the function init_negexp: it should be centered around the present time step, and it should be decaying exponentially in the past and in the future.
+- function to interpolate the imported datasets at a rate given by the user
+- handle multiple datasets (or a single dataset that contains multiple independent datasets) when training in closed-loop
+
+Closed-loop training:
+- when training in open-loop and then re-training in closed-loop, the NN seems to swap the parameters of the FIR auto-regressive and the standard FIR layers. Check this better.
+
+Jupyter Notebook:
+- the MPLVisulizer does not seem to work in the notebook
+- we get this warning:
+/Users/mattiapiccinini/Documents/Research/Neu4Mes/tutorials/../neu4mes/model.py:71: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_new.cpp:278.)
+  self.all_parameters[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=True)
