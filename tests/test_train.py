@@ -71,7 +71,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
     def test_training_clear_model(self):
         NeuObj.reset_count()
         input1 = Input('in1')
-        target = Input('out1')
+        target = Input('int1')
         a = Parameter('a', values=[[1]])
         fir_out = Fir(parameter=a)(input1.last())
         output1 = Output('out1', fir_out)
@@ -86,7 +86,7 @@ class Neu4mesTrainingTest(unittest.TestCase):
         test.neuralizeModel()
         self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1]}))
 
-        dataset = {'in1': [1], 'out1': [3]}
+        dataset = {'in1': [1], 'int1': [3]}
         test.loadData(name='dataset', source=dataset)
 
         self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())

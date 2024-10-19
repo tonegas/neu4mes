@@ -118,7 +118,7 @@ class Neu4mes:
         model_inputs = list(self.model_def['Inputs'].keys())
         model_states = list(self.model_def['States'].keys())
         provided_inputs = list(inputs.keys())
-        missing_inputs = list(set(model_inputs) - set(provided_inputs) - set(connect.keys()))
+        missing_inputs = list(set(model_inputs) - set(provided_inputs)) #- set(connect.keys()))
         extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
         if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
             ## Ignoring extra inputs
@@ -175,15 +175,38 @@ class Neu4mes:
             window_dim = min_dim
         check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
 
-        ## Warning the users about different time windows between samples
-        if min_dim != max_dim:
-            self.visualizer.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
-
         ## Autofill the missing inputs
         if missing_inputs:
             self.visualizer.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
             for key in missing_inputs:
-                inputs[key] = np.zeros(shape=(self.input_n_samples[key]+window_dim-1, self.model_def['Inputs'][key]['dim']), dtype=np.float32)
+                inputs[key] = np.zeros(
+                    shape=(self.input_n_samples[key] + window_dim - 1, self.model_def['Inputs'][key]['dim']),
+                    dtype=np.float32).tolist()
+
+        n_samples_input = {}
+        for key in inputs.keys():
+            if key in missing_inputs:
+                n_samples_input[key] = 1
+            else:
+                n_samples_input[key] = len(inputs[key]) if sampled else len(inputs[key]) - self.input_n_samples[key] + 1
+
+        # Vettore di input
+        if num_of_samples != 'auto':
+            for key in inputs.keys():
+                if key in model_inputs:
+                    input_dim = self.model_def['Inputs'][key]['dim']
+                elif key in model_states:
+                    input_dim = self.model_def['States'][key]['dim']
+                if input_dim > 1:
+                    inputs[key] += [[0 for val in range(input_dim)] for val in
+                                    range(num_of_samples - (len(inputs[key]) - self.input_n_samples[key] + 1))]
+                else:
+                    inputs[key] += [0 for val in range(num_of_samples - (len(inputs[key]) - self.input_n_samples[key] + 1))]
+                #n_samples_input[key] = num_of_samples
+
+        ## Warning the users about different time windows between samples
+        if min_dim != max_dim:
+            self.visualizer.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
 
         result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
@@ -201,14 +224,72 @@ class Neu4mes:
             X = {}
             for i in range(window_dim):
                 for key, val in inputs.items():
-                    if key in (closed_loop|connect).keys() or key in model_states:
-                        if i >= input_windows[key]:
+                    if not (prediction_samples is None \
+                        or ((prediction_samples is not None and prediction_samples != 'auto') and i % (prediction_samples + 1) == 0) \
+                        or (prediction_samples == 'auto' and i < n_samples_input[key])):
+                        if key in (closed_loop|connect).keys() or key in model_states:
                             if (key in model_states or key in connect.keys()) and key in X.keys():
                                 del X[key]
                             continue
+                    X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
+                            np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+
+                    # if prediction_samples is None \
+                    #     or ((prediction_samples is not None and prediction_samples != 'auto') and i % (prediction_samples + 1) == 0) \
+                    #     or (prediction_samples == 'auto' and i < n_samples_input[key]):
+                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
+                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+                    # else:
+                    #     if key in (closed_loop|connect).keys() or key in model_states:
+                    #         if (key in model_states or key in connect.keys()) and key in X.keys():
+                    #             del X[key]
+                    #         continue
+                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
+                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+
+                    # if prediction_samples is None:
+                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
+                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+                    # elif prediction_samples == 'auto':
+                    #     if i < n_samples_input[key]:
+                    #         X[key] = torch.from_numpy(np.array(val[i])).to(
+                    #             torch.float32) if sampled else torch.from_numpy(
+                    #             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+                    #     else:
+                    #         if key in model_states or key in connect.keys():
+                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
+                    #                 torch.float32) if sampled else torch.from_numpy(
+                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+                    #             del X[key]
+                    #             continue
+                    #         else:
+                    #             if key in closed_loop.keys():
+                    #                 continue
+                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
+                    #                 torch.float32) if sampled else torch.from_numpy(
+                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+                    # else:
+                    #     ## Otherwise the variable are reset every prediction samples
+                    #     if i % (prediction_samples + 1) == 0:
+                    #         X[key] = torch.from_numpy(np.array(val[i])).to(
+                    #             torch.float32) if sampled else torch.from_numpy(
+                    #             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+                    #     else:
+                    #         if key in model_states or key in connect.keys() or closed_loop.keys():
+                    #             continue
+                    #         else:
+                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
+                    #                 torch.float32) if sampled else torch.from_numpy(
+                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
+
+                    # if key in (closed_loop|connect).keys() or key in model_states:
+                    #     if i >= input_windows[key]:
+                    #         if (key in model_states or key in connect.keys()) and key in X.keys():
+                    #             del X[key]
+                    #         continue
 
                     ## Collect the inputs
-                    X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
+                    # X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
 
                     if key in model_inputs:
                         input_dim = self.model_def['Inputs'][key]['dim']
@@ -229,8 +310,12 @@ class Neu4mes:
                         X[key] = X[key].unsqueeze(0)
 
                 ## Reset the state variable
-                if prediction_samples == 'auto' or prediction_samples is None:
-                    ## If prediction sample is auto or Non the state is reset with the available samples
+                if  prediction_samples is None:
+                    ## If prediction sample is None the state is reset every step
+                    self.model.reset_states(X, only=False)
+                    self.model.reset_connect_variables(connect, X, only=False)
+                elif prediction_samples == 'auto':
+                    ## If prediction sample is auto is reset with the available samples
                     self.model.reset_states(X)
                     self.model.reset_connect_variables(connect, X)
                 else:
@@ -238,7 +323,6 @@ class Neu4mes:
                     if i%(prediction_samples+1) == 0:
                         self.model.reset_states(X, only=False)
                         self.model.reset_connect_variables(connect, X, only=False)
-
 
                 result, _ = self.model(X)
 
@@ -1152,9 +1236,9 @@ class Neu4mes:
         self.traced = True
         self.__get_torch_model()
 
-    def exportONNX(self, inputs_order, outputs_order,  models, name = 'net', model_path = None):
+    def exportONNX(self, inputs_order, outputs_order,  models = None, name = 'net', model_path = None):
         check(self.model_def is not None, TypeError, "The network has not been defined.")
-        #old_model_def = copy.deepcopy(self.model_def)
+        old_model_def = copy.deepcopy(self.model_def)
         model_def = copy.deepcopy(MAIN_JSON)
         model_def['SampleTime'] = self.model_def['SampleTime']
         if models is None:
@@ -1164,3 +1248,4 @@ class Neu4mes:
         model_def = self.__get_torch_model()
         self.__neuralize_model(model_def)
         self.exporter.exportONNX(inputs_order, outputs_order, name, model_path)
+        self.__neuralize_model(old_model_def)

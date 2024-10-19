@@ -48,7 +48,7 @@ out4 = Output('out4', Linear(output_dimension=1)(fuzzy))
 out5 = Output('out5', Fir(time_part)+Fir(sample_select))
 out6 = Output('out6', LocalModel(output_function = Fir())(x.tw(1),fuzzy))
 
-test.addModel('modelA',out)
+test.addModel('modelA', out)
 test.addModel('modelB',[out2,out3,out4])
 test.addModel('modelC',[out4,out5,out6])
 test.addMinimize('error1', x.last(), out)
@@ -165,7 +165,7 @@ print(f'the output are equal: {new_out_after_train == new_out_after_trai_new}')
 
 print("-----------------------------------EXAMPLE 9------------------------------------")
 # Export the model in onnx format
-test.exportONNX(['x','y'],['out'], ['modelA']) # Export the onnx model
+test.exportONNX(['x','y'],['out2','out3','out4'], ['modelB']) # Export the onnx model
 #new_out_after_trai_new = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 '''
 #test.exportJSON()
