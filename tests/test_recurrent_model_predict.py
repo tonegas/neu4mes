@@ -583,9 +583,9 @@ class MyTestCase(unittest.TestCase):
         test.neuralizeModel(0.01)
 
         ## Without connect
-        # results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=None)
-        # self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
-        # self.assertEqual(results['out2'], [21.0, 29.0, 37.0, 45.0])
+        results = test(inputs={'in1':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in2':[[1],[2],[3],[4],[5],[6],[7],[8],[9]], 'in3':[[1],[2],[3],[4],[5],[6]]}, prediction_samples=None)
+        self.assertEqual(results['out1'], [15.0, 20.0, 25.0, 30.0])
+        self.assertEqual(results['out2'], [21.0, 29.0, 37.0, 45.0])
 
         ## connect out1 to in3 for 4 samples
         test.resetStates()
