@@ -2,7 +2,7 @@ import torch.nn as nn
 
 from neu4mes.relation import Stream, ToStream, toStream
 from neu4mes.model import Model
-from neu4mes.utilis import check
+from neu4mes.utils import check
 import torch
 
 relu_relation_name = 'ReLU'

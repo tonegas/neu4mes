@@ -1,7 +1,7 @@
 from pprint import pformat
 
 from neu4mes.relation import Stream
-from neu4mes.utilis import check
+from neu4mes.utils import check
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging

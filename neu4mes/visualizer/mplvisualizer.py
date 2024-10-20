@@ -15,7 +15,7 @@ class MPLVisulizer(TextVisualizer):
         self.process_results = {}
 
         def signal_handler(sig, frame):
-            for key in self.n4m.minimize_dict.keys():
+            for key in self.n4m.model_def['Minimizers'].keys():
                 self.process_training[key].terminate()
                 self.process_results[key].terminate()
             sys.exit()
@@ -27,13 +27,13 @@ class MPLVisulizer(TextVisualizer):
 
     def showTraining(self, epoch, train_losses, val_losses):
         if epoch == 0:
-            for key in self.n4m.minimize_dict.keys():
+            for key in self.n4m.model_def['Minimizers'].keys():
                 # Start the data visualizer process
                 self.process_training[key] = subprocess.Popen(['python', self.training_visualizer_script], stdin=subprocess.PIPE, text=True)
 
         num_of_epochs = self.n4m.run_training_params['num_of_epochs']
         if epoch+1 <= num_of_epochs:
-            for key in self.n4m.minimize_dict.keys():
+            for key in self.n4m.model_def['Minimizers'].keys():
                 if val_losses:
                     val_loss = val_losses[key][epoch]
                 else:
@@ -47,12 +47,12 @@ class MPLVisulizer(TextVisualizer):
                     print("The visualizer process has been closed.")
 
         if epoch+1 == num_of_epochs:
-            for key in self.n4m.minimize_dict.keys():
+            for key in self.n4m.model_def['Minimizers'].keys():
                 self.process_training[key].terminate()
 
     def showResult(self, name_data):
         super().showResult(name_data)
-        for key in self.n4m.minimize_dict.keys():
+        for key in self.n4m.model_def['Minimizers'].keys():
             # Start the data visualizer process
             self.process_results[key] = subprocess.Popen(['python', self.time_series_visualizer_script], stdin=subprocess.PIPE,
                                                 text=True)

@@ -1,6 +1,6 @@
 import copy
 
-from neu4mes.utilis import check, merge
+from neu4mes.utils import check, merge
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging

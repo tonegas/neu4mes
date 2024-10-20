@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch
 
 from neu4mes.relation import NeuObj, Stream, AutoToStream
-from neu4mes.utilis import check, merge
+from neu4mes.utils import check, merge
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.input import Input

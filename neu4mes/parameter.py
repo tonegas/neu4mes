@@ -2,7 +2,7 @@ import copy, inspect, textwrap
 import numpy as np
 
 from neu4mes.relation import NeuObj, Stream
-from neu4mes.utilis import check
+from neu4mes.utils import check
 
 #values = zeros, ones, 1order, linear, quadratic
 

@@ -7,7 +7,7 @@ import torch.nn as nn
 from neu4mes.relation import NeuObj, Stream, toStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter, Constant
-from neu4mes.utilis import check, merge
+from neu4mes.utils import check, merge
 
 
 paramfun_relation_name = 'ParamFun'

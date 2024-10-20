@@ -1,7 +1,7 @@
 import copy
 
 from neu4mes.relation import NeuObj, Stream, ToStream
-from neu4mes.utilis import check, merge
+from neu4mes.utils import check, merge
 from neu4mes.part import SamplePart, TimePart
 
 class InputState(NeuObj, Stream):

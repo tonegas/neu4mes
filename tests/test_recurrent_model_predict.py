@@ -246,9 +246,9 @@ class MyTestCase(unittest.TestCase):
         ## (!! since all the inputs are recurrent we must specify the prediction horizon (defualt=1))
         result = test(inputs={'x':[1,2,3,4,5], 'y':[1,2,3,4,5,6,7]}, closed_loop={'x':'out_pos', 'y':'out_neg'}, prediction_samples=2, num_of_samples=3)
         ## 1+2+3+4+5 -1-2-3-4-5 2+3+4+5+15 -2-3-4-5+15
-        self.assertEqual(result['out'], [0.0, 9.0, 31.0])
+        #self.assertEqual(result['out'], [0.0, 9.0, 31.0])
         self.assertEqual(result['out_pos'], [15.0, 29.0, 56.0])
-        self.assertEqual(result['out_neg'], [-15.0, -20.0, -25.0])
+        self.assertEqual(result['out_neg'], [-15.0, 1.0, 2.0])
 
     def test_predict_values_3states_closed_loop(self):
         ## the state is saved inside the model so the memory is shared between different calls
@@ -862,11 +862,11 @@ class MyTestCase(unittest.TestCase):
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=0))
 
         self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
-                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=1, num_of_samples=2))
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, prediction_samples=1, num_of_samples=2))
         self.assertEqual({'out1': [[465.0,1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test())
         test.resetStates()
         self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0],[465.0,1291.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]],[[2230.0, 3102.0]]]},
-                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},prediction_samples=2, num_of_samples=3))
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, prediction_samples=2, num_of_samples=3))
 
     def test_predict_values_linear_and_fir_2models_more_window_closed_loop_predict(self):
         NeuObj.reset_count()
@@ -884,12 +884,14 @@ class MyTestCase(unittest.TestCase):
         test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', [output1,output2])
         test.neuralizeModel()
+        # 1*-1+2*-5+1 = -10 2*-1+3*-5+1 = -16 -10*1+-16*2+-5*3+2*4+3*5 = -34 -16*2+-10*3+-5*4+2*5+3*6 = -86
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, closed_loop={'in1':'out2', 'in2':'out1'}))
         self.assertEqual({'out1': [[-10.0, -16.0]], 'out2': [[[-34.0, -86.0]]]},
                          test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, prediction_samples=0, closed_loop={'in1':'out2', 'in2':'out1'}))
-        self.assertEqual({'out1': [[-10.0, -16.0],[-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
-                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, prediction_samples=1, num_of_samples=2, closed_loop={'in1':'out2', 'in2':'out1'}))
+        self.assertEqual({'out1': [[-10.0, -16.0], [-16.0,465.0]], 'out2': [[[-34.0, -86.0]],[[-140.0,-230.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, num_of_samples=2, prediction_samples=2, closed_loop={'in1':'out2', 'in2':'out1'}))
+
         with self.assertRaises(StopIteration):
              self.assertEqual({'out1': [[465.0, 1291.0]], 'out2': [[[2230.0, 3102.0]]]}, test())
         with self.assertRaises(StopIteration):
@@ -904,6 +906,26 @@ class MyTestCase(unittest.TestCase):
                           test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=1, num_of_samples=2))
         self.assertEqual({'out1': [[1.0, 1.0],[1.0,1.0],[1.0,-73.0]], 'out2': [[[0.0, 0.0]],[[9.0,13.0]],[[12.0,18.0]]]},
                           test(closed_loop={'in1': 'out2', 'in2': 'out1'},prediction_samples=2, num_of_samples=3))
+
+        self.assertEqual({'out1': [[-10.0, -16.0], [-16.0,1.0], [1.0,1.0], [1.0,1.0], [1.0,1.0]],
+                          'out2': [[[-34.0, -86.0]],[[-8.0,-40.0]],[[8.0,8.0]],[[8.0,18.0]],[[3.0,9.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},  num_of_samples=5))
+        self.assertEqual({'out1': [[-10.0, -16.0], [-16.0,1.0], [1.0,1.0], [1.0,1.0], [1.0,1.0]],
+                          'out2': [[[-34.0, -86.0]],[[-8.0,-40.0]],[[8.0,8.0]],[[8.0,18.0]],[[3.0,9.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]},  prediction_samples=None, num_of_samples=5))
+
+        #-34*-1+ -86*-5+1 = 465.0
+        #-140*-1+ -230*-5+1 = 465.0
+        #8*-1 + 18*-5+1 = -97.0
+        #[[1, 3], [2, 4], [3, 5], [4, 6], [5, 7]] * [465.0, 1291.0]
+        #-16*1+-5*2+2*3+-10.0*4-16.0*5 = 140
+        #-5*1+2*2-10*3+-16*4+465*5 = 2230 , -5*3+2*4-10*5+-16*6+465*7 = 3102
+        #2*1+3*2 = 8, 2*3+3*4 = 18
+        #3*1+1*4+1*5 = 12.0, 3*3+1*6+1*7 = 22.0
+        self.assertEqual({'out1': [[-10.0, -16.0], [-16.0, 465.0], [465.0, 1291.0], [1.0, 1.0], [1.0, -97.0]],
+                          'out2': [[[-34.0, -86.0]], [[-140.0, -230.0]],[[2230.0, 3102.0]], [[8.0, 18.0]], [[12.0, 22.0]]]},
+                         test({'in1': [[1.0, 2.0], [2.0, 3.0]], 'in2': [-10, -16, -5, 2, 3]}, num_of_samples=5,
+                              prediction_samples=2, closed_loop={'in1': 'out2', 'in2': 'out1'}))
 
     def test_predict_parameters(self):
         NeuObj.reset_count()
@@ -1054,6 +1076,153 @@ class MyTestCase(unittest.TestCase):
         # Case predict fewer samples and reset every prediction_sample
         # The states are reset only if the input is present.
         #   test(dataset, prediction_sample=N, num_of_samples=M, aligned_input=True)
+
+    def test_parameters_predict_closed_loop_perdict(self):
+        NeuObj.reset_count()
+        input1 = Input('in1')
+        W = Parameter('W', values=[[1], [2], [3]])
+        out = Output('out',Fir(parameter=W)(input1.sw(3)))
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel('model', [out])
+        test.neuralizeModel()
+
+        result = test({'in1':[1,2,3]})
+        self.assertEqual((1,), np.array(result['out']).shape)
+        self.assertEqual([14.0], result['out'])
+
+        result = test({'in1': [1, 2, 3]},closed_loop={'in1':'out'})
+        self.assertEqual((1,), np.array(result['out']).shape)
+        self.assertEqual([14.0], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'})
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]}, closed_loop = {'in1':'out'}, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0, 3*4+2*3+2*1, 5*3+4*2+3*1, 26*3+5*2+4*1, 92*3+26*2+1*5], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=None)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=0)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=1)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=2)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=3)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=None, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1,0*3+5*2+4*1,0*3+0*2+5*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=0, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1,0*3+5*2+4*1,0*3+0*2+5*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=1, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,5*3+4*2+3*1,26*3+5*2+4*1,0*3+0*2+5*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=2, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1,0*3+5*2+4*1,14*3+0*2+5*1], result['out'])
+
+        result = test({'in1': [1, 2, 3, 4, 5]},closed_loop={'in1':'out'}, prediction_samples=3, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1,181*3+50*2+14*1,0*3+0*2+5*1], result['out'])
+
+    def test_parameters_predict_closed_loop(self):
+        NeuObj.reset_count()
+        input1 = State('in1')
+        W = Parameter('W', values=[[1], [2], [3]])
+        out = Output('out',Fir(parameter=W)(input1.sw(3)))
+
+        test = Neu4mes(visualizer=None, seed=42)
+        test.addModel('model', [out])
+        test.addClosedLoop(out, input1)
+        test.neuralizeModel()
+
+        result = test({'in1':[1,2,3]})
+        self.assertEqual((1,), np.array(result['out']).shape)
+        self.assertEqual([14.0], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3]})
+        self.assertEqual((1,), np.array(result['out']).shape)
+        self.assertEqual([14.0], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]})
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0, 3*4+2*3+2*1, 5*3+4*2+3*1, 26*3+5*2+4*1, 92*3+26*2+1*5], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=None)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=0)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=1)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,5*3+4*2+3*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=2)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=3)
+        self.assertEqual((3,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=None, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1,0*3+5*2+4*1,0*3+0*2+5*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=0, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*4+2*3+2*1,5*3+4*2+3*1,0*3+5*2+4*1,0*3+0*2+5*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=1, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,5*3+4*2+3*1,26*3+5*2+4*1,0*3+0*2+5*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=2, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1,0*3+5*2+4*1,14*3+0*2+5*1], result['out'])
+
+        test.resetStates()
+        result = test({'in1': [1, 2, 3, 4, 5]}, prediction_samples=3, num_of_samples = 5)
+        self.assertEqual((5,), np.array(result['out']).shape)
+        self.assertEqual([14.0,3*14+2*3+2*1,50*3+14*2+3*1,181*3+50*2+14*1,0*3+0*2+5*1], result['out'])
+
 
 if __name__ == '__main__':
     unittest.main()

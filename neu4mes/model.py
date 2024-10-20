@@ -7,7 +7,7 @@ import torch
 import copy
 
 class Model(nn.Module):
-    def __init__(self, model_def,  minimize_dict, input_ns_backward, input_n_samples):
+    def __init__(self, model_def,  input_ns_backward, input_n_samples):
         super(Model, self).__init__()
         self.inputs = model_def['Inputs']
         self.outputs = model_def['Outputs']
@@ -17,11 +17,11 @@ class Model(nn.Module):
         self.sample_time = model_def['SampleTime']
         self.functions = model_def['Functions']
         self.state_model_main = model_def['States']
+        self.minimizers = model_def['Minimizers']
         self.state_model = copy.deepcopy(self.state_model_main)
-        self.minimizers = minimize_dict
         self.input_ns_backward = input_ns_backward
         self.input_n_samples = input_n_samples
-        self.minimizers_keys = [minimize_dict[key]['A'].name for key in minimize_dict] + [minimize_dict[key]['B'].name for key in minimize_dict]
+        self.minimizers_keys = [self.minimizers[key]['A'] for key in self.minimizers] + [self.minimizers[key]['B'] for key in self.minimizers]
 
         #self.batch_size = 1
 
@@ -132,6 +132,7 @@ class Model(nn.Module):
 
         ## Add the gradient to all the relations and parameters that requires it
         self.relation_forward = nn.ParameterDict(self.relation_forward)
+        self.all_constants = nn.ParameterDict(self.all_constants)
         self.all_parameters = nn.ParameterDict(self.all_parameters)
 
         ## list of network outputs
@@ -140,8 +141,8 @@ class Model(nn.Module):
         ## list of network minimization outputs
         self.network_output_minimizers = [] 
         for _,value in self.minimizers.items():
-            self.network_output_minimizers.append(self.outputs[value['A'].name]) if value['A'].name in self.outputs.keys() else self.network_output_minimizers.append(value['A'].name)
-            self.network_output_minimizers.append(self.outputs[value['B'].name]) if value['B'].name in self.outputs.keys() else self.network_output_minimizers.append(value['B'].name)
+            self.network_output_minimizers.append(self.outputs[value['A']]) if value['A'] in self.outputs.keys() else self.network_output_minimizers.append(value['A'])
+            self.network_output_minimizers.append(self.outputs[value['B']]) if value['B'] in self.outputs.keys() else self.network_output_minimizers.append(value['B'])
         self.network_output_minimizers = set(self.network_output_minimizers)
 
         ## list of all the network Outputs
