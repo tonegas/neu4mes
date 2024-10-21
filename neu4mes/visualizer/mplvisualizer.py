@@ -76,7 +76,7 @@ class MPLVisulizer(TextVisualizer):
     def showWeights(self, weights = None):
         pass
 
-    def showFunctions(self, functions = None, range = None):
+    def showFunctions(self, functions = None):
         for key, value in self.n4m.model_def['Functions'].items():
             if key in functions:
                 if 'functions' in self.n4m.model_def['Functions'][key]:
@@ -106,7 +106,8 @@ class MPLVisulizer(TextVisualizer):
                             activ_fun[i] = custom_function(function_to_call, x_test, i, chan_centers).tolist()
                     data = {"name": key,
                             "x": x_test.tolist(),
-                            "y": activ_fun}
+                            "y": activ_fun,
+                            "chan_centers": chan_centers.tolist()}
                 elif 'code':
                     pass
 
