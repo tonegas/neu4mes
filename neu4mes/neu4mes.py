@@ -224,6 +224,11 @@ class Neu4mes:
             X = {}
             for i in range(window_dim):
                 for key, val in inputs.items():
+                    # If the prediction sample is None take the input
+                    # If the prediction sample is auto and the sample is less than the available samples take the input
+                    # Every prediction sample take the input
+                    # Otherwise if the key is a state or a connect or a closed_loop variable keep the same input
+                    # If the key is a state or connect input remove the input
                     if not (prediction_samples is None \
                         or ((prediction_samples is not None and prediction_samples != 'auto') and i % (prediction_samples + 1) == 0) \
                         or (prediction_samples == 'auto' and i < n_samples_input[key])):
@@ -233,63 +238,6 @@ class Neu4mes:
                             continue
                     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
                             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-
-                    # if prediction_samples is None \
-                    #     or ((prediction_samples is not None and prediction_samples != 'auto') and i % (prediction_samples + 1) == 0) \
-                    #     or (prediction_samples == 'auto' and i < n_samples_input[key]):
-                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
-                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    # else:
-                    #     if key in (closed_loop|connect).keys() or key in model_states:
-                    #         if (key in model_states or key in connect.keys()) and key in X.keys():
-                    #             del X[key]
-                    #         continue
-                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
-                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-
-                    # if prediction_samples is None:
-                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
-                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    # elif prediction_samples == 'auto':
-                    #     if i < n_samples_input[key]:
-                    #         X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #             torch.float32) if sampled else torch.from_numpy(
-                    #             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    #     else:
-                    #         if key in model_states or key in connect.keys():
-                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #                 torch.float32) if sampled else torch.from_numpy(
-                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    #             del X[key]
-                    #             continue
-                    #         else:
-                    #             if key in closed_loop.keys():
-                    #                 continue
-                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #                 torch.float32) if sampled else torch.from_numpy(
-                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    # else:
-                    #     ## Otherwise the variable are reset every prediction samples
-                    #     if i % (prediction_samples + 1) == 0:
-                    #         X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #             torch.float32) if sampled else torch.from_numpy(
-                    #             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    #     else:
-                    #         if key in model_states or key in connect.keys() or closed_loop.keys():
-                    #             continue
-                    #         else:
-                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #                 torch.float32) if sampled else torch.from_numpy(
-                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-
-                    # if key in (closed_loop|connect).keys() or key in model_states:
-                    #     if i >= input_windows[key]:
-                    #         if (key in model_states or key in connect.keys()) and key in X.keys():
-                    #             del X[key]
-                    #         continue
-
-                    ## Collect the inputs
-                    # X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
 
                     if key in model_inputs:
                         input_dim = self.model_def['Inputs'][key]['dim']

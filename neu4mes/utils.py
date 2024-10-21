@@ -10,7 +10,6 @@ log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
 
-
 def enforce_types(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
