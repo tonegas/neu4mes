@@ -1,11 +1,13 @@
-import copy, inspect, textwrap
+import copy, inspect, textwrap, torch
+
 import torch.nn as nn
-import torch
+
+from collections.abc import Callable
 
 from neu4mes.relation import NeuObj, Stream, AutoToStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
-from neu4mes.utils import check, merge
+from neu4mes.utils import check, merge, enforce_types
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -14,8 +16,16 @@ log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int|None = None, W_init:None = None, W_init_params:None = None, b_init:None = None, b_init_params:None = None,
-                 W:Parameter|None|str = None, b:bool|str|Parameter|None = None, dropout:int = 0):
+
+    @enforce_types
+    def __init__(self, output_dimension:int|None = None,
+                 W_init:Callable|None = None,
+                 W_init_params:dict|None = None,
+                 b_init:Callable|None = None,
+                 b_init_params:dict|None = None,
+                 W:Parameter|str|None = None,
+                 b:bool|str|Parameter|None = None,
+                 dropout:int = 0):
 
         self.relation_name = linear_relation_name
         self.W_init = W_init

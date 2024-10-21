@@ -1,22 +1,25 @@
-import inspect, copy, textwrap
-import math
+import inspect, copy, textwrap, torch, math
 
-import torch
 import torch.nn as nn
+
+from collections.abc import Callable
 
 from neu4mes.relation import NeuObj, Stream, toStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter, Constant
-from neu4mes.utils import check, merge
+from neu4mes.utils import check, merge, enforce_types
 
 
 paramfun_relation_name = 'ParamFun'
 
 class ParamFun(NeuObj):
-    def __init__(self, param_fun:callable,
+    @enforce_types
+    def __init__(self, param_fun:Callable,
                  constants:list|dict|None = None,
-                 parameters_dimensions:list|dict|None = None, parameters:list|dict|None = None,
+                 parameters_dimensions:list|dict|None = None,
+                 parameters:list|dict|None = None,
                  map_over_batch:bool = False) -> Stream:
+
         self.relation_name = paramfun_relation_name
 
         # input parameters

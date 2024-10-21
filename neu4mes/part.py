@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from neu4mes.relation import ToStream, Stream
 from neu4mes.model import Model
-from neu4mes.utils import check
+from neu4mes.utils import check, enforce_types
 
 part_relation_name = 'Part'
 select_relation_name = 'Select'
@@ -14,9 +14,10 @@ samplepart_relation_name = 'SamplePart'
 sampleselect_relation_name = 'SampleSelect'
 
 class Part(Stream, ToStream):
-    def __init__(self, obj, i, j):
-        check(type(obj) is Stream, TypeError,
-              f"The type of {obj} is {type(obj)} and is not supported for Part operation.")
+    @enforce_types
+    def __init__(self, obj:Stream, i:int, j:int):
+        # check(type(obj) is Stream, TypeError,
+        #       f"The type of {obj} is {type(obj)} and is not supported for Part operation.")
         check(i >= 0 and j > 0 and i < obj.dim['dim'] and j <= obj.dim['dim'],
               IndexError,
               f"i={i} or j={j} are not in the range [0,{obj.dim['dim']}]")
@@ -26,7 +27,8 @@ class Part(Stream, ToStream):
         self.json['Relations'][self.name] = [part_relation_name,[obj.name],[i,j]]
 
 class Part_Layer(nn.Module):
-    def __init__(self, i, j):
+    @enforce_types
+    def __init__(self, i:int, j:int):
         super(Part_Layer, self).__init__()
         self.i, self.j = i, j
 
@@ -39,9 +41,11 @@ def createPart(self, *inputs):
     return Part_Layer(i=inputs[0][0], j=inputs[0][1])
 
 class Select(Stream, ToStream):
-    def __init__(self, obj, i):
-        check(type(obj) is Stream, TypeError,
-              f"The type of {obj} is {type(obj)} and is not supported for Select operation.")
+
+    @enforce_types
+    def __init__(self, obj:Stream, i:int):
+        # check(type(obj) is Stream, TypeError,
+        #       f"The type of {obj} is {type(obj)} and is not supported for Select operation.")
         check(i >= 0 and i < obj.dim['dim'],
               IndexError,
               f"i={i} are not in the range [0,{obj.dim['dim']}]")
@@ -64,9 +68,10 @@ def createSelect(self, *inputs):
     return Select_Layer(idx=inputs[0])
 
 class SamplePart(Stream, ToStream):
-    def __init__(self, obj, i, j, offset = None):
-        check(type(obj) is Stream, TypeError,
-              f"The type of {obj} is {type(obj)} and is not supported for SamplePart operation.")
+    @enforce_types
+    def __init__(self, obj:Stream, i:int, j:int, offset:int|None = None):
+        # check(type(obj) is Stream, TypeError,
+        #       f"The type of {obj} is {type(obj)} and is not supported for SamplePart operation.")
         check('sw' in obj.dim, KeyError, 'Input must have a sample window')
         check(i < j, ValueError, 'i must be smaller than j')
         all_inputs = obj.json['Inputs'] | obj.json['States']
@@ -105,9 +110,11 @@ def createSamplePart(self, *inputs):
         return SamplePart_Layer(part=inputs[0], offset=None)
 
 class SampleSelect(Stream, ToStream):
-    def __init__(self, obj, i):
-        check(type(obj) is Stream, TypeError,
-              f"The type of {obj} is {type(obj)} and is not supported for SampleSelect operation.")
+
+    @enforce_types
+    def __init__(self, obj:Stream, i:int):
+        # check(type(obj) is Stream, TypeError,
+        #       f"The type of {obj} is {type(obj)} and is not supported for SampleSelect operation.")
         check('sw' in obj.dim, KeyError, 'Input must have a sample window')
         backward_idx = 0
         forward_idx = obj.dim['sw']
@@ -130,7 +137,8 @@ def createSampleSelect(self, *inputs):
     return SampleSelect_Layer(idx=inputs[0])
 
 class TimePart(Stream, ToStream):
-    def __init__(self, obj, i, j, offset = None):
+    @enforce_types
+    def __init__(self, obj:Stream, i:int|float, j:int|float, offset:int|float|None = None):
         check(type(obj) is Stream, TypeError,
               f"The type of {obj} is {type(obj)} and is not supported for TimePart operation.")
         check('tw' in obj.dim, KeyError, 'Input must have a time window')
@@ -171,7 +179,9 @@ def createTimePart(self, *inputs):
         return TimePart_Layer(part=inputs[0], offset=None)
 
 class TimeSelect(Stream, ToStream):
-    def __init__(self, obj, i):
+
+    @enforce_types
+    def __init__(self, obj:Stream, i:int|float):
         check('tw' in obj.dim, KeyError, 'Input must have a time window')
         backward_idx = 0
         forward_idx = obj.dim['tw']

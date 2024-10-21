@@ -1,13 +1,31 @@
-import copy
-import torch
+import copy, torch, inspect
+
 from pprint import pformat
-import numpy as np
+from functools import wraps
+from typing import get_type_hints
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
 log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
+
+
+def enforce_types(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        hints = get_type_hints(func)
+        all_args = kwargs.copy()
+        all_args.update(dict(zip(inspect.signature(func).parameters, args)))
+
+        for arg, arg_type in hints.items():
+            if arg in all_args and not isinstance(all_args[arg], arg_type):
+                raise TypeError(
+                    f"Expected argument '{arg}' to be of type {arg_type.__name__}, but got {type(all_args[arg]).__name__}")
+
+        return func(*args, **kwargs)
+
+    return wrapper
 
 def tensor_to_list(data):
     if isinstance(data, torch.Tensor):
