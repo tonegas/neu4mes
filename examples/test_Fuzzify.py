@@ -154,17 +154,4 @@ example.neuralizeModel()
 print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]
 print(example({'x':[2.5]})) ## should give [0, 0.5, 0.5, 0, 0, 0]
 print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0, 0]
-
-#trace = symbolic_trace(example.model)
-#print(dir(trace))
-#attributes = [line.replace('self.', '') for line in trace.code.split() if 'self.' in line]
-#print(attributes)
-#for i in attributes:
-#    print(f'{i} : {getattr(trace, i)}')
-
-# file_name = example.exportTracer()
-# example.importTracer(file_name=os.path.join(result_path, file_name))
-# print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]
-# print(example({'x':[2.5]})) ## should give [0, 0, 1, 0, 0, 0]
-# print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0, 0]
-
+#
