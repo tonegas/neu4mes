@@ -102,29 +102,6 @@ def rectangular(x, idx_channel, chan_centers):
   
     return act_fcn
 
-'''
-def custom_function(func, x, idx_channel, chan_centers):
-    ## compute number of channels
-    num_channels = len(chan_centers)
-
-    ## First dimension of activation
-    if idx_channel == 0:
-        if num_channels != 1:
-            width = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
-            act_fcn = torch.where(x < (chan_centers[idx_channel] + width), torch.where(x >= (chan_centers[idx_channel] - width), func(x-chan_centers[idx_channel]), torch.tensor(1.0)), torch.tensor(0.0))
-        else:
-            # In case the user only wants one channel
-            act_fcn = torch.tensor(1.0)
-    elif idx_channel != 0 and idx_channel == (num_channels - 1):
-        width = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = torch.where(x >= chan_centers[idx_channel] - width, torch.where(x < (chan_centers[idx_channel] + width), func(x-chan_centers[idx_channel]), torch.tensor(1.0)), torch.tensor(0.0))
-    else:
-        width_forward = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2  
-        width_backward = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = torch.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), func(x-chan_centers[idx_channel]), torch.tensor(0.0))
-  
-    return act_fcn
-'''
 
 def custom_function(func, x, idx_channel, chan_centers):
     act_fcn = func(x-chan_centers[idx_channel])

@@ -994,7 +994,7 @@ class Neu4mes:
 
             ## visualize the training...
             self.visualizer.showTraining(epoch, train_losses, val_losses)
-            self.visualizer.showWeights(epoch = epoch)
+            self.visualizer.showWeightsInTrain(epoch = epoch)
 
         ## save the training time
         end = time.time()
@@ -1096,7 +1096,7 @@ class Neu4mes:
             if train:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
-                self.visualizer.showWeights(batch = idx/(batch_size + step - 1))
+                self.visualizer.showWeightsInTrain(batch = idx/(batch_size + step - 1))
 
         ## return the losses
         return aux_losses
@@ -1126,7 +1126,7 @@ class Neu4mes:
             if train:
                 total_loss.backward()
                 self.optimizer.step()
-                self.visualizer.showWeights(batch = idx/batch_size)
+                self.visualizer.showWeightsInTrain(batch = idx/batch_size)
 
         ## return the losses
         return aux_losses

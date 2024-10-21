@@ -58,11 +58,12 @@ def fun(x):
     return torch.tanh(x)
 fuz = Fuzzify(output_dimension = 11, range = [-5,5], functions = fun)
 out = Output('out',fuz(x.last()))
-example = Neu4mes()
+example = Neu4mes(visualizer=MPLVisulizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[2.5]}))
 print(example({'x':[0]})) ## should return 0 near the center, 0.99 near -5 and -0.99 near 5
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()))
 #
 
 print("------------------------EXAMPLE 5------------------------")
@@ -76,7 +77,7 @@ def fun2(x):
     return torch.cos(x)
 fuz = Fuzzify(2,range=[-1,5],functions=[fun1,fun2])
 out = Output('out',fuz(x.last()))
-example = Neu4mes()
+example = Neu4mes(visualizer=MPLVisulizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[1]}))
@@ -84,6 +85,7 @@ print(example({'x':[2]}))
 print(example({'x':[3]}))
 print(example({'x':[4]}))
 print(example({'x':[5]}))
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()))
 #
 
 print("------------------------EXAMPLE 6------------------------")
@@ -96,12 +98,13 @@ def fun2(x):
     return torch.cos(x)
 fuz = Fuzzify(centers=[-1,0,3,5],functions=[fun1,fun2,fun1,fun2])
 out = Output('out',fuz(x.last())+fuz(F.last()))
-example = Neu4mes()
+example = Neu4mes(visualizer=MPLVisulizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[-1,0], 'F':[-1,0]}))
 print(example({'x':[0,3], 'F':[0,3]}))
 print(example({'x':[3,5], 'F':[3,5]}))
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()))
 #
 
 print("------------------------EXAMPLE 7------------------------")
@@ -145,7 +148,7 @@ print("------------------------EXAMPLE 9------------------------")
 fuz = Fuzzify(6,[1,6], functions = 'Triangular')
 out = Output('out',fuz(x.last()))
 result_path = os.path.join(os.getcwd(), "results", "example1")
-example = Neu4mes(workspace="test_fuzzify_results")
+example = Neu4mes()
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]

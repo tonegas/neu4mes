@@ -54,59 +54,6 @@ def generate_training_report(train_loss, val_loss, y_true, y_pred, output_file='
 
     print(f"Training report saved as {output_file}")
 
-# -------------------------------------------------------
-# Testing the mono-dimensional (1D) linear activation function
-# -------------------------------------------------------
-def plot_fuzzify(params):
-    import matplotlib.pyplot as plt
-
-    if params['functions'] != 'Rectangular' and params['functions'] != 'Triangular':
-        if isinstance(params['names'], list):
-            n_func = len(params['names'])
-            for func in params['functions']:
-                try:
-                    exec(func, globals())
-                except Exception as e:
-                    print(f"An error occurred: {e}")
-        else:
-            n_func = 1
-            try:
-                exec(params['functions'], globals())
-            except Exception as e:
-                print(f"An error occurred: {e}")
-
-    # Array of the independent variable
-    x_test = np.linspace(params['centers'][0] - 2, params['centers'][-1] + 2, num=1000)
-    x_test = torch.from_numpy(x_test)
-    # Array of the channel centers
-    chan_centers = np.array(params['centers'])
-    chan_centers = torch.from_numpy(chan_centers)
-    # Plot the activation functions
-    fig = plt.figure(figsize=(10,5))
-    fig.suptitle('Activation functions')
-    ax = plt.subplot()
-    plt.grid(True)
-    for i in range(len(chan_centers)):
-        ax.axvline(x=chan_centers[i], color='r', linestyle='--')
-        if params['functions'] == 'Triangular':
-            activ_fun = triangular(x_test, i, chan_centers)
-        elif params['functions'] == 'Rectangular':
-            activ_fun = rectangular(x_test, i, chan_centers)
-        else:
-            if isinstance(params['names'], list):
-                if i >= n_func:
-                    func_idx = i - round(n_func * (i // n_func))
-                else:
-                    func_idx = i
-                function_to_call = globals()[params['names'][func_idx]]
-            else:
-                function_to_call = globals()[params['names']]
-            activ_fun = custom_function(function_to_call, x_test, i, chan_centers)
-
-        #activ_fun = custom_function(fun3,x_test, i, chan_centers)
-        ax.plot(x_test,activ_fun,linewidth=3,label='Channel '+str(i+1))
-    ax.legend()
-    return fig
 
 def ExportReport(self, data, train_loss, val_loss):
     from reportlab.lib.pagesizes import letter

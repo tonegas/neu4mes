@@ -39,8 +39,13 @@ class Visualizer():
     def showBuiltModel(self):
         pass
 
+    def showWeights(self, weights = None):
+        pass
 
-    def showWeights(self, batch = None, epoch = None):
+    def showFunctions(self, functions = None):
+        pass
+
+    def showWeightsInTrain(self, batch = None, epoch = None, weights = None):
         pass
 
 
