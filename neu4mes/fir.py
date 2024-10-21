@@ -1,10 +1,11 @@
-import copy, inspect, textwrap
+import copy, inspect, textwrap, torch
 
 import torch.nn as nn
-import torch
+
+from collections.abc import Callable
 
 from neu4mes.relation import NeuObj, Stream, AutoToStream
-from neu4mes.utils import check, merge
+from neu4mes.utils import check, merge, enforce_types
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.input import Input
@@ -12,8 +13,13 @@ from neu4mes.input import Input
 fir_relation_name = 'Fir'
 
 class Fir(NeuObj, AutoToStream):
-    def __init__(self, output_dimension:int|None = None, parameter_init:None = None, parameter_init_params:None = None,
-                 parameter:Parameter|None|str = None, dropout:int = 0):
+    @enforce_types
+    def __init__(self, output_dimension:int|None = None,
+                 parameter_init:Callable|None = None,
+                 parameter_init_params:dict|None = None,
+                 parameter:Parameter|str|None = None,
+                 dropout:int = 0):
+
         self.relation_name = fir_relation_name
         self.parameter_init = parameter_init
         self.parameter_init_params = parameter_init_params
@@ -77,24 +83,8 @@ class Fir(NeuObj, AutoToStream):
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [fir_relation_name, [obj.name], self.namep, self.dropout]
         return Stream(stream_name, stream_json,{'dim':self.output_dimension, 'sw': 1})
-'''
-class Fir_Layer(nn.Module):
-    def __init__(self, weights, dropout):
-        super(Fir_Layer, self).__init__()
-        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
-        self.lin = nn.Linear(in_features=weights.size(0), out_features=weights.size(1), bias=False)
-        self.lin.weight = nn.Parameter(weights.t())
 
-    def forward(self, x):
-        x = x.permute(0, 2, 1)
-        print('x shape: ', x.shape)
-        print('weight shape: ', self.lin.weight.shape)
-        if self.dropout is not None:
-            x = self.dropout(x)
-        x = self.lin(x)
-        print('result shape: ', x.shape)
-        return x
-'''
+
 class Fir_Layer(nn.Module):
     def __init__(self, weights, dropout=0):
         super(Fir_Layer, self).__init__()

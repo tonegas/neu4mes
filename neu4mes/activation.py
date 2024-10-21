@@ -10,6 +10,7 @@ tanh_relation_name = 'Tanh'
 elu_relation_name = 'ELU'
 
 class Relu(Stream, ToStream):
+
     def __init__(self, obj:Stream) -> Stream:
         obj = toStream(obj)
         check(type(obj) is Stream, TypeError,
