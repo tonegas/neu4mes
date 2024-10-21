@@ -108,24 +108,6 @@ def plot_fuzzify(params):
     ax.legend()
     return fig
 
-def import_onnx(self, onnx_path, data):
-    import onnxruntime
-    # Load the ONNX model
-    session = onnxruntime.InferenceSession(onnx_path)
-    # Get input and output names
-    input_names = [item.name for item in session.get_inputs()]
-    output_names = [item.name for item in session.get_outputs()]
-    #input_name = session.get_inputs()#[0].name
-    #output_name = session.get_outputs()[0].name
-
-    print('input_name: ', input_names)
-    print('output_name: ', output_names)
-
-    # Run inference
-    result = session.run([output_names], {input_names: data})
-    # Print the result
-    print(result)
-
 def ExportReport(self, data, train_loss, val_loss):
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas

@@ -9,7 +9,7 @@ from neu4mes import *
 # Create neu4mes structure
 #result_path = os.path.join(os.getcwd(), "results")
 result_path = './results'
-test = Neu4mes(seed=42, workspace=result_path, save_history=True)
+test = Neu4mes(seed=42, workspace=result_path)
 
 x = Input('x')
 y = Input('y')
@@ -164,34 +164,9 @@ print('new_out_after_trai_new: ', new_out_after_trai_new)
 print(f'the output are equal: {new_out_after_train == new_out_after_trai_new}')
 
 print("-----------------------------------EXAMPLE 9------------------------------------")
-# Export the model in onnx format
-test.exportONNX(['x','y'],['out2','out3','out4'], ['modelB']) # Export the onnx model
-#new_out_after_trai_new = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
-'''
-#test.exportJSON()
+# Export the all models in onnx format
+test.exportONNX(['x','y'],['out','out2','out3','out4','out5','out6']) # Export the onnx model
 
-params = {'num_of_epochs': 100,
-        'train_batch_size': 8,
-        'val_batch_size': 8,
-        'test_batch_size': 1,
-        'learning_rate': 0.01}
-test.loadData(name='dataset', source=dataset)
-test.trainModel(training_params=params)
-
-## Neural network Predict
-sample = test.get_random_samples(dataset='dataset', window=1)
-result = test(sample, sampled=True)
-print('Predicted z: ', result['out'])
-print('True z: ', sample['z'])
-print(f'parameters a = {test.model.all_parameters.k_x} : b = {test.model.all_parameters.k_y}')
-
-test.exportTracer()
-
-file_path = os.path.join(test.folder_path, 'tracer_model.py')
-test.importTracer(file_path=file_path)
-
-result = test(sample, sampled=True)
-print('Predicted z: ', result['out'])
-print('True z: ', sample['z'])
-print(f'parameters a = {test.model.all_parameters.k_x} : b = {test.model.all_parameters.k_y}')
-'''
+print("-----------------------------------EXAMPLE 10-----------------------------------")
+# Export only the modelB in onnx format
+test.exportONNX(['x','y'],['out3','out4','out2'], ['modelB']) # Export the onnx model

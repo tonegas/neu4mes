@@ -1244,6 +1244,7 @@ class Neu4mes:
         if models is None:
             self.__update_model(model_def, minimize_dict={})
         else:
+            name += '_' + '_'.join(models)
             self.__update_model(model_def, {key: self.model_dict[key] for key in models if key in self.model_dict}, minimize_dict={})
         model_def = self.__get_torch_model()
         self.__neuralize_model(model_def)

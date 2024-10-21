@@ -2,7 +2,7 @@ import os, sys, torch
 from datetime import datetime
 
 from neu4mes.exporter.exporter import Exporter
-from neu4mes.exporter.export import save_model, load_model, export_python_model, export_pythononnx_model, export_onnx_model, import_python_model
+from neu4mes.exporter.export import save_model, load_model, export_python_model, export_pythononnx_model, export_onnx_model, import_python_model, import_onnx_model
 from neu4mes.utils import check
 
 class StandardExporter(Exporter):
@@ -93,9 +93,18 @@ class StandardExporter(Exporter):
         ## Export to python file (onnx compatible)
         export_python_model(self.n4m.model_def, self.n4m.model, model_path)
         self.n4m.visualizer.exportModel('Python Torch Model', model_path)
-        export_pythononnx_model(inputs_order, model_path, onnx_python_model_path)
+        export_pythononnx_model(inputs_order, outputs_order, model_path, onnx_python_model_path)
         self.n4m.visualizer.exportModel('Python Onnx Torch Model', onnx_python_model_path)
         ## Export to onnx file (onnx compatible)
         model = import_python_model(file_name.replace('.py', '_onnx'), model_folder)
         export_onnx_model(inputs_order, outputs_order, self.n4m.model_def, model, self.n4m.input_n_samples, onnx_model_path)
         self.n4m.visualizer.exportModel('Onnx Model', onnx_model_path)
+
+    def importONNX(self, name = 'net', model_folder = None):
+        try:
+            model_folder = self.workspace_folder if model_folder is None else model_folder
+            model = import_onnx_model(name, model_folder)
+            self.n4m.visualizer.importModel('Onnx Model', os.path.join(model_folder,name+'.py'))
+        except Exception as e:
+            self.n4m.visualizer.warning(f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
+        return model
