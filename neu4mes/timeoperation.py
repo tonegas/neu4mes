@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 from neu4mes.relation import NeuObj, AutoToStream, Stream
-from neu4mes.utilis import merge
+from neu4mes.utils import merge
 
 
 # Binary operators
