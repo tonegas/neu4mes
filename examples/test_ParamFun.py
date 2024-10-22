@@ -19,11 +19,12 @@ def myFun(K1,K2,p1,p2):
 
 parfun = ParamFun(myFun)
 out = Output('fun',parfun(x.last(),F.last()))
-example = Neu4mes()
+example = Neu4mes(visualizer=MPLVisulizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[1],'F':[1]}))
 print(example({'x':[1,2],'F':[1,2]}))
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()),xlim=[[-5,5],[-1,1]])
 #
 
 print("------------------------EXAMPLE 2------------------------")
@@ -90,13 +91,14 @@ print("------------------------EXAMPLE 5------------------------")
 # The function creates a tensor performs a dot product between input 1 and p1 (which is effectively K Parameter)
 def myFun(K1,p1):
     return K1*p1
-K = Parameter('k', dimensions =  1, tw = 1,values=[[2.0]])
+K = Parameter('k', dimensions =  1, sw = 1,values=[[2.0]])
 parfun = ParamFun(myFun, parameters = [K] )
-out = Output('out',parfun(x.tw(1)))
-example = Neu4mes()
+out = Output('out',parfun(x.sw(1)))
+example = Neu4mes(visualizer=MPLVisulizer())
 example.addModel('out',out)
 example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()), xlim = [-5,5])
 #
 
 print("------------------------EXAMPLE 6------------------------")
@@ -105,11 +107,12 @@ P1 = 7.0
 def myFun(K1,p1):
     return K1*p1
 parfun = ParamFun(myFun)
-out = Output('out',parfun(x.tw(1),P1))
-example = Neu4mes()
+out = Output('out',parfun(x.sw(1),P1))
+example = Neu4mes(visualizer=MPLVisulizer())
 example.addModel('out',out)
-example.neuralizeModel(0.25)
+example.neuralizeModel(1)
 print(example({'x':[1,1,1,1]}))
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()))
 #
 
 print("------------------------EXAMPLE 7------------------------")

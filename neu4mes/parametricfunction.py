@@ -63,6 +63,7 @@ class ParamFun(NeuObj):
                 input_types.append(obj_type)
                 input_dimensions.append(o.dim)
 
+            self.json['Functions'][self.name]['in_dim'] = copy.deepcopy(input_dimensions)
             self.__infer_output_dimensions(input_types, input_dimensions)
             self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
 
