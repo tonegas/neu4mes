@@ -7,7 +7,7 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 # Create neu4mes structure
-vehicle = Neu4mes(visualizer=MPLVisulizer(),seed=0)
+vehicle = Neu4mes(visualizer=MPLVisualizer(),seed=0)
 
 # Dimensions of the layers
 n  = 25
@@ -53,7 +53,7 @@ vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingse
 # Neural network train
 optimizer_params = [{'params':'gravity','weight_decay': 0.1}]
 optimizer_defaults = {'weight_decay': 0.00001}
-training_params = {'num_of_epochs':200, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003}
+training_params = {'num_of_epochs':150, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003}
 vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, add_optimizer_params=optimizer_params, add_optimizer_defaults=optimizer_defaults, training_params=training_params)
 
 ## Neural network Predict

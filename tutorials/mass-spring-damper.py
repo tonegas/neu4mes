@@ -4,8 +4,6 @@ import os
 sys.path.append(os.getcwd())
 
 from neu4mes import *
-from neu4mes.visualizer import MPLVisulizer
-from neu4mes.output import log
 
 # This example shows how to fit a simple linear model.
 # The model chosen is a mass spring damper.
@@ -25,7 +23,7 @@ xk1 = Output('x[k+1]', Fir(parameter_init=init_negexp)(x.tw(0.2))+Fir(parameter_
 dxk1 = Output('dx[k+1]', Fir(Fir(parameter_init=init_negexp)(x.tw(0.2))+Fir(parameter_init=init_constant,parameter_init_params={'value':1})(F.last())))
 
 # Add the neural models to the neu4mes structure
-mass_spring_damper = Neu4mes()
+mass_spring_damper = Neu4mes(seed=0)
 mass_spring_damper.addModel('xk1',xk1)
 mass_spring_damper.addModel('dxk1',dxk1)
 
@@ -53,7 +51,7 @@ params = {'num_of_epochs': 100,
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 
 # Add visualizer and show the results on the loaded dataset
-vis = MPLVisulizer()
+vis = MPLVisualizer()
 vis.set_n4m(mass_spring_damper)
 vis.showResult("validation_mass_spring_dataset_0.20")
 
