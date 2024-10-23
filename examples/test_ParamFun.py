@@ -19,7 +19,7 @@ def myFun(K1,K2,p1,p2):
 
 parfun = ParamFun(myFun)
 out = Output('fun',parfun(x.last(),F.last()))
-example = Neu4mes(visualizer=MPLVisulizer())
+example = Neu4mes(visualizer=MPLVisualizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[1],'F':[1]}))
@@ -94,7 +94,7 @@ def myFun(K1,p1):
 K = Parameter('k', dimensions =  1, sw = 1,values=[[2.0]])
 parfun = ParamFun(myFun, parameters = [K] )
 out = Output('out',parfun(x.sw(1)))
-example = Neu4mes(visualizer=MPLVisulizer())
+example = Neu4mes(visualizer=MPLVisualizer())
 example.addModel('out',out)
 example.neuralizeModel(0.25)
 print(example({'x':[1,1,1,1],'F':[1,1,1,1]}))
@@ -108,7 +108,7 @@ def myFun(K1,p1):
     return K1*p1
 parfun = ParamFun(myFun)
 out = Output('out',parfun(x.sw(1),P1))
-example = Neu4mes(visualizer=MPLVisulizer())
+example = Neu4mes(visualizer=MPLVisualizer())
 example.addModel('out',out)
 example.neuralizeModel(1)
 print(example({'x':[1,1,1,1]}))
