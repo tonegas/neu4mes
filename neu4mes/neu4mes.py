@@ -6,7 +6,7 @@ import pandas as pd
 # Neu4mes packages
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import MAIN_JSON
-from neu4mes.visualizer import TextVisualizer, Visualizer
+from neu4mes.visualizer import TextVisualizer, Visualizer, MPLVisualizer, MPLNotebookVisualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.relation import Stream
@@ -60,7 +60,7 @@ class Neu4mes:
         # Models definition
         self.model_def_loaded = None
         self.model_def = None
-        self.model_def_trained = None
+        self.model_def_values = None
 
         # Network Parametrs
         self.input_tw_backward, self.input_tw_forward = {}, {}
@@ -407,16 +407,16 @@ class Neu4mes:
         self.__update_model()
         self.visualizer.showaddMinimize(name)
 
-    # Use this function to get the parameters form the torch model and set the model_def_trained
+    # Use this function to get the parameters form the torch model and set the model_def_values
     def __get_torch_model(self, clear_model = False):
         if self.model is not None and clear_model == False:
-            self.model_def_trained = copy.deepcopy(self.model_def)
-            for key in self.model_def_trained['Parameters'].keys():
+            self.model_def_values = copy.deepcopy(self.model_def)
+            for key in self.model_def_values['Parameters'].keys():
                 if key in self.model.all_parameters:
-                    self.model_def_trained['Parameters'][key]['values'] = self.model.all_parameters[key].tolist()
-                    if 'init_fun' in self.model_def_trained['Parameters'][key]:
-                        del self.model_def_trained['Parameters'][key]['init_fun']
-            model_def = copy.deepcopy(self.model_def_trained)
+                    self.model_def_values['Parameters'][key]['values'] = self.model.all_parameters[key].tolist()
+                    if 'init_fun' in self.model_def_values['Parameters'][key]:
+                        del self.model_def_values['Parameters'][key]['init_fun']
+            model_def = copy.deepcopy(self.model_def_values)
         else:
             model_def = copy.deepcopy(self.model_def)
         return model_def
@@ -473,6 +473,7 @@ class Neu4mes:
         ## Get the trained model
         model_def = self.__get_torch_model(clear_model)
         self.__neuralize_model(model_def)
+        self.__get_torch_model(clear_model)
         self.visualizer.showModel(model_def)
         self.visualizer.showModelInputWindow()
         self.visualizer.showBuiltModel()
@@ -940,13 +941,14 @@ class Neu4mes:
                     self.visualizer.warning('Stopping the training..')
                     break
 
-            ## visualize the training...
+            ## Visualize the training...
             self.visualizer.showTraining(epoch, train_losses, val_losses)
             self.visualizer.showWeightsInTrain(epoch = epoch)
 
-        ## save the training time
+        ## Save the training time
         end = time.time()
-        ## visualize the training time
+        ## Visualize the training time
+        self.visualizer.showEndTraining(num_of_epochs-1, train_losses, val_losses)
         self.visualizer.showTrainingTime(end-start)
 
         ## Test the model
@@ -970,17 +972,14 @@ class Neu4mes:
             self.resultAnalysis(test_dataset, XY_test, connect, closed_loop)
             self.visualizer.showResult(test_dataset)
 
-
         # if self.run_training_params['n_samples_test'] > 0:
         #     self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
         # elif self.run_training_params['n_samples_val'] > 0:
         #     self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
         self.visualizer.showResults()
 
-        ## Get trained model from torch and set the model_def_trained
+        ## Get trained model from torch and set the model_def_values
         self.__get_torch_model()
-
-        return train_losses, val_losses, test_losses
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, closed_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
@@ -1153,8 +1152,8 @@ class Neu4mes:
     def saveModel(self, name = 'net', model_path = None):
         if self.model_def is not None:
             self.exporter.saveModel(self.model_def, name, model_path)
-        if self.model_def_trained is not None:
-            self.exporter.saveModel(self.model_def_trained, name + '_trained', model_path)
+        if self.model_def_values is not None:
+            self.exporter.saveModel(self.model_def_values, name + '_trained', model_path)
 
     def loadModel(self, name = None, model_folder = None):
         if name is None:
@@ -1198,3 +1197,6 @@ class Neu4mes:
         self.__neuralize_model(model_def)
         self.exporter.exportONNX(inputs_order, outputs_order, name, model_path)
         self.__neuralize_model(old_model_def)
+
+    def exportReport(self, name = 'net', model_path = None):
+        self.exporter.exportReport(name, model_path)
