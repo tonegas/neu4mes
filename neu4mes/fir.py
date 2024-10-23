@@ -18,7 +18,7 @@ class Fir(NeuObj, AutoToStream):
                  parameter_init:Callable|None = None,
                  parameter_init_params:dict|None = None,
                  parameter:Parameter|str|None = None,
-                 dropout:int = 0):
+                 dropout:int|float = 0):
 
         self.relation_name = fir_relation_name
         self.parameter_init = parameter_init
