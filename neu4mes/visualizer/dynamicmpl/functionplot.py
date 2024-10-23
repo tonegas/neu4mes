@@ -3,6 +3,7 @@ import sys, json
 import matplotlib.pyplot as plt
 import numpy as np
 
+from mplplots import plots
 
 # Plot data
 line = sys.stdin.readline().strip()
@@ -23,27 +24,8 @@ if line:
     except ValueError:
         exit()
 
-fig = plt.figure()
-# Clear the current plot
-plt.clf()
 if 'x1' in data_point.keys():
-    x0, x1 = np.meshgrid(x0, x1)
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(x0, x1,np.array(output), cmap='viridis')
-    ax.set_xlabel(input_names[0])
-    ax.set_ylabel(input_names[1])
-    ax.set_zlabel(f'{name} output')
-    for ind in range(len(input_names) - 2):
-        fig.text(0.01, 0.9 - 0.05 * ind, f"{input_names[ind + 2]} ={params[ind]}", fontsize=10, color='blue',
-                 style='italic')
-
+    plots.plot_3d_function(plt, name, x0, x1, params, output, input_names)
 else:
-    plt.plot(np.array(x), np.array(output),  linewidth=2)
-    plt.xlabel(input_names[0])
-    plt.ylabel(f'{name} output')
-    for ind in range(len(input_names) - 1):
-        fig.text(0.01, 0.9 - 0.05 * ind, f"{input_names[ind + 1]} ={params[ind]}", fontsize=10, color='blue',
-                 style='italic')
-
-plt.title(f'Function {name}')
+    plots.plot_2d_function(plt, name, x, params, output, input_names)
 plt.show()

@@ -1,17 +1,13 @@
-import sys
+import sys, json
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import matplotlib.animation as animation
-from collections import deque
-import json
-import numpy as np
 
-fig, ax = plt.subplots()
-# Clear the current plot
-plt.clf()
+from mplplots import plots
+
 # Plot data
 line = sys.stdin.readline().strip()
-name, x, y = None, None, None
+name, x, y = None, None, []
 if line:
     try:
         # Convert to float and append to buffer
@@ -22,14 +18,11 @@ if line:
         tableau_colors = mcolors.TABLEAU_COLORS
         num_of_colors = len(list(tableau_colors.keys()))
         for ind, key in enumerate(data_point['y'].keys()):
-            y = data_point['y'][key]
-            plt.axvline(x=chan_centers[ind], color=tableau_colors[list(tableau_colors.keys())[ind % num_of_colors]], linestyle='--')
-            plt.plot(x, y, label=f'Channel {int(key)+1}', linewidth=2)
+            y.append(data_point['y'][key])
     except ValueError:
         exit()
 
-plt.legend(loc='best')
-plt.xlabel('Input')
-plt.ylabel('Value')
-plt.title(f'Function {name}')
+fig, ax = plt.subplots()
+ax.cla()
+plots.plot_fuzzy(ax, name, x, y, chan_centers)
 plt.show()
