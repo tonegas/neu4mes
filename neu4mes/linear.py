@@ -25,7 +25,7 @@ class Linear(NeuObj, AutoToStream):
                  b_init_params:dict|None = None,
                  W:Parameter|str|None = None,
                  b:bool|str|Parameter|None = None,
-                 dropout:int = 0):
+                 dropout:int|float = 0):
 
         self.relation_name = linear_relation_name
         self.W_init = W_init
