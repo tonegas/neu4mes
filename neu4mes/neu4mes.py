@@ -21,7 +21,13 @@ log = logging.getLogger(__name__)
 log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 class Neu4mes:
-    def __init__(self, visualizer = 'Standard', exporter = 'Standard', seed = None, workspace = None, log_internal =  False, save_history = False):
+    def __init__(self,
+                 visualizer:str|Visualizer|None = 'Standard',
+                 exporter:str|Exporter|None = 'Standard',
+                 seed:int|None = None,
+                 workspace:str|None = None,
+                 log_internal:bool = False,
+                 save_history:bool = False):
 
         # Visualizer
         if visualizer == 'Standard':
@@ -36,9 +42,9 @@ class Neu4mes:
         if exporter == 'Standard':
             self.exporter = StandardExporter(workspace, save_history)
         elif exporter != None:
-            self.visualizer = exporter
+            self.exporter = exporter
         else:
-            self.visualizer = Exporter()
+            self.exporter = Exporter()
         self.exporter.set_n4m(self)
 
         ## Set the random seed for reproducibility
@@ -962,6 +968,10 @@ class Neu4mes:
             ## save the losses
             for ind, key in enumerate(self.model_def['Minimizers'].keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
+
+        self.train_losses = train_losses
+        self.val_losses = val_losses
+        self.test_losses = test_losses
 
         self.resultAnalysis(train_dataset, XY_train, connect, closed_loop)
         self.visualizer.showResult(train_dataset)

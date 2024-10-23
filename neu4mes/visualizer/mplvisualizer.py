@@ -36,6 +36,7 @@ class MPLVisualizer(TextVisualizer):
 
     def showStartTraining(self):
         pass
+
     def showTraining(self, epoch, train_losses, val_losses):
         if epoch == 0:
             for key in self.n4m.model_def['Minimizers'].keys():

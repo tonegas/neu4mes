@@ -84,3 +84,6 @@ class Visualizer():
 
     def importModel(self, name, path):
         pass
+
+    def exportReport(self, name, path):
+        pass

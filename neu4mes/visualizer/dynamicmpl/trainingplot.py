@@ -35,7 +35,7 @@ def update_graph(frame):
         # Clear the current plot
         ax.cla()
         # Clear the current plot
-        plots.plot_training(ax, title, key, epoch, data_train, data_val, last)
+        plots.plot_training(ax, title, key, data_train, data_val, last)
     else:
         pass
 

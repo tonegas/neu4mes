@@ -17,3 +17,6 @@ class Exporter():
 
     def importPythonModel(self, name = 'net', model_folder = None):
         pass
+
+    def exportReport(self, name = 'net', model_folder = None):
+        pass

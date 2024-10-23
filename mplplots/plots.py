@@ -2,16 +2,16 @@ import numpy as np
 
 import matplotlib.colors as mcolors
 
-def plot_training(ax, title, key, epoch, data_train, data_val = None, last = None):
+def plot_training(ax, title, key, data_train, data_val = None, last = None):
     # Plot data
     if last is not None:
         ax.set_title(f'{title} - epochs last {last}')
     else:
         ax.set_title(f'{title}')
 
-    ax.plot([i + 1 for i in range(epoch + 1)], data_train, label=f'Train loss {key}')
+    ax.plot([i + 1 for i in range(len(data_train))], data_train, label=f'Train loss {key}')
     if data_val:
-        ax.plot([i + 1 for i in range(epoch + 1)], data_val, '-.', label=f'Validation loss {key}')
+        ax.plot([i + 1 for i in range(len(data_val))], data_val, '-.', label=f'Validation loss {key}')
 
     ax.set_yscale('log')
     ax.grid(True)
@@ -39,6 +39,8 @@ def plot_results(ax, name_data, key, A, B, sample_time):
                     label=f'real')
             ax.plot(np.arange(0, len(B_t[ind_win, ind_dim]) * sample_time, sample_time), B_t[ind_win, ind_dim], '-.',
                     label=f'prediction')
+            correlation = np.corrcoef(A_t[ind_win, ind_dim],B_t[ind_win, ind_dim])[0, 1]
+            ax.text(0.05, 0.95, f'Correlation: {correlation:.2f}', transform=ax.transAxes, verticalalignment='top')
 
     ax.grid(True)
     ax.legend(loc='best')

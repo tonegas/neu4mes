@@ -288,3 +288,9 @@ class TextVisualizer(Visualizer):
             self.__title(f" Import {name} ")
             self.__param("Model imported from:", path)
             self.__line()
+
+    def exportReport(self, name, path):
+        if self.verbose >= 1:
+            self.__title(f" Export {name} Report ")
+            self.__param("Report exported in:", path)
+            self.__line()

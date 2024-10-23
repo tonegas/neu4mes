@@ -17,7 +17,7 @@ class MPLNotebookVisualizer(TextVisualizer):
         for key in self.n4m.model_def['Minimizers'].keys():
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            plots.plot_training(ax, "Training", key, epoch, train_losses[key], val_losses[key])
+            plots.plot_training(ax, "Training", key, train_losses[key], val_losses[key])
         plt.show()
 
     def showResult(self, name_data):

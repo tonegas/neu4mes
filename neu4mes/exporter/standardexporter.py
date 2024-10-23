@@ -2,6 +2,7 @@ import os, sys, torch
 from datetime import datetime
 
 from neu4mes.exporter.exporter import Exporter
+from neu4mes.exporter.reporter import Reporter
 from neu4mes.exporter.export import save_model, load_model, export_python_model, export_pythononnx_model, export_onnx_model, import_python_model, import_onnx_model
 from neu4mes.utils import check
 
@@ -108,3 +109,15 @@ class StandardExporter(Exporter):
         except Exception as e:
             self.n4m.visualizer.warning(f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
         return model
+
+    def exportReport(self, name = 'net', model_folder = None):
+        # Combine the folder path and file name to form the complete file path
+        model_folder = self.workspace_folder if model_folder is None else model_folder
+        # Specify the JSON file name
+        file_name = name + ".pdf"
+        # Combine the folder path and file name to form the complete file path
+        report_path = os.path.join(model_folder, file_name)
+        reporter = Reporter(self.n4m)
+        reporter.exportReport(report_path)
+        self.n4m.visualizer.exportReport('Training Results', report_path)
+
