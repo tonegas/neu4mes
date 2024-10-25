@@ -1,5 +1,5 @@
 General things to do:
-- 
+- the requirements.txt do not work on a new environment (windows), only the requirements_macos_x86.txt work
 - compute the loss function in a consistent way after the training, in the resulting table printed by neu4mes
 - when training with early stopping, the training loop should finally return the model with the best validation loss, and not the model of the last epoch. Or at least the user should be able to decide whether to return the model of the last epoch or the model with the best validation loss. (This could be for example defined within the early stopping method.) In the current version, it is not clear which model is returned at the end.
 - read the csv data using the headers 
