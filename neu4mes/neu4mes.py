@@ -48,7 +48,7 @@ class Neu4mes:
         self.exporter.set_n4m(self)
 
         ## Set the random seed for reproducibility
-        if seed:
+        if seed is not None:
             torch.manual_seed(seed=seed) ## set the pytorch seed
             random.seed(seed) ## set the random module seed
             np.random.seed(seed) ## set the numpy seed

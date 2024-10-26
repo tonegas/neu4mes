@@ -1,10 +1,13 @@
 General things to do / note:
 - closed loop training: 
+  - run a profiler in CLions.
   - the training is extremely slow (w.r.t. Keras, for the same batch_size and predict_samples). Try to trace the model and to investigate the warning "Creating a tensor from a list of numpy.ndarrays is extremely slow ..."
-  - with the loss (MSE) seems to be proportional to the batch size. Is the loss multiplied by the batch size?
+  - with the loss (MSE) seems to be proportional to the batch size. Is the loss multiplied by the batch size? 
+  - when using inputs instead of states, different values of loss are computed during the training. They should be the same.
   - if predict_samples covers the whole dataset, and batch_size = 1, then there is only one batch with predict_samples samples.
     if instead batch_size = 5, then there should be again only one batch but it should contain 5*predict_samples samples, i.e., the
     training should last longer. Instead, it seems that the training lasts the same.
+- The new MPLVisualizer does not work in Python
 - shuffle_flag = True does not work or does not work as expected in closed-loop training
 - test reproducibility of the training
 - the symbolic tracer does not work
