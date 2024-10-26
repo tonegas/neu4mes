@@ -7,7 +7,7 @@ import torch
 import copy
 
 class Model(nn.Module):
-    def __init__(self, model_def,  input_ns_backward, input_n_samples):
+    def __init__(self, model_def):
         super(Model, self).__init__()
         self.inputs = model_def['Inputs']
         self.outputs = model_def['Outputs']
@@ -19,8 +19,8 @@ class Model(nn.Module):
         self.state_model_main = model_def['States']
         self.minimizers = model_def['Minimizers']
         self.state_model = copy.deepcopy(self.state_model_main)
-        self.input_ns_backward = input_ns_backward
-        self.input_n_samples = input_n_samples
+        self.input_ns_backward = {key:value['ns'][0] for key, value in (model_def['Inputs']|model_def['States']).items()}
+        self.input_n_samples = {key:value['ntot'] for key, value in (model_def['Inputs']|model_def['States']).items()}
         self.minimizers_keys = [self.minimizers[key]['A'] for key in self.minimizers] + [self.minimizers[key]['B'] for key in self.minimizers]
 
         ## Build the network

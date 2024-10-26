@@ -53,7 +53,7 @@ test.addModel('modelB',[out2,out3,out4])
 test.addModel('modelC',[out4,out5,out6])
 test.addMinimize('error1', x.last(), out)
 test.addMinimize('error2', y.last(), out3, loss_function='rmse')
-test.addMinimize('error3', z.last(), out6, loss_function='rmse')
+test.addMinimize('error3', z.sw([-5,-4]), out6, loss_function='rmse')
 test.neuralizeModel(0.5)
 
 print("-----------------------------------EXAMPLE 1------------------------------------")

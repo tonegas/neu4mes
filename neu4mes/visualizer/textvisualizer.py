@@ -37,7 +37,7 @@ class TextVisualizer(Visualizer):
             print(color(pformat(model),GREEN))
             self.__line()
 
-    def showaddMinimize(self,variable_name):
+    def showMinimize(self,variable_name):
         if self.verbose >= 2:
             self.__title(f" Minimize Error of {variable_name} with {self.n4m.model_def['Minimizers'][variable_name]['loss']} ")
             self.__paramjson(f"Model {self.n4m.model_def['Minimizers'][variable_name]['A'].name}", self.n4m.model_def['Minimizers'][variable_name]['A'].json)

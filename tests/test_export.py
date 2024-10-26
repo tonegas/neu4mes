@@ -1,0 +1,128 @@
+import unittest, torch, shutil
+
+import sys
+import os
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
+from neu4mes import *
+from neu4mes import relation
+relation.CHECK_NAMES = False
+
+from neu4mes import LOG_LEVEL
+from neu4mes.logger import logging
+log = logging.getLogger(__name__)
+log.setLevel(max(logging.DEBUG, LOG_LEVEL))
+
+# 10 Tests
+# Test of export the network to a file
+
+class Neu4mesExport(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(Neu4mesExport, self).__init__(*args, **kwargs)
+
+        self.result_path = './results'
+        if os.path.exists(self.result_path):
+            shutil.rmtree(self.result_path)
+        self.test = Neu4mes(seed=42, workspace=self.result_path)
+
+        x = Input('x')
+        y = Input('y')
+        z = Input('z')
+
+        ## create the relations
+        def myFun(K1, p1, p2):
+            return K1 * p1 * p2
+
+        K_x = Parameter('k_x', dimensions=1, tw=1)
+        K_y = Parameter('k_y', dimensions=1, tw=1)
+        w = Parameter('w', dimensions=1, tw=1)
+        t = Parameter('t', dimensions=1, tw=1)
+        c_v = Constant('c_v', tw=1, values=[[1], [2]])
+        c = 5
+        w_5 = Parameter('w_5', dimensions=1, tw=5)
+        t_5 = Parameter('t_5', dimensions=1, tw=5)
+        c_5 = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
+        parfun_x = ParamFun(myFun, parameters=[K_x], constants=[c_v])
+        parfun_y = ParamFun(myFun, parameters=[K_y])
+        parfun_z = ParamFun(myFun)
+        fir_w = Fir(parameter=w_5)(x.tw(5))
+        fir_t = Fir(parameter=t_5)(y.tw(5))
+        time_part = TimePart(x.tw(5), i=1, j=3)
+        sample_select = SampleSelect(x.sw(5), i=1)
+
+        def fuzzyfun(x):
+            return torch.tan(x)
+
+        fuzzy = Fuzzify(output_dimension=4, range=[0, 4], functions=fuzzyfun)(x.tw(1))
+
+        out = Output('out', Fir(parfun_x(x.tw(1)) + parfun_y(y.tw(1), c_v)))
+        # out = Output('out', Fir(parfun_x(x.tw(1))+parfun_y(y.tw(1),c_v)+parfun_z(x.tw(5),t_5,c_5)))
+        out2 = Output('out2', Add(w, x.tw(1)) + Add(t, y.tw(1)) + Add(w, c))
+        out3 = Output('out3', Add(fir_w, fir_t))
+        out4 = Output('out4', Linear(output_dimension=1)(fuzzy))
+        out5 = Output('out5', Fir(time_part) + Fir(sample_select))
+        out6 = Output('out6', LocalModel(output_function=Fir())(x.tw(1), fuzzy))
+
+        self.test.addModel('modelA', out)
+        self.test.addModel('modelB', [out2, out3, out4])
+        self.test.addModel('modelC', [out4, out5, out6])
+        self.test.addMinimize('error1', x.last(), out)
+        self.test.addMinimize('error2', y.last(), out3, loss_function='rmse')
+        self.test.addMinimize('error3', z.last(), out6, loss_function='rmse')
+        self.test.neuralizeModel(0.5)
+
+    def test_export_pt(self):
+        # Export torch file .pt
+        # Save torch model and load it
+        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.exporter.saveTorchModel()
+        self.test.neuralizeModel(0.5, clear_model=True)
+        # The new_out is different from the old_out because the model is cleared
+        new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        # The new_out_after_load is the same as the old_out because the model is loaded with the same parameters
+        self.test.exporter.loadTorchModel()
+        new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+
+        with self.assertRaises(AssertionError):
+            self.assertEqual(old_out, new_out)
+        self.assertEqual(old_out, new_out_after_load)
+
+        with self.assertRaises(RuntimeError):
+            test2 = Neu4mes(seed=43, workspace = self.result_path)
+            # You need aneuralized model to load a torch model
+            test2.exporter.loadTorchModel()
+
+    def test_export_json_untrained(self):
+        # Export json of neu4mes model
+        # Save a untrained neu4mes json model and load it
+        # the new_out and new_out_after_load are different because the model saved model is not trained
+        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.saveModel()  # Save a model without parameter values
+        self.test.neuralizeModel(1, clear_model=True)  # Create a new torch model
+        new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.loadModel()  # Load the neu4mes model without parameter values
+        # Use the preloaded torch model for inference
+        new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        with self.assertRaises(AssertionError):
+            self.assertEqual(old_out, new_out)
+        with self.assertRaises(AssertionError):
+            self.assertEqual(new_out, new_out_after_load)
+
+    def test_export_json_trained(self):
+        # Export json of neu4mes model with parameter valuess
+        # The old_out is the same as the new_out_after_load because the model is loaded with the same parameters
+        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.neuralizeModel(1)  # Load the parameter from torch model to neu4mes model json
+        self.test.saveModel()  # Save the model with and without parameter values
+        self.test.neuralizeModel(1, clear_model=True)  # Create a new torch model
+        new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.loadModel()  # Load the neu4mes model with parameter values
+        new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        with self.assertRaises(AssertionError):
+            self.assertEqual(old_out, new_out)
+        with self.assertRaises(AssertionError):
+            self.assertEqual(new_out, new_out_after_load)
+        self.assertEqual(old_out, new_out_after_load)
+
+if __name__ == '__main__':
+    unittest.main()
