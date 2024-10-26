@@ -76,7 +76,7 @@ class MPLVisualizer(TextVisualizer):
                     "performance": self.n4m.performance[name_data][key],
                     "prediction_A": self.n4m.prediction[name_data][key]['A'],
                     "prediction_B": self.n4m.prediction[name_data][key]['B'],
-                    "sample_time": self.n4m.model_def["SampleTime"]}
+                    "sample_time": self.n4m.model_def['Info']["SampleTime"]}
             try:
                 # Send data to the visualizer process
                 self.process_results[key].stdin.write(f"{json.dumps(data)}\n")

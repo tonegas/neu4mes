@@ -357,53 +357,6 @@ class Neu4mes:
         self.visualizer.showModelInputWindow()
         self.visualizer.showBuiltModel()
 
-    # Use this function to get the parameters form the torch model and set the model_def_values
-    # def __get_torch_model(self, clear_model = False):
-    #     if self.model is not None and clear_model == False:
-    #         self.model_def_values = copy.deepcopy(self.model_def)
-    #         for key in self.model_def_values['Parameters'].keys():
-    #             if key in self.model.all_parameters:
-    #                 self.model_def_values['Parameters'][key]['values'] = self.model.all_parameters[key].tolist()
-    #                 if 'init_fun' in self.model_def_values['Parameters'][key]:
-    #                     del self.model_def_values['Parameters'][key]['init_fun']
-    #         model_def = copy.deepcopy(self.model_def_values)
-    #     else:
-    #         model_def = copy.deepcopy(self.model_def)
-    #     return model_def
-
-    # Use this function to create the torch model from a model_def
-    # def __neuralize_model(self, model_def):
-    #     input_ns_backward = {key:value['ns'][0] for key, value in (model_def['Inputs']|model_def['States']).items()}
-    #     input_ns_forward = {key:value['ns'][1] for key, value in (model_def['Inputs']|model_def['States']).items()}
-    #     for key, value in (model_def['Inputs'] | model_def['States']).items():
-    #         self.input_n_samples[key] = input_ns_backward[key] + input_ns_forward[key]
-    #     self.max_n_samples = max(input_ns_backward.values()) + max(input_ns_forward.values())
-    #
-    #     ## Build the network
-    #     self.model = Model(model_def)
-    #     self.neuralized = True
-    #     self.traced = False
-
-    # # Use this function for finilize the model_def with the samples time and build the torch model
-    # def neuralizeModelOLD(self, sample_time = None, clear_model = False):
-    #     self.model_def.setBuildWindow(sample_time)
-    #     if self.model_def['Info']['ns'][0] < 0:
-    #         self.visualizer.warning(
-    #             f"The input is only in the far past the max_samples_backward is: {self.model_def['Info']['ns'][0]}")
-    #     if self.model_def['Info']['ns'][1] < 0:
-    #         self.visualizer.warning(
-    #             f"The input is only in the far future the max_sample_forward is: {self.model_def['Info']['ns'][1]}")
-    #
-    #     ## Get the trained model
-    #     # To be removed
-    #     model_def = self.__get_torch_model(clear_model)
-    #     # To be removed
-    #     self.__neuralize_model(model_def)
-    #     #self.__get_torch_model(clear_model)
-    #     #self.visualizer.showModel(model_def.model_def)
-    #     #self.visualizer.showModelInputWindow()
-    #     #self.visualizer.showBuiltModel()
-
     def loadData(self, name, source, format=None, skiplines=0, delimiter=',', header=None):
         check(self.neuralized, ValueError, "The network is not neuralized.")
         check(delimiter in ['\t', '\n', ';', ',', ' '], ValueError, 'delimiter not valid!')
@@ -1128,7 +1081,7 @@ class Neu4mes:
         check(self.model_def is not None, TypeError, "The network has not been defined.")
         old_model_def = copy.deepcopy(self.model_def)
         model_def = copy.deepcopy(MAIN_JSON)
-        model_def['SampleTime'] = self.model_def['SampleTime']
+        model_def['Info']['SampleTime'] = self.model_def['Info']['SampleTime']
         if models is None:
             self.__update_model(model_def, minimize_dict={})
         else:

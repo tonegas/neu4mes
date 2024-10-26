@@ -253,7 +253,7 @@ def return_standard_inputs(json, model_def, xlim = None, num_points = 1000):
         dim = json['in_dim'][i]
         check(dim['dim'] == 1, ValueError, "The input dimension must be 1.")
         if 'tw' in dim:
-            check(dim['tw'] == model_def['SampleTime'], ValueError, "The input window must be 1.")
+            check(dim['tw'] == model_def['Info']['SampleTime'], ValueError, "The input window must be 1.")
         elif 'sw' in dim:
             check(dim['sw'] == 1, ValueError, "The input window must be 1.")
         if xlim is not None:

@@ -26,7 +26,7 @@ class MPLNotebookVisualizer(TextVisualizer):
             fig = plt.figure()
             ax = fig.add_subplot(111)
             plots.plot_results(ax, name_data, key, self.n4m.prediction[name_data][key]['A'],
-                               self.n4m.prediction[name_data][key]['B'], self.n4m.model_def["SampleTime"])
+                               self.n4m.prediction[name_data][key]['B'], self.n4m.model_def['Info']["SampleTime"])
         plt.show()
 
     def showWeights(self, weights = None):

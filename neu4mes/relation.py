@@ -10,7 +10,6 @@ log = logging.getLogger(__name__)
 log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
 
 MAIN_JSON = {
-                'SampleTime': 0,
                 'Info' : {},
                 'Inputs' : {},
                 'States' : {},
