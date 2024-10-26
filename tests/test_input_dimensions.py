@@ -124,8 +124,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(0.05, test.input_tw_backward['in2'])
-        self.assertEqual(0.03, test.input_tw_forward['in2'])
+        #self.assertEqual(0.05, test.input_tw_backward['in2'])
+        #self.assertEqual(0.03, test.input_tw_forward['in2'])
         self.assertEqual(5, test.model_def['Inputs']['in2']['ns'][0],)
         self.assertEqual(3, test.model_def['Inputs']['in2']['ns'][1])
         self.assertEqual(8, test.model_def['Inputs']['in2']['ntot']) # 5 samples + 3 samples of the horizon
@@ -147,8 +147,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(0.05, test.input_tw_backward['in2'])
-        self.assertEqual(0.02, test.input_tw_forward['in2'])
+        #self.assertEqual(0.05, test.input_tw_backward['in2'])
+        #self.assertEqual(0.02, test.input_tw_forward['in2'])
         self.assertEqual(5, test.model_def['Inputs']['in2']['ns'][0])
         self.assertEqual(2, test.model_def['Inputs']['in2']['ns'][1] )
         self.assertEqual(7, test.model_def['Inputs']['in2']['ntot']) # 5 samples + 2 samples of the horizon
@@ -167,8 +167,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(0.06,test.input_tw_backward['in2'])
-        self.assertEqual( -0.01, test.input_tw_forward['in2'])
+        #self.assertEqual(0.06,test.input_tw_backward['in2'])
+        #self.assertEqual( -0.01, test.input_tw_forward['in2'])
         self.assertEqual(6, test.model_def['Inputs']['in2']['ns'][0])
         self.assertEqual(-1, test.model_def['Inputs']['in2']['ns'][1])
         self.assertEqual(5, test.model_def['Inputs']['in2']['ntot']) # 6 samples - 1 samples of the horizon
@@ -195,8 +195,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(0.06,test.input_tw_backward['in2'])
-        self.assertEqual( -0.01, test.input_tw_forward['in2'])
+        #self.assertEqual(0.06,test.input_tw_backward['in2'])
+        #self.assertEqual( -0.01, test.input_tw_forward['in2'])
         self.assertEqual(6, test.model_def['Inputs']['in2']['ns'][0])
         self.assertEqual(-1, test.model_def['Inputs']['in2']['ns'][1])
         self.assertEqual(5, test.model_def['Inputs']['in2']['ntot']) # 6 samples - 1 samples of the horizon
@@ -222,8 +222,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(-0.01, test.input_tw_backward['in2'])
-        self.assertEqual(0.07, test.input_tw_forward['in2'])
+        #self.assertEqual(-0.01, test.input_tw_backward['in2'])
+        #self.assertEqual(0.07, test.input_tw_forward['in2'])
         self.assertEqual(-1, test.model_def['Inputs']['in2']['ns'][0])
         self.assertEqual(7, test.model_def['Inputs']['in2']['ns'][1])
         self.assertEqual(6, test.model_def['Inputs']['in2']['ntot']) # -1 samples + 6 samples of the horizon
@@ -249,8 +249,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(-0.01,test.input_tw_backward['in2'])
-        self.assertEqual( 0.07, test.input_tw_forward['in2'])
+        #self.assertEqual(-0.01,test.input_tw_backward['in2'])
+        #self.assertEqual( 0.07, test.input_tw_forward['in2'])
         self.assertEqual(-1, test.model_def['Inputs']['in2']['ns'][0])
         self.assertEqual(7, test.model_def['Inputs']['in2']['ns'][1])
         self.assertEqual(6, test.model_def['Inputs']['in2']['ntot']) # 6 samples - 1 samples of the horizon
@@ -272,8 +272,8 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
-        self.assertEqual(0,test.input_tw_backward['in1'])
-        self.assertEqual(0,test.input_tw_forward['in1'])
+        #self.assertEqual(0,test.input_tw_backward['in1'])
+        #self.assertEqual(0,test.input_tw_forward['in1'])
         self.assertEqual(3,test.model_def['Inputs']['in1']['ns'][0])
         self.assertEqual(3,test.model_def['Inputs']['in1']['ns'][1])
         self.assertEqual(6,test.model_def['Inputs']['in1']['ntot']) # 6 samples - 1 samples of the horizon

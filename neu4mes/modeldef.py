@@ -130,7 +130,7 @@ class ModelDef():
             check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
             self.model_def['Info'] = {"SampleTime": sample_time}
         else:
-            self.model_def['Info'] = {}
+            self.model_def['Info'] = {"SampleTime": sample_time}
 
         check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
         json_inputs = self.model_def['Inputs'] | self.model_def['States']

@@ -71,10 +71,7 @@ class Neu4mes:
 
         # Network Parametrs
         # To be removed
-        self.input_tw_backward, self.input_tw_forward = {}, {}
-        self.input_ns_backward, self.input_ns_forward = {}, {}
         self.input_n_samples = {}
-        self.max_samples_backward, self.max_samples_forward = 0, 0
         self.max_n_samples = 0
         # To be removed
         self.neuralized = False
@@ -317,44 +314,6 @@ class Neu4mes:
             return {}
 
 
-    # Use this function for build the model_def from the ditionaries: model_dict, minimize_dict, update_state_dict
-    # def __update_model(self, model_def = MAIN_JSON, model_dict = None, minimize_dict = None, update_state_dict = None):
-    #     self.model_def = copy.deepcopy(model_def)
-    #     model_dict = copy.deepcopy(model_dict) if model_dict is not None else self.model_dict
-    #     minimize_dict = copy.deepcopy(minimize_dict) if minimize_dict is not None else self.minimize_dict
-    #     update_state_dict = copy.deepcopy(update_state_dict) if update_state_dict is not None else self.update_state_dict
-    #
-    #     # Add models to the model_def
-    #     for key, stream_list in model_dict.items():
-    #         for stream in stream_list:
-    #             self.model_def = merge(self.model_def, stream.json)
-    #     if len(model_dict) > 1:
-    #         if 'Models' not in self.model_def:
-    #             self.model_def['Models'] = {}
-    #         for model_name, model_params in model_dict.items():
-    #             self.model_def['Models'][model_name] = {'Inputs':[], 'States':[], 'Outputs':[], 'Parameters':[], 'Constants':[]}
-    #             for param in model_params:
-    #                 self.model_def['Models'][model_name]['Outputs'].append(param.name)
-    #                 self.model_def['Models'][model_name]['Parameters'] += list(set(param.json['Parameters'].keys()))
-    #                 self.model_def['Models'][model_name]['Constants'] += list(set(param.json['Constants'].keys()))
-    #                 self.model_def['Models'][model_name]['Inputs'] += list(set(param.json['Inputs'].keys()))
-    #                 self.model_def['Models'][model_name]['States'] += list(set(param.json['States'].keys()))
-    #     elif len(model_dict) == 1:
-    #         self.model_def['Models'] = list(model_dict.keys())[0]
-    #
-    #     if 'Minimizers' not in self.model_def:
-    #         self.model_def['Minimizers'] = {}
-    #     for key, minimize in minimize_dict.items():
-    #         self.model_def = merge(self.model_def, minimize['A'].json)
-    #         self.model_def = merge(self.model_def, minimize['B'].json)
-    #         self.model_def['Minimizers'][key] = {}
-    #         self.model_def['Minimizers'][key]['A'] = minimize['A'].name
-    #         self.model_def['Minimizers'][key]['B'] = minimize['B'].name
-    #         self.model_def['Minimizers'][key]['loss'] = minimize['loss']
-    #
-    #     for key, update_state in update_state_dict.items():
-    #         self.model_def = merge(self.model_def, update_state.json)
-
     def addConnect(self, stream_out, state_list_in):
         self.model_def.addConnect(stream_out, state_list_in)
 
@@ -391,8 +350,6 @@ class Neu4mes:
 
     # Use this function to create the torch model from a model_def
     def __neuralize_model(self, model_def):
-        sample_time = model_def['SampleTime']
-
         check(model_def['Inputs'] | model_def['States'] != {}, RuntimeError, "No model is defined!")
         json_inputs = model_def['Inputs'] | model_def['States']
 
@@ -400,26 +357,11 @@ class Neu4mes:
             check(closedloop_name in model_def['States'][key] or connect_name in model_def['States'][key],
                   KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
 
+        input_ns_backward = {key:value['ns'][0] for key, value in (model_def['Inputs']|model_def['States']).items()}
+        input_ns_forward = {key:value['ns'][1] for key, value in (model_def['Inputs']|model_def['States']).items()}
         for key, value in json_inputs.items():
-            self.input_tw_backward[key] = -value['tw'][0]
-            self.input_tw_forward[key] = value['tw'][1]
-            if value['sw'] == [0,0] and value['tw'] == [0,0]:
-                self.input_tw_backward[key] = sample_time
-            if value['sw'] == [0,0] :
-                self.input_ns_backward[key] = round(self.input_tw_backward[key] / sample_time)
-                self.input_ns_forward[key] = round(self.input_tw_forward[key] / sample_time)
-            else:
-                self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),-value['sw'][0])
-                self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),value['sw'][1])
-            self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
-
-        self.max_samples_backward = max(self.input_ns_backward.values())
-        self.max_samples_forward = max(self.input_ns_forward.values())
-        if self.max_samples_backward < 0:
-            self.visualizer.warning(f"The input is only in the far past the max_samples_backward is: {self.max_samples_backward}")
-        if self.max_samples_forward < 0:
-            self.visualizer.warning(f"The input is only in the far future the max_sample_forward is: {self.max_samples_forward}")
-        self.max_n_samples = self.max_samples_forward + self.max_samples_backward
+            self.input_n_samples[key] = input_ns_backward[key] + input_ns_forward[key]
+        self.max_n_samples = max(input_ns_backward.values()) + max(input_ns_forward.values())
 
         ## Build the network
         self.model = Model(model_def)
@@ -467,6 +409,12 @@ class Neu4mes:
             self.visualizer.warning(f'Dataset named {name} already loaded! overriding the existing one..')
         self.data[name] = {}
 
+        input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
+        input_ns_forward = {key:value['ns'][1] for key, value in json_inputs.items()}
+        max_samples_backward = max(input_ns_backward.values())
+        max_samples_forward = max(input_ns_forward.values())
+        max_n_samples = max_samples_backward + max_samples_forward
+
         num_of_samples = []
         if type(source) is str: ## we have a directory path containing the files
             ## collect column indexes
@@ -511,10 +459,10 @@ class Neu4mes:
                     continue
                 ## Cycle through all the windows
                 for key, idxs in format_idx.items():
-                    back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
+                    back, forw = input_ns_backward[key], input_ns_forward[key]
                     ## Save as numpy array the data
                     data = df.iloc[:, idxs[0]:idxs[1]].to_numpy()
-                    self.data[name][key] += [data[i-back:i+forw] for i in range(self.max_samples_backward, len(df)-self.max_samples_forward+1)]
+                    self.data[name][key] += [data[i-back:i+forw] for i in range(max_samples_backward, len(df)-max_samples_forward+1)]
 
             ## Stack the files
             for key in format_idx.keys():
@@ -534,9 +482,9 @@ class Neu4mes:
 
                 self.data[name][key] = []  ## Initialize the dataset
 
-                back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
-                for idx in range(len(source[key]) - self.max_n_samples+1):
-                    self.data[name][key].append(source[key][idx + (self.max_samples_backward - back):idx + (self.max_samples_backward + forw)])
+                back, forw = input_ns_backward[key], input_ns_forward[key]
+                for idx in range(len(source[key]) - max_n_samples+1):
+                    self.data[name][key].append(source[key][idx + (max_samples_backward - back):idx + (max_samples_backward + forw)])
 
             ## Stack the files
             for key in model_inputs:
@@ -970,6 +918,9 @@ class Neu4mes:
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.model_def['Minimizers']), n_samples//batch_size])
 
+        json_inputs = self.model_def['Inputs'] | self.model_def['States']
+        input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
+
         ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
         ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
         for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
@@ -1009,8 +960,8 @@ class Neu4mes:
                         if key in closed_loop.keys(): ## the input is recurrent
                             dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=1) ## Roll the time window
-                            XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
-                            XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                            XY[key][:, input_ns_backward[key]-dim:input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
+                            XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
                         else: ## the input is not recurrent
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
                             XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
