@@ -153,24 +153,36 @@ def export_python_model(model_def, model, model_path):
             else:
                 file.write(f"    {line}\n")
 
-def export_pythononnx_model(input_order, model_path, model_onnx_path):
-    # Define the mapping dictionary
-    trace_mapping = {}
+def export_pythononnx_model(input_order, outputs_order, model_path, model_onnx_path):
+    # Define the mapping dictionary input
+    trace_mapping_input = {}
     forward = 'def forward(self,'
-    for key in input_order:
+    for i, key in enumerate(input_order):
         value = f'kwargs[\'{key}\']'
-        trace_mapping[value] = key
-        forward = forward + f' {key},'
+        trace_mapping_input[value] = key
+        forward = forward + f' {key}' + (',' if i < len(input_order) - 1 else '')
     forward = forward + '):'
+    # Define the mapping dictionary output
+    outputs = '        return ('
+    for i, key in enumerate(outputs_order):
+        outputs += f'outputs[0][\'{key}\']' + (',' if i < len(outputs_order) - 1 else ')')
+
     # Open and read the file
     with open(model_path, 'r') as file:
         file_content = file.read()
     # Replace the forward header
     file_content = file_content.replace('def forward(self, kwargs):', forward)
     # Perform the substitution
-    for key, value in trace_mapping.items():
+    for key, value in trace_mapping_input.items():
         file_content = file_content.replace(key, value)
     # Write the modified content back to a new file
+    # Replace the return statement
+    # Trova l'ultima occorrenza di 'return'
+    last_return_index = file_content.rfind('return')
+    # Se 'return' è trovato, sostituiscilo con 'outputs ='
+    if last_return_index != -1:
+        file_content = file_content[:last_return_index] + 'outputs =' + file_content[last_return_index + len('return'):]
+    file_content += outputs
     with open(model_onnx_path, 'w') as file:
         file.write(file_content)
 
@@ -183,25 +195,55 @@ def import_python_model(name, model_folder):
 def export_onnx_model(input_order, output_order, model_def, model, input_n_samples, model_path):
     dummy_inputs = []
     input_names = []
+    dynamic_axes = {}
     for key in input_order:
         input_names.append(key)
         window_size = input_n_samples[key]
         dummy_inputs.append(torch.randn(size=(1, window_size, model_def['Inputs'][key]['dim'])))
+        dynamic_axes[key] = {0: 'batch_size'}
     output_names = output_order
     dummy_inputs = tuple(dummy_inputs)
 
     torch.onnx.export(
-                model,                            # The model to be exported
-                dummy_inputs,                          # Tuple of inputs to match the forward signature
-                model_path,                             # File path to save the ONNX model
-                export_params=True,                    # Store the trained parameters in the model file
-                opset_version=12,                      # ONNX version to export to (you can use 11 or higher)
-                do_constant_folding=True,              # Optimize constant folding for inference
-                input_names=input_names,               # Name each input as they will appear in ONNX
-                output_names=output_names,             # Name the output
-                #dynamic_axes={
-                #                'input1': {0: 'batch_size'},       # Dynamic batch size for input1
-                #                'input2': {0: 'batch_size'},       # Dynamic batch size for input2
-                #                'output': {0: 'batch_size'}        # Dynamic batch size for the output
-                #            }
-                )
+        model,                            # The model to be exported
+        dummy_inputs,                          # Tuple of inputs to match the forward signature
+        model_path,                             # File path to save the ONNX model
+        export_params = True,                    # Store the trained parameters in the model file
+        opset_version = 12,                      # ONNX version to export to (you can use 11 or higher)
+        do_constant_folding=True,              # Optimize constant folding for inference
+        input_names = input_names,               # Name each input as they will appear in ONNX
+        output_names = output_names,             # Name the output
+        dynamic_axes = dynamic_axes
+    )
+
+def import_onnx_model(name, model_folder):
+    import onnxruntime as ort
+    model_path = os.path.join(model_folder, name + '.onnx')
+    return ort.InferenceSession(model_path)
+
+    # import numpy as np
+    # ort_sess = ort.InferenceSession("./TODO/mauro/net.onnx")
+    # prova = {'Vo': np.array([[20.0]], dtype=np.float32),
+    #          'VL': np.array([[[50.0], [50.0], [50.2], [30.1], [15.0]]], dtype=np.float32)}
+    # # ortvalue = ort.OrtValue.ortvalue_from_numpy(prova)
+    # outputs = ort_sess.run(None, prova)
+    # # Print Result
+    # print(outputs)
+    #
+    # session = onnxruntime.InferenceSession(onnx_path)
+    # # Get input and output names
+    # input_names = [item.name for item in session.get_inputs()]
+    # output_names = [item.name for item in session.get_outputs()]
+    # # input_name = session.get_inputs()#[0].name
+    # # output_name = session.get_outputs()[0].name
+    #
+    # print('input_name: ', input_names)
+    # print('output_name: ', output_names)
+    #
+    # # Run inference
+    # result = session.run([output_names], {input_names: data})
+    # # Print the result
+    # print(result)
+    #
+    # import onnx
+

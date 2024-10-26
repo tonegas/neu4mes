@@ -6,7 +6,7 @@ import pandas as pd
 # Neu4mes packages
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.relation import MAIN_JSON
-from neu4mes.visualizer import TextVisualizer, Visualizer
+from neu4mes.visualizer import TextVisualizer, Visualizer, MPLVisualizer, MPLNotebookVisualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.output import Output
 from neu4mes.relation import Stream
@@ -21,7 +21,13 @@ log = logging.getLogger(__name__)
 log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 
 class Neu4mes:
-    def __init__(self, visualizer = 'Standard', exporter = 'Standard', seed = None, workspace = None, log_internal =  False, save_history = False):
+    def __init__(self,
+                 visualizer:str|Visualizer|None = 'Standard',
+                 exporter:str|Exporter|None = 'Standard',
+                 seed:int|None = None,
+                 workspace:str|None = None,
+                 log_internal:bool = False,
+                 save_history:bool = False):
 
         # Visualizer
         if visualizer == 'Standard':
@@ -36,9 +42,9 @@ class Neu4mes:
         if exporter == 'Standard':
             self.exporter = StandardExporter(workspace, save_history)
         elif exporter != None:
-            self.visualizer = exporter
+            self.exporter = exporter
         else:
-            self.visualizer = Exporter()
+            self.exporter = Exporter()
         self.exporter.set_n4m(self)
 
         ## Set the random seed for reproducibility
@@ -60,7 +66,7 @@ class Neu4mes:
         # Models definition
         self.model_def_loaded = None
         self.model_def = None
-        self.model_def_trained = None
+        self.model_def_values = None
 
         # Network Parametrs
         self.input_tw_backward, self.input_tw_forward = {}, {}
@@ -224,6 +230,11 @@ class Neu4mes:
             X = {}
             for i in range(window_dim):
                 for key, val in inputs.items():
+                    # If the prediction sample is None take the input
+                    # If the prediction sample is auto and the sample is less than the available samples take the input
+                    # Every prediction sample take the input
+                    # Otherwise if the key is a state or a connect or a closed_loop variable keep the same input
+                    # If the key is a state or connect input remove the input
                     if not (prediction_samples is None \
                         or ((prediction_samples is not None and prediction_samples != 'auto') and i % (prediction_samples + 1) == 0) \
                         or (prediction_samples == 'auto' and i < n_samples_input[key])):
@@ -233,63 +244,6 @@ class Neu4mes:
                             continue
                     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
                             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-
-                    # if prediction_samples is None \
-                    #     or ((prediction_samples is not None and prediction_samples != 'auto') and i % (prediction_samples + 1) == 0) \
-                    #     or (prediction_samples == 'auto' and i < n_samples_input[key]):
-                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
-                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    # else:
-                    #     if key in (closed_loop|connect).keys() or key in model_states:
-                    #         if (key in model_states or key in connect.keys()) and key in X.keys():
-                    #             del X[key]
-                    #         continue
-                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
-                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-
-                    # if prediction_samples is None:
-                    #     X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
-                    #         np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    # elif prediction_samples == 'auto':
-                    #     if i < n_samples_input[key]:
-                    #         X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #             torch.float32) if sampled else torch.from_numpy(
-                    #             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    #     else:
-                    #         if key in model_states or key in connect.keys():
-                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #                 torch.float32) if sampled else torch.from_numpy(
-                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    #             del X[key]
-                    #             continue
-                    #         else:
-                    #             if key in closed_loop.keys():
-                    #                 continue
-                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #                 torch.float32) if sampled else torch.from_numpy(
-                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    # else:
-                    #     ## Otherwise the variable are reset every prediction samples
-                    #     if i % (prediction_samples + 1) == 0:
-                    #         X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #             torch.float32) if sampled else torch.from_numpy(
-                    #             np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-                    #     else:
-                    #         if key in model_states or key in connect.keys() or closed_loop.keys():
-                    #             continue
-                    #         else:
-                    #             X[key] = torch.from_numpy(np.array(val[i])).to(
-                    #                 torch.float32) if sampled else torch.from_numpy(
-                    #                 np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-
-                    # if key in (closed_loop|connect).keys() or key in model_states:
-                    #     if i >= input_windows[key]:
-                    #         if (key in model_states or key in connect.keys()) and key in X.keys():
-                    #             del X[key]
-                    #         continue
-
-                    ## Collect the inputs
-                    # X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(np.array(val[i:i+self.input_n_samples[key]])).to(torch.float32)
 
                     if key in model_inputs:
                         input_dim = self.model_def['Inputs'][key]['dim']
@@ -459,16 +413,16 @@ class Neu4mes:
         self.__update_model()
         self.visualizer.showaddMinimize(name)
 
-    # Use this function to get the parameters form the torch model and set the model_def_trained
+    # Use this function to get the parameters form the torch model and set the model_def_values
     def __get_torch_model(self, clear_model = False):
         if self.model is not None and clear_model == False:
-            self.model_def_trained = copy.deepcopy(self.model_def)
-            for key in self.model_def_trained['Parameters'].keys():
+            self.model_def_values = copy.deepcopy(self.model_def)
+            for key in self.model_def_values['Parameters'].keys():
                 if key in self.model.all_parameters:
-                    self.model_def_trained['Parameters'][key]['values'] = self.model.all_parameters[key].tolist()
-                    if 'init_fun' in self.model_def_trained['Parameters'][key]:
-                        del self.model_def_trained['Parameters'][key]['init_fun']
-            model_def = copy.deepcopy(self.model_def_trained)
+                    self.model_def_values['Parameters'][key]['values'] = self.model.all_parameters[key].tolist()
+                    if 'init_fun' in self.model_def_values['Parameters'][key]:
+                        del self.model_def_values['Parameters'][key]['init_fun']
+            model_def = copy.deepcopy(self.model_def_values)
         else:
             model_def = copy.deepcopy(self.model_def)
         return model_def
@@ -525,6 +479,7 @@ class Neu4mes:
         ## Get the trained model
         model_def = self.__get_torch_model(clear_model)
         self.__neuralize_model(model_def)
+        self.__get_torch_model(clear_model)
         self.visualizer.showModel(model_def)
         self.visualizer.showModelInputWindow()
         self.visualizer.showBuiltModel()
@@ -992,13 +947,14 @@ class Neu4mes:
                     self.visualizer.warning('Stopping the training..')
                     break
 
-            ## visualize the training...
+            ## Visualize the training...
             self.visualizer.showTraining(epoch, train_losses, val_losses)
-            self.visualizer.showWeights(epoch = epoch)
+            self.visualizer.showWeightsInTrain(epoch = epoch)
 
-        ## save the training time
+        ## Save the training time
         end = time.time()
-        ## visualize the training time
+        ## Visualize the training time
+        self.visualizer.showEndTraining(num_of_epochs-1, train_losses, val_losses)
         self.visualizer.showTrainingTime(end-start)
 
         ## Test the model
@@ -1013,6 +969,10 @@ class Neu4mes:
             for ind, key in enumerate(self.model_def['Minimizers'].keys()):
                 test_losses[key] = torch.mean(losses[ind]).tolist()
 
+        self.train_losses = train_losses
+        self.val_losses = val_losses
+        self.test_losses = test_losses
+
         self.resultAnalysis(train_dataset, XY_train, connect, closed_loop)
         self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
@@ -1022,17 +982,14 @@ class Neu4mes:
             self.resultAnalysis(test_dataset, XY_test, connect, closed_loop)
             self.visualizer.showResult(test_dataset)
 
-
         # if self.run_training_params['n_samples_test'] > 0:
         #     self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
         # elif self.run_training_params['n_samples_val'] > 0:
         #     self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
         self.visualizer.showResults()
 
-        ## Get trained model from torch and set the model_def_trained
+        ## Get trained model from torch and set the model_def_values
         self.__get_torch_model()
-
-        return train_losses, val_losses, test_losses
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, closed_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
@@ -1096,7 +1053,7 @@ class Neu4mes:
             if train:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
-                self.visualizer.showWeights(batch = idx/(batch_size + step - 1))
+                self.visualizer.showWeightsInTrain(batch = idx/(batch_size + step - 1))
 
         ## return the losses
         return aux_losses
@@ -1126,7 +1083,7 @@ class Neu4mes:
             if train:
                 total_loss.backward()
                 self.optimizer.step()
-                self.visualizer.showWeights(batch = idx/batch_size)
+                self.visualizer.showWeightsInTrain(batch = idx/batch_size)
 
         ## return the losses
         return aux_losses
@@ -1205,8 +1162,8 @@ class Neu4mes:
     def saveModel(self, name = 'net', model_path = None):
         if self.model_def is not None:
             self.exporter.saveModel(self.model_def, name, model_path)
-        if self.model_def_trained is not None:
-            self.exporter.saveModel(self.model_def_trained, name + '_trained', model_path)
+        if self.model_def_values is not None:
+            self.exporter.saveModel(self.model_def_values, name + '_trained', model_path)
 
     def loadModel(self, name = None, model_folder = None):
         if name is None:
@@ -1244,8 +1201,12 @@ class Neu4mes:
         if models is None:
             self.__update_model(model_def, minimize_dict={})
         else:
+            name += '_' + '_'.join(models)
             self.__update_model(model_def, {key: self.model_dict[key] for key in models if key in self.model_dict}, minimize_dict={})
         model_def = self.__get_torch_model()
         self.__neuralize_model(model_def)
         self.exporter.exportONNX(inputs_order, outputs_order, name, model_path)
         self.__neuralize_model(old_model_def)
+
+    def exportReport(self, name = 'net', model_path = None):
+        self.exporter.exportReport(name, model_path)

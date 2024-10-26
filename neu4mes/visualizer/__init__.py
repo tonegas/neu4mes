@@ -1,3 +1,4 @@
 from neu4mes.visualizer.visualizer import Visualizer
 from neu4mes.visualizer.textvisualizer import TextVisualizer
-from neu4mes.visualizer.mplvisualizer import MPLVisulizer
+from neu4mes.visualizer.mplvisualizer import MPLVisualizer
+from neu4mes.visualizer.mplnotebookvisualizer import MPLNotebookVisualizer

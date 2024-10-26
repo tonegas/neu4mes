@@ -2,7 +2,6 @@ import sys
 import os
 # append a new directory to sys.path
 sys.path.append(os.getcwd())
-from torch.fx import symbolic_trace
 
 from neu4mes import *
 
@@ -58,11 +57,12 @@ def fun(x):
     return torch.tanh(x)
 fuz = Fuzzify(output_dimension = 11, range = [-5,5], functions = fun)
 out = Output('out',fuz(x.last()))
-example = Neu4mes()
+example = Neu4mes(visualizer=MPLVisualizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[2.5]}))
 print(example({'x':[0]})) ## should return 0 near the center, 0.99 near -5 and -0.99 near 5
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()))
 #
 
 print("------------------------EXAMPLE 5------------------------")
@@ -76,7 +76,7 @@ def fun2(x):
     return torch.cos(x)
 fuz = Fuzzify(2,range=[-1,5],functions=[fun1,fun2])
 out = Output('out',fuz(x.last()))
-example = Neu4mes()
+example = Neu4mes(visualizer=MPLVisualizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[1]}))
@@ -84,6 +84,7 @@ print(example({'x':[2]}))
 print(example({'x':[3]}))
 print(example({'x':[4]}))
 print(example({'x':[5]}))
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()))
 #
 
 print("------------------------EXAMPLE 6------------------------")
@@ -96,12 +97,13 @@ def fun2(x):
     return torch.cos(x)
 fuz = Fuzzify(centers=[-1,0,3,5],functions=[fun1,fun2,fun1,fun2])
 out = Output('out',fuz(x.last())+fuz(F.last()))
-example = Neu4mes()
+example = Neu4mes(visualizer=MPLVisualizer())
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[-1,0], 'F':[-1,0]}))
 print(example({'x':[0,3], 'F':[0,3]}))
 print(example({'x':[3,5], 'F':[3,5]}))
+example.visualizer.showFunctions(list(example.model_def['Functions'].keys()))
 #
 
 print("------------------------EXAMPLE 7------------------------")
@@ -145,23 +147,10 @@ print("------------------------EXAMPLE 9------------------------")
 fuz = Fuzzify(6,[1,6], functions = 'Triangular')
 out = Output('out',fuz(x.last()))
 result_path = os.path.join(os.getcwd(), "results", "example1")
-example = Neu4mes(workspace="test_fuzzify_results")
+example = Neu4mes()
 example.addModel('out',out)
 example.neuralizeModel()
 print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]
 print(example({'x':[2.5]})) ## should give [0, 0.5, 0.5, 0, 0, 0]
 print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0, 0]
-
-#trace = symbolic_trace(example.model)
-#print(dir(trace))
-#attributes = [line.replace('self.', '') for line in trace.code.split() if 'self.' in line]
-#print(attributes)
-#for i in attributes:
-#    print(f'{i} : {getattr(trace, i)}')
-
-# file_name = example.exportTracer()
-# example.importTracer(file_name=os.path.join(result_path, file_name))
-# print(example({'x':[2]}))  ## should give [0, 1, 0, 0, 0, 0]
-# print(example({'x':[2.5]})) ## should give [0, 0, 1, 0, 0, 0]
-# print(example({'x':[3]})) ## should give [0, 0, 1, 0, 0, 0]
-
+#

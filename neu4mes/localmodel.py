@@ -1,13 +1,19 @@
 import inspect
 
+from collections.abc import Callable
+
 from neu4mes.relation import NeuObj
 from neu4mes.part import Select
-from neu4mes.utils import check
+from neu4mes.utils import check, enforce_types
 
 localmodel_relation_name = 'LocalModel'
 
 class LocalModel(NeuObj):
-    def __init__(self, input_function = None, output_function = None, pass_indexes = False):
+    @enforce_types
+    def __init__(self, input_function:Callable|None = None,
+                 output_function:Callable|None = None,
+                 pass_indexes:bool = False):
+
         self.relation_name = localmodel_relation_name
         self.pass_indexes = pass_indexes
         super().__init__(localmodel_relation_name + str(NeuObj.count))

@@ -1,21 +1,13 @@
 7. adjust the metrics of the visualizer
-8. add the activation functions to the visualizer
 9. Adjust the 'ResultAnalysis' function
 
 TODO:
-1(gio)- dynamic prediction_samples in the __call__ when working with close_loop and connect, set prediction_samples to min_window when not specified
-2(gio)- implement connect on state_variables
-3(gast)- substitute .update() with CloseLoop() and Connect()  -> inside the json 'States' will have 'close_loop' and 'connect' attribute
-4(gast)- save the old parameters when calling multiple neuralizeModel(), don't initialize everytime the MultiModel
-5(io)- investigate the tracergraph
 6(io)- add early_stopping parameters
-7(io)- add folder attribute to the neu4mes , everytime you train it exports the trained model
 
 EXPORT (with folder):
 - save json when neuralizeModel
 - save json_trained (with weights values) 
 - save pytorch model with graph_tracer
 - save report (loss, results, performance..)
-
 - each train creates a folder/train_date
 

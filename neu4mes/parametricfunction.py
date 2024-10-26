@@ -1,22 +1,26 @@
-import inspect, copy, textwrap
-import math
+import inspect, copy, textwrap, torch, math
 
-import torch
 import torch.nn as nn
+import numpy as np
+
+from collections.abc import Callable
 
 from neu4mes.relation import NeuObj, Stream, toStream
 from neu4mes.model import Model
 from neu4mes.parameter import Parameter, Constant
-from neu4mes.utils import check, merge
+from neu4mes.utils import check, merge, enforce_types
 
 
 paramfun_relation_name = 'ParamFun'
 
 class ParamFun(NeuObj):
-    def __init__(self, param_fun:callable,
+    @enforce_types
+    def __init__(self, param_fun:Callable,
                  constants:list|dict|None = None,
-                 parameters_dimensions:list|dict|None = None, parameters:list|dict|None = None,
+                 parameters_dimensions:list|dict|None = None,
+                 parameters:list|dict|None = None,
                  map_over_batch:bool = False) -> Stream:
+
         self.relation_name = paramfun_relation_name
 
         # input parameters
@@ -60,6 +64,7 @@ class ParamFun(NeuObj):
                 input_types.append(obj_type)
                 input_dimensions.append(o.dim)
 
+            self.json['Functions'][self.name]['in_dim'] = copy.deepcopy(input_dimensions)
             self.__infer_output_dimensions(input_types, input_dimensions)
             self.json['Functions'][self.name]['out_dim'] = copy.deepcopy(self.output_dimension)
 
@@ -240,6 +245,56 @@ class ParamFun(NeuObj):
             out_win = out_shape[1]
             #self.visualizer.warning("The window dimension of the output is not referred to any input.")
         self.output_dimension = {'dim': out_dim[0], out_win_type : out_win}
+
+def return_standard_inputs(json, model_def, xlim = None, num_points = 1000):
+    check(json['n_input'] == 1 or json['n_input'] == 2, ValueError, "The function must have only one or two inputs.")
+    fun_inputs = tuple()
+    for i in range(json['n_input']):
+        dim = json['in_dim'][i]
+        check(dim['dim'] == 1, ValueError, "The input dimension must be 1.")
+        if 'tw' in dim:
+            check(dim['tw'] == model_def['SampleTime'], ValueError, "The input window must be 1.")
+        elif 'sw' in dim:
+            check(dim['sw'] == 1, ValueError, "The input window must be 1.")
+        if xlim is not None:
+            if json['n_input'] == 2:
+                check(np.array(xlim).shape == (json['n_input'], 2), ValueError,
+                      "The xlim must have the same shape as the number of inputs.")
+                x_value = np.linspace(xlim[i][0], xlim[i][1], num=num_points)
+            else:
+                check(np.array(xlim).shape == (2,), ValueError,
+                      "The xlim must have the same shape as the number of inputs.")
+                x_value = np.linspace(xlim[0], xlim[1], num=num_points)
+        else:
+            x_value = np.linspace(0, 1, num=num_points)
+        if i == 0:
+            x0_value = torch.from_numpy(x_value)
+        else:
+            x1_value = torch.from_numpy(x_value)
+
+    if json['n_input'] == 2:
+        x0_value, x1_value = torch.meshgrid(x0_value,x1_value,indexing="xy")
+        x0_value = x0_value.flatten().unsqueeze(1).unsqueeze(1)
+        x1_value = x1_value.flatten().unsqueeze(1).unsqueeze(1)
+        fun_inputs += (x0_value,x1_value,)
+    else:
+        x0_value = x0_value.unsqueeze(1).unsqueeze(1)
+        fun_inputs += (x0_value,)
+
+    for key in json['params_and_consts']:
+        val = model_def['Parameters'][key] if key in model_def['Parameters'] else model_def['Constants'][key]
+        fun_inputs += tuple([torch.from_numpy(np.array(val['values']))]) # The vector is transform in a tuple
+
+    return fun_inputs
+
+def return_function(json, fun_inputs):
+    exec(json['code'], globals())
+    function_to_call = globals()[json['name']]
+    output = function_to_call(*fun_inputs)
+    check(output.shape[1] == 1, ValueError, "The output dimension must be 1.")
+    check(output.shape[2] == 1, ValueError, "The output window must be 1.")
+    funinfo = inspect.getfullargspec(function_to_call)
+    return output, funinfo.args
 
 
 class Parametric_Layer(nn.Module):

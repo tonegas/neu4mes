@@ -1,15 +1,24 @@
 import copy, inspect, textwrap
 import numpy as np
 
-from neu4mes.relation import NeuObj, Stream
-from neu4mes.utils import check
+from collections.abc import Callable
 
-#values = zeros, ones, 1order, linear, quadratic
+from neu4mes.relation import NeuObj, Stream
+from neu4mes.utils import check, enforce_types
 
 class Constant(NeuObj, Stream):
-    def __init__(self, name:str, values:list, tw:int|None = None, sw:int|None = None):
+    @enforce_types
+    def __init__(self, name:str,
+                 values:list|float|int|np.ndarray,
+                 tw:float|int|None = None,
+                 sw:int|None = None):
+
         NeuObj.__init__(self, name)
-        shape = np.array(values).shape
+        if type(values) is np.ndarray:
+            values = values.tolist()
+            shape = values.shape
+        else:
+            shape = np.array(values).shape
         if len(shape) == 0:
             self.dim = {'dim': 1}
         else:
@@ -32,7 +41,15 @@ class Constant(NeuObj, Stream):
         Stream.__init__(self, name, self.json, self.dim)
 
 class Parameter(NeuObj, Stream):
-    def __init__(self, name:str, dimensions:int|list|tuple|None = None, tw:int|None = None, sw:int|None = None, values:list|None = None, init:None = None, init_params:None = None):
+    @enforce_types
+    def __init__(self, name:str,
+                 dimensions:int|list|tuple|None = None,
+                 tw:float|int|None = None,
+                 sw:int|None = None,
+                 values:list|float|int|np.ndarray|None = None,
+                 init:Callable|None = None,
+                 init_params:dict|None = None):
+
         NeuObj.__init__(self, name)
         dimensions = list(dimensions) if type(dimensions) is tuple else dimensions
         if values is None:
@@ -50,7 +67,11 @@ class Parameter(NeuObj, Stream):
             # deepcopy dimention information inside Parameters
             self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
         else:
-            shape = np.array(values).shape
+            if type(values) is np.ndarray:
+                values = values.tolist()
+                shape = values.shape
+            else:
+                shape = np.array(values).shape
             check(len(shape) >= 2, ValueError,
                   f"The shape of a parameter must have at least 2 dimensions.")
             values_dimensions = shape[1] if len(shape[1:]) == 1 else list(shape[1:])

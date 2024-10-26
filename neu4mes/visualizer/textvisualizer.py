@@ -13,6 +13,9 @@ class TextVisualizer(Visualizer):
     def __title(self,msg, lenght = 80):
         print(color((msg).center(lenght, '='), GREEN, True))
 
+    def __subtitle(self,msg, lenght = 80):
+        print(color((msg).center(lenght, '-'), GREEN, True))
+
     def __line(self):
         print(color('='.center(80, '='),GREEN))
 
@@ -65,7 +68,14 @@ class TextVisualizer(Visualizer):
             print(color(pformat(self.n4m.model),GREEN))
             self.__line()
 
-    def showWeights(self, batch = None, epoch = None):
+    def showWeights(self, weights = None):
+        self.__title(" Neu4mes Models Weights ")
+        for key, param in self.n4m.model.all_parameters.items():
+            if weights is None or key in weights:
+                self.__paramjson(key,param.tolist())
+        self.__line()
+
+    def showWeightsInTrain(self, batch = None, epoch = None, weights = None):
         if self.verbose >= 2:
             par = self.n4m.run_training_params
             dim = len(self.n4m.model_def['Minimizers'])
@@ -78,9 +88,10 @@ class TextVisualizer(Visualizer):
                 print(color('|' + (f"{batch + 1}").center(10, ' ') + '|', COLOR), end='')
                 print(color((f' Params end batch {batch + 1} ').center(20 * (dim + 1) - 1, '-') + '|', COLOR))
 
-            for key,param in self.n4m.model.all_parameters.items():
-                print(color('|' + (f"{key}").center(10, ' ') + '|', COLOR), end='')
-                print(color((f'{param.tolist()}').center(20 * (dim + 1) - 1, ' ') + '|', COLOR))
+            for key, param in self.n4m.model.all_parameters.items():
+                if key in weights or weights is None:
+                    print(color('|' + (f"{key}").center(10, ' ') + '|', COLOR), end='')
+                    print(color((f'{param.tolist()}').center(20 * (dim + 1) - 1, ' ') + '|', COLOR))
 
             if epoch is not None:
                 print(color('|'+(f'').center(10+20*(dim+1), '-') + '|'))
@@ -276,4 +287,10 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 1:
             self.__title(f" Import {name} ")
             self.__param("Model imported from:", path)
+            self.__line()
+
+    def exportReport(self, name, path):
+        if self.verbose >= 1:
+            self.__title(f" Export {name} Report ")
+            self.__param("Report exported in:", path)
             self.__line()

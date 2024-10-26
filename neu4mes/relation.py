@@ -1,5 +1,7 @@
 import copy
 
+import numpy as np
+
 from neu4mes.utils import check, merge
 
 from neu4mes import LOG_LEVEL
@@ -23,12 +25,9 @@ NeuObj_names = []
 
 def toStream(obj):
     from neu4mes.parameter import Parameter, Constant
-    if type(obj) in (int,float):
+    if type(obj) in (int,float,list,np.ndarray):
         obj = Constant('Constant'+str(NeuObj.count), obj)
         #obj = Stream(obj, MAIN_JSON, {'dim': 1}) if type(obj) in (int, float) else obj
-    elif type(obj) is list:
-        obj = Constant('Constant' + str(NeuObj.count), obj)
-        # obj = Stream(obj, MAIN_JSON, {'dim': len(obj)}) if type(obj) is list else obj
     if type(obj) is Parameter or type(obj) is Constant:
         obj = Stream(obj.name, obj.json, obj.dim)
     return obj

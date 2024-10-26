@@ -1,11 +1,13 @@
-import inspect, copy, textwrap
+import inspect, copy, textwrap, torch
+
 import numpy as np
 import torch.nn as nn
-import torch
+
+from collections.abc import Callable
 
 from neu4mes.relation import NeuObj, Stream
 from neu4mes.model import Model
-from neu4mes.utils import check, merge
+from neu4mes.utils import check, merge, enforce_types
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -14,8 +16,14 @@ log.setLevel(max(logging.ERROR, LOG_LEVEL))
 
 fuzzify_relation_name = 'Fuzzify'
 
+
 class Fuzzify(NeuObj):
-    def __init__(self, output_dimension:int|None = None, range:list|None = None, centers:list|None = None, functions = 'Triangular'):
+    @enforce_types
+    def __init__(self, output_dimension:int|None = None,
+                 range:list|None = None,
+                 centers:list|None = None,
+                 functions:str|list|Callable = 'Triangular'):
+
         self.relation_name = fuzzify_relation_name
         super().__init__('F' + fuzzify_relation_name + str(NeuObj.count))
         self.json['Functions'][self.name] = {}
@@ -56,6 +64,37 @@ class Fuzzify(NeuObj):
         stream_json = merge(self.json, obj.json)
         stream_json['Relations'][stream_name] = [fuzzify_relation_name, [obj.name],self.name]
         return Stream(stream_name, stream_json, output_dimension)
+
+
+def return_fuzzify(json, xlim = None, num_points = 1000):
+    if xlim is not None:
+        x = torch.from_numpy(np.linspace(xlim[0], xlim[1], num=num_points))
+    else:
+        x = torch.from_numpy(np.linspace(json['centers'][0] - 2, json['centers'][-1] + 2, num=num_points))
+    chan_centers = np.array(json['centers'])
+    activ_fun = {}
+    if isinstance(json['names'], list):
+        n_func = len(json['names'])
+    else:
+        n_func = 1
+    for i in range(len(chan_centers)):
+        if json['functions'] == 'Triangular':
+            activ_fun[i] = triangular(x, i, chan_centers).tolist()
+        elif json['functions'] == 'Rectangular':
+            activ_fun[i] = rectangular(x, i, chan_centers).tolist()
+        else:
+            if isinstance(json['names'], list):
+                if i >= n_func:
+                    func_idx = i - round(n_func * (i // n_func))
+                else:
+                    func_idx = i
+                exec(json['functions'][func_idx], globals())
+                function_to_call = globals()[json['names'][func_idx]]
+            else:
+                exec(json['functions'], globals())
+                function_to_call = globals()[json['names']]
+            activ_fun[i] = custom_function(function_to_call, x, i, chan_centers).tolist()
+    return x.tolist(), activ_fun
 
 def triangular(x, idx_channel, chan_centers):
 
@@ -101,30 +140,6 @@ def rectangular(x, idx_channel, chan_centers):
         act_fcn = torch.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), 1.0, 0.0)
   
     return act_fcn
-
-'''
-def custom_function(func, x, idx_channel, chan_centers):
-    ## compute number of channels
-    num_channels = len(chan_centers)
-
-    ## First dimension of activation
-    if idx_channel == 0:
-        if num_channels != 1:
-            width = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2
-            act_fcn = torch.where(x < (chan_centers[idx_channel] + width), torch.where(x >= (chan_centers[idx_channel] - width), func(x-chan_centers[idx_channel]), torch.tensor(1.0)), torch.tensor(0.0))
-        else:
-            # In case the user only wants one channel
-            act_fcn = torch.tensor(1.0)
-    elif idx_channel != 0 and idx_channel == (num_channels - 1):
-        width = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = torch.where(x >= chan_centers[idx_channel] - width, torch.where(x < (chan_centers[idx_channel] + width), func(x-chan_centers[idx_channel]), torch.tensor(1.0)), torch.tensor(0.0))
-    else:
-        width_forward = abs(chan_centers[idx_channel+1] - chan_centers[idx_channel]) / 2  
-        width_backward = abs(chan_centers[idx_channel] - chan_centers[idx_channel-1]) / 2
-        act_fcn = torch.where((x >= chan_centers[idx_channel] - width_backward) & (x < chan_centers[idx_channel] + width_forward), func(x-chan_centers[idx_channel]), torch.tensor(0.0))
-  
-    return act_fcn
-'''
 
 def custom_function(func, x, idx_channel, chan_centers):
     act_fcn = func(x-chan_centers[idx_channel])

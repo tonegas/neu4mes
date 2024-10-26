@@ -7,11 +7,11 @@ sys.path.append(os.getcwd())
 from torch.fx import symbolic_trace
 
 from neu4mes import *
-from neu4mes.visualizer import MPLVisulizer
+from neu4mes.visualizer import MPLVisualizer
 
 # Create neu4mes structure
 workspace = os.path.join(os.getcwd(), "results")
-pendolum = Neu4mes(visualizer=MPLVisulizer(), workspace=workspace)
+pendolum = Neu4mes(visualizer=MPLVisualizer(), workspace=workspace)
 
 # Create neural model
 # Input of the neural model
@@ -41,7 +41,7 @@ params = {'train_batch_size':32, 'val_batch_size':32, 'num_of_epochs':100}
 pendolum.trainModel(splits=[70,20,10], lr=0.001, training_params=params)
 
 ## Neural network Predict
-sample = pendolum.get_random_samples(dataset='pendulum_dataset', window=1)
+sample = pendolum.getSamples(dataset='pendulum_dataset', window=1)
 result = pendolum(sample, sampled=True)
 
 print('Predicted omega: ', result['omega_pred'])
