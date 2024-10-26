@@ -23,9 +23,6 @@ class Model(nn.Module):
         self.input_n_samples = input_n_samples
         self.minimizers_keys = [self.minimizers[key]['A'] for key in self.minimizers] + [self.minimizers[key]['B'] for key in self.minimizers]
 
-        #self.batch_size = 1
-
-
         ## Build the network
         self.all_parameters = {}
         self.all_constants = {}

@@ -170,3 +170,7 @@ test.exportONNX(['x','y'],['out','out2','out3','out4','out5','out6']) # Export t
 print("-----------------------------------EXAMPLE 10-----------------------------------")
 # Export only the modelB in onnx format
 test.exportONNX(['x','y'],['out3','out4','out2'], ['modelB']) # Export the onnx model
+
+print("-----------------------------------EXAMPLE 11-----------------------------------")
+# Export of the report of training and results performances
+test.exportReport()

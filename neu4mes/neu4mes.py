@@ -48,7 +48,7 @@ class Neu4mes:
         self.exporter.set_n4m(self)
 
         ## Set the random seed for reproducibility
-        if seed:
+        if seed is not None:
             torch.manual_seed(seed=seed) ## set the pytorch seed
             random.seed(seed) ## set the random module seed
             np.random.seed(seed) ## set the numpy seed
@@ -64,16 +64,18 @@ class Neu4mes:
         self.update_state_dict = {}
 
         # Models definition
-        self.model_def_loaded = None
         self.model_def = None
+        self.model_def_loaded = None
         self.model_def_values = None
 
         # Network Parametrs
+        # To be removed
         self.input_tw_backward, self.input_tw_forward = {}, {}
         self.input_ns_backward, self.input_ns_forward = {}, {}
         self.input_n_samples = {}
         self.max_samples_backward, self.max_samples_forward = 0, 0
         self.max_n_samples = 0
+        # To be removed
         self.neuralized = False
         self.model = None
 
@@ -313,6 +315,7 @@ class Neu4mes:
             print('The Dataset must first be loaded using <loadData> function!')
             return {}
 
+
     # Use this function for build the model_def from the ditionaries: model_dict, minimize_dict, update_state_dict
     def __update_model(self, model_def = MAIN_JSON, model_dict = None, minimize_dict = None, update_state_dict = None):
         self.model_def = copy.deepcopy(model_def)
@@ -413,6 +416,9 @@ class Neu4mes:
         self.__update_model()
         self.visualizer.showaddMinimize(name)
 
+
+
+
     # Use this function to get the parameters form the torch model and set the model_def_values
     def __get_torch_model(self, clear_model = False):
         if self.model is not None and clear_model == False:
@@ -477,7 +483,9 @@ class Neu4mes:
         self.model_def["SampleTime"] = sample_time
 
         ## Get the trained model
+        # To be removed
         model_def = self.__get_torch_model(clear_model)
+        # To be removed
         self.__neuralize_model(model_def)
         self.__get_torch_model(clear_model)
         self.visualizer.showModel(model_def)
