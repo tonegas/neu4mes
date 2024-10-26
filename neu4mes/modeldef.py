@@ -15,6 +15,7 @@ class ModelDef():
 
         # Models definition
         self.model_def = model_def
+        self.sample_time = None
 
     def __contains__(self, key):
         return key in self.model_def
@@ -125,12 +126,15 @@ class ModelDef():
         self.update()
 
     def setBuildWindow(self, sample_time = None):
-        # Set sample time on the model_def
         if sample_time is not None:
             check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
-            self.model_def['Info'] = {"SampleTime": sample_time}
+            self.sample_time = sample_time
         else:
-            self.model_def['Info'] = {"SampleTime": sample_time}
+            if self.sample_time is None:
+                self.sample_time = 1
+
+        self.update()
+        self.model_def['Info'] = {"SampleTime": sample_time}
 
         check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
@@ -158,3 +162,11 @@ class ModelDef():
 
         self.model_def['Info']['ns'] = [max(input_ns_backward.values()), max(input_ns_forward.values())]
         self.model_def['Info']['ntot'] = sum(self.model_def['Info']['ns'])
+
+    def updateParameters(self, model):
+        if model is not None:
+            for key in self.model_def['Parameters'].keys():
+                if key in model.all_parameters:
+                    self.model_def['Parameters'][key]['values'] = model.all_parameters[key].tolist()
+                    if 'init_fun' in self.model_def['Parameters'][key]:
+                        del self.model_def['Parameters'][key]['init_fun']

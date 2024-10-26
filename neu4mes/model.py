@@ -14,7 +14,7 @@ class Model(nn.Module):
         self.relations = model_def['Relations']
         self.params = model_def['Parameters']
         self.constants = model_def['Constants']
-        self.sample_time = model_def['SampleTime']
+        self.sample_time = model_def['Info']['SampleTime']
         self.functions = model_def['Functions']
         self.state_model_main = model_def['States']
         self.minimizers = model_def['Minimizers']
