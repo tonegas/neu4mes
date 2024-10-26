@@ -1,4 +1,14 @@
-General things to do:
+General things to do / note:
+- closed loop training: 
+  - the training is extremely slow (w.r.t. Keras, for the same batch_size and predict_samples). Try to trace the model and to investigate the warning "Creating a tensor from a list of numpy.ndarrays is extremely slow ..."
+  - with the loss (MSE) seems to be proportional to the batch size. Is the loss multiplied by the batch size?
+  - if predict_samples covers the whole dataset, and batch_size = 1, then there is only one batch with predict_samples samples.
+    if instead batch_size = 5, then there should be again only one batch but it should contain 5*predict_samples samples, i.e., the
+    training should last longer. Instead, it seems that the training lasts the same.
+- shuffle_flag = True does not work or does not work as expected in closed-loop training
+- test reproducibility of the training
+- the symbolic tracer does not work
+- test with log_internal=True for the closed-loop training --> see the example test_recurrent_train.py
 - the requirements.txt do not work on a new environment (windows), only the requirements_macos_x86.txt work
 - compute the loss function in a consistent way after the training, in the resulting table printed by neu4mes
 - when training with early stopping, the training loop should finally return the model with the best validation loss, and not the model of the last epoch. Or at least the user should be able to decide whether to return the model of the last epoch or the model with the best validation loss. (This could be for example defined within the early stopping method.) In the current version, it is not clear which model is returned at the end.
