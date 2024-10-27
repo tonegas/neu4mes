@@ -9,6 +9,7 @@ import copy
 class Model(nn.Module):
     def __init__(self, model_def):
         super(Model, self).__init__()
+        model_def = copy.deepcopy(model_def)
         self.inputs = model_def['Inputs']
         self.outputs = model_def['Outputs']
         self.relations = model_def['Relations']

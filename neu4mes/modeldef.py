@@ -26,22 +26,6 @@ class ModelDef():
     def __setitem__(self, key, value):
         self.model_def[key] = value
 
-    def __update_state(self, stream_out, state_list_in, UpdateState):
-        from neu4mes.input import  State
-        if type(state_list_in) is not list:
-            state_list_in = [state_list_in]
-        for state_in in state_list_in:
-            check(isinstance(stream_out, (Output, Stream)), TypeError,
-                  f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
-            check(type(state_in) is State, TypeError,
-                  f"The {state_in} must be a State and not a {type(state_in)}.")
-            check(stream_out.dim['dim'] == state_in.dim['dim'], ValueError,
-                  f"The dimension of {stream_out.name} is not equal to the dimension of {state_in.name} ({stream_out.dim['dim']}!={state_in.dim['dim']}).")
-            if type(stream_out) is Output:
-                stream_name = self.model_def['Outputs'][stream_out.name]
-                stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
-            self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
-
     def update(self, model_def = MAIN_JSON, model_dict = None, minimize_dict = None, update_state_dict = None):
         self.model_def = copy.deepcopy(model_def)
         model_dict = copy.deepcopy(model_dict) if model_dict is not None else self.model_dict
@@ -59,12 +43,17 @@ class ModelDef():
             for model_name, model_params in model_dict.items():
                 self.model_def['Models'][model_name] = {'Inputs': [], 'States': [], 'Outputs': [], 'Parameters': [],
                                                         'Constants': []}
+                parameters, constants, inputs, states = set(), set(), set(), set()
                 for param in model_params:
                     self.model_def['Models'][model_name]['Outputs'].append(param.name)
-                    self.model_def['Models'][model_name]['Parameters'] += list(set(param.json['Parameters'].keys()))
-                    self.model_def['Models'][model_name]['Constants'] += list(set(param.json['Constants'].keys()))
-                    self.model_def['Models'][model_name]['Inputs'] += list(set(param.json['Inputs'].keys()))
-                    self.model_def['Models'][model_name]['States'] += list(set(param.json['States'].keys()))
+                    parameters |= set(param.json['Parameters'].keys())
+                    constants |= set(param.json['Constants'].keys())
+                    inputs |= set(param.json['Inputs'].keys())
+                    states |= set(param.json['States'].keys())
+                self.model_def['Models'][model_name]['Parameters'] = list(parameters)
+                self.model_def['Models'][model_name]['Constants'] = list(constants)
+                self.model_def['Models'][model_name]['Inputs'] = list(inputs)
+                self.model_def['Models'][model_name]['States'] = list(states)
         elif len(model_dict) == 1:
             self.model_def['Models'] = list(model_dict.keys())[0]
 
@@ -80,6 +69,25 @@ class ModelDef():
 
         for key, update_state in update_state_dict.items():
             self.model_def = merge(self.model_def, update_state.json)
+
+        if "SampleTime" in self.model_def['Info']:
+            self.sample_time = self.model_def['Info']["SampleTime"]
+
+    def __update_state(self, stream_out, state_list_in, UpdateState):
+        from neu4mes.input import  State
+        if type(state_list_in) is not list:
+            state_list_in = [state_list_in]
+        for state_in in state_list_in:
+            check(isinstance(stream_out, (Output, Stream)), TypeError,
+                  f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
+            check(type(state_in) is State, TypeError,
+                  f"The {state_in} must be a State and not a {type(state_in)}.")
+            check(stream_out.dim['dim'] == state_in.dim['dim'], ValueError,
+                  f"The dimension of {stream_out.name} is not equal to the dimension of {state_in.name} ({stream_out.dim['dim']}!={state_in.dim['dim']}).")
+            if type(stream_out) is Output:
+                stream_name = self.model_def['Outputs'][stream_out.name]
+                stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
+            self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
 
     def addConnect(self, stream_out, state_list_in):
         from neu4mes.input import Connect
@@ -126,6 +134,7 @@ class ModelDef():
         self.update()
 
     def setBuildWindow(self, sample_time = None):
+        check(self.model_def is not None, RuntimeError, "No model is defined!")
         if sample_time is not None:
             check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
             self.sample_time = sample_time
@@ -133,8 +142,7 @@ class ModelDef():
             if self.sample_time is None:
                 self.sample_time = 1
 
-        self.update()
-        self.model_def['Info'] = {"SampleTime": sample_time}
+        self.model_def['Info'] = {"SampleTime": self.sample_time}
 
         check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
@@ -147,12 +155,12 @@ class ModelDef():
         for key, value in json_inputs.items():
             if value['sw'] == [0,0] and value['tw'] == [0,0]:
                 assert(False), f"Input {key} has no time window or sample window"
-            if value['sw'] == [0, 0] and sample_time is not None:
-                input_ns_backward[key] = round(-value['tw'][0] / sample_time)
-                input_ns_forward[key] = round(value['tw'][1] / sample_time)
-            elif sample_time is not None:
-                input_ns_backward[key] = max(round(-value['tw'][0] / sample_time),-value['sw'][0])
-                input_ns_forward[key] = max(round(value['tw'][1] / sample_time),value['sw'][1])
+            if value['sw'] == [0, 0] and self.sample_time is not None:
+                input_ns_backward[key] = round(-value['tw'][0] / self.sample_time)
+                input_ns_forward[key] = round(value['tw'][1] / self.sample_time)
+            elif self.sample_time is not None:
+                input_ns_backward[key] = max(round(-value['tw'][0] / self.sample_time),-value['sw'][0])
+                input_ns_forward[key] = max(round(value['tw'][1] / self.sample_time),value['sw'][1])
             else:
                 check(value['tw'] == [0,0], RuntimeError, f"Sample time is not defined for input {key}")
                 input_ns_backward[key] = -value['sw'][0]
@@ -162,6 +170,12 @@ class ModelDef():
 
         self.model_def['Info']['ns'] = [max(input_ns_backward.values()), max(input_ns_forward.values())]
         self.model_def['Info']['ntot'] = sum(self.model_def['Info']['ns'])
+        # if self.model_def['Info']['ns'][0] < 0:
+        #     self.visualizer.warning(
+        #         f"The input is only in the far past the max_samples_backward is: {self.model_def['Info']['ns'][0]}")
+        # if self.model_def['Info']['ns'][1] < 0:
+        #     self.visualizer.warning(
+        #         f"The input is only in the far future the max_sample_forward is: {self.model_def['Info']['ns'][1]}")
 
     def updateParameters(self, model):
         if model is not None:

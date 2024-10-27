@@ -332,8 +332,18 @@ class Neu4mes:
     def removeMinimize(self, name_list):
         self.model_def.removeMinimize(name_list)
 
-    def neuralizeModel(self, sample_time = None, clear_model = False):
+    def neuralizeModel(self, sample_time = None, clear_model = False, model_def = None):
+        if model_def is not None:
+            self.model_def.update(model_def)
+        else:
+            if clear_model:
+                self.model_def.update()
+            else:
+                self.model_def.updateParameters(self.model)
+
         self.model_def.setBuildWindow(sample_time)
+        self.model = Model(self.model_def.model_def)
+
         if self.model_def['Info']['ns'][0] < 0:
             self.visualizer.warning(
                 f"The input is only in the far past the max_samples_backward is: {self.model_def['Info']['ns'][0]}")
@@ -345,13 +355,7 @@ class Neu4mes:
         for key, value in (self.model_def['Inputs'] | self.model_def['States']).items():
             self.input_n_samples[key] = input_ns_backward[key] + input_ns_forward[key]
         self.max_n_samples = max(input_ns_backward.values()) + max(input_ns_forward.values())
-        if clear_model:
-            self.model = Model(self.model_def)
-            self.model_def.updateParameters(self.model)
-        else:
-            self.model_def.updateParameters(self.model)
-            self.model = Model(self.model_def)
-            self.model_def.updateParameters(self.model)
+
         self.neuralized = True
         self.visualizer.showModel(self.model_def.model_def)
         self.visualizer.showModelInputWindow()
@@ -1051,15 +1055,9 @@ class Neu4mes:
     def loadModel(self, name = None, model_folder = None):
         if name is None:
             name = 'net'
-            model_def = self.exporter.loadModel(name + '_trained', model_folder)
-            if model_def is None:
-                 model_def = self.exporter.loadModel(name, model_folder)
-        else:
-            model_def = self.exporter.loadModel(name, model_folder)
-
+        model_def = self.exporter.loadModel(name, model_folder)
         if model_def:
-            self.model_def.update(model_def)
-            self.__neuralize_model(self.model_def)
+            self.neuralizeModel(model_def=model_def)
 
     def exportPythonModel(self, name = 'net', model_path = None):
         check(self.model_def['States'] == {}, TypeError, "The network has state variables. The export to python is not possible.")
@@ -1070,12 +1068,11 @@ class Neu4mes:
     def importPythonModel(self, name = None, model_folder = None):
         if name is None:
             name = 'net'
-        self.model_def_loaded = self.exporter.loadModel(name, model_folder)
-        self.__update_model(model_def=self.model_def_loaded)
-        self.__neuralize_model(self.model_def_loaded)
+        model_def = self.exporter.loadModel(name, model_folder)
+        self.neuralizeModel(model_def=model_def)
         self.model = self.exporter.importPythonModel(name, model_folder)
         self.traced = True
-        self.__get_torch_model()
+        self.model_def.updateParameters(self.model)
 
     def exportONNX(self, inputs_order, outputs_order,  models = None, name = 'net', model_path = None):
         check(self.model_def is not None, TypeError, "The network has not been defined.")

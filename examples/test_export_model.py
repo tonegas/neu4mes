@@ -117,7 +117,7 @@ test2.loadModel() # Load the neu4mes model with parameter values
 new_model_out_after_load = test2({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 print('new_out_after_load: ', new_out_after_load)
 print('new_model_out_after_load: ', new_model_out_after_load)
-print(f'the output are equal: {old_out == new_out_after_load}')
+print(f'the output are equal: {old_out == new_model_out_after_load}')
 
 print("-----------------------------------EXAMPLE 5------------------------------------")
 # Export and import of a torch script .py

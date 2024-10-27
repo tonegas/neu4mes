@@ -60,7 +60,7 @@ class StandardExporter(Exporter):
         return model_def
 
     def exportPythonModel(self, name = 'net', model_folder = None):
-        check(self.n4m.traced == False, RuntimeError, 'The model is traced and cannot be exported to Python.\n Run neuralizeModel() to recreate a standard model.')
+        #check(self.n4m.traced == False, RuntimeError, 'The model is traced and cannot be exported to Python.\n Run neuralizeModel() to recreate a standard model.')
         check(self.n4m.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
         file_name = name + ".py"
         model_path = os.path.join(self.workspace_folder, file_name) if model_folder is None else os.path.join(model_folder, file_name)
