@@ -1,6 +1,10 @@
 General things to do / note:
+- the training of the NN_round_1 of ARD yields more oscillating results:
+  - when evaluating the NN with the weights trained in Keras, the results in neu4mes are similar to the ones in Keras, apart from some minor
+    oscillations probably due to float32 instead of float64.
+- when exporting the json in a net_trained.json, the function torch.searchsorted(x_data, x, right=True) is exported with true instead of True
 - closed loop training: 
-  - run a profiler in CLions.
+  - run a profiler in CLion.
   - the training is extremely slow (w.r.t. Keras, for the same batch_size and predict_samples). Try to trace the model and to investigate the warning "Creating a tensor from a list of numpy.ndarrays is extremely slow ..."
   - with the loss (MSE) seems to be proportional to the batch size. Is the loss multiplied by the batch size? 
   - when using inputs instead of states, different values of loss are computed during the training. They should be the same.
