@@ -34,8 +34,9 @@ def save_model(model, model_path):
 
 def load_model(model_path):
     import json
-    json_file = open(model_path, )
-    return json.load(json_file)
+    with open(model_path, 'r', encoding='UTF-8') as file:
+        model_def = json.load(file)
+    return model_def
 
 def export_python_model(model_def, model, model_path):
     # Get the symbolic tracer

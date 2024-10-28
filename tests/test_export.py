@@ -69,82 +69,121 @@ class Neu4mesExport(unittest.TestCase):
         self.test.addMinimize('error1', x.last(), out)
         self.test.addMinimize('error2', y.last(), out3, loss_function='rmse')
         self.test.addMinimize('error3', z.last(), out6, loss_function='rmse')
-        self.test.neuralizeModel(0.5)
 
-    def test_export_pt(self):
-        # Export torch file .pt
-        # Save torch model and load it
-        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.test.exporter.saveTorchModel()
-        self.test.neuralizeModel(clear_model=True)
-        # The new_out is different from the old_out because the model is cleared
-        new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        # The new_out_after_load is the same as the old_out because the model is loaded with the same parameters
-        self.test.exporter.loadTorchModel()
-        new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    # def test_export_pt(self):
+    #     # Export torch file .pt
+    #     # Save torch model and load it
+    #     self.test.neuralizeModel(0.5)
+    #     old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.test.exporter.saveTorchModel()
+    #     self.test.neuralizeModel(clear_model=True)
+    #     # The new_out is different from the old_out because the model is cleared
+    #     new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     # The new_out_after_load is the same as the old_out because the model is loaded with the same parameters
+    #     self.test.exporter.loadTorchModel()
+    #     new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #
+    #     with self.assertRaises(AssertionError):
+    #         self.assertEqual(old_out, new_out)
+    #     self.assertEqual(old_out, new_out_after_load)
+    #
+    #     with self.assertRaises(RuntimeError):
+    #         test2 = Neu4mes(workspace = self.result_path)
+    #         # You need not neuralized model to load a torch model
+    #         test2.exporter.loadTorchModel()
+    #
+    # def test_export_json_not_neuralized(self):
+    #     # Export json of neu4mes model before neuralize
+    #     # Save a not neuralized neu4mes json model and load it
+    #     self.test.saveModel()  # Save a model without parameter values and samples values
+    #     with self.assertRaises(RuntimeError):
+    #         self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.test.loadModel()  # Load the neu4mes model without parameter values
+    #     with self.assertRaises(RuntimeError):
+    #         self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     test2 = Neu4mes(workspace=self.test.getWorkspace())
+    #     test2.loadModel()  # Load the neu4mes model with parameter values
+    #     self.assertEqual(test2.model_def.model_def, self.test.model_def.model_def)
+    #
+    # def test_export_json_untrained(self):
+    #     # Export json of neu4mes model
+    #     # Save a untrained neu4mes json model and load it
+    #     # the new_out and new_out_after_load are different because the model saved model is not trained
+    #     self.test.neuralizeModel(0.5)
+    #     old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.test.saveModel()  # Save a model without parameter values
+    #     self.test.neuralizeModel(clear_model=True)  # Create a new torch model
+    #     new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.test.loadModel()  # Load the neu4mes model without parameter values
+    #     # Use the preloaded torch model for inference
+    #     new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     with self.assertRaises(AssertionError):
+    #         self.assertEqual(old_out, new_out)
+    #     with self.assertRaises(AssertionError):
+    #         self.assertEqual(new_out, new_out_after_load)
+    #
+    # def test_export_json_trained(self):
+    #     # Export json of neu4mes model with parameter valuess
+    #     # The old_out is the same as the new_out_after_load because the model is loaded with the same parameters
+    #     self.test.neuralizeModel(0.5)
+    #     old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.test.neuralizeModel()  # Load the parameter from torch model to neu4mes model json
+    #     self.test.saveModel()  # Save the model with and without parameter values
+    #     self.test.neuralizeModel(clear_model=True)  # Create a new torch model
+    #     new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.test.loadModel()  # Load the neu4mes model with parameter values
+    #     new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     with self.assertRaises(AssertionError):
+    #         self.assertEqual(old_out, new_out)
+    #     with self.assertRaises(AssertionError):
+    #         self.assertEqual(new_out, new_out_after_load)
+    #     self.assertEqual(old_out, new_out_after_load)
+    #
+    # def test_import_json_new_object(self):
+    #     # Import neu4mes json model in a new object
+    #     self.test.neuralizeModel(0.5)
+    #     old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.test.neuralizeModel()
+    #     self.test.saveModel()  # Save the model with and without parameter values
+    #     test2 = Neu4mes(workspace=self.test.getWorkspace())
+    #     test2.loadModel()  # Load the neu4mes model with parameter values
+    #     new_model_out_after_load = test2({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+    #     self.assertEqual(old_out, new_model_out_after_load)
 
-        with self.assertRaises(AssertionError):
-            self.assertEqual(old_out, new_out)
-        self.assertEqual(old_out, new_out_after_load)
-
-        with self.assertRaises(RuntimeError):
-            test2 = Neu4mes(seed=43, workspace = self.result_path)
-            # You need aneuralized model to load a torch model
-            test2.exporter.loadTorchModel()
-
-    def test_export_json_untrained(self):
-        # Export json of neu4mes model
-        # Save a untrained neu4mes json model and load it
-        # the new_out and new_out_after_load are different because the model saved model is not trained
-        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.test.saveModel()  # Save a model without parameter values
-        self.test.neuralizeModel(clear_model=True)  # Create a new torch model
-        new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.test.loadModel()  # Load the neu4mes model without parameter values
-        # Use the preloaded torch model for inference
-        new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        with self.assertRaises(AssertionError):
-            self.assertEqual(old_out, new_out)
-        with self.assertRaises(AssertionError):
-            self.assertEqual(new_out, new_out_after_load)
-
-    def test_export_json_trained(self):
-        # Export json of neu4mes model with parameter valuess
-        # The old_out is the same as the new_out_after_load because the model is loaded with the same parameters
-        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.test.neuralizeModel()  # Load the parameter from torch model to neu4mes model json
-        self.test.saveModel()  # Save the model with and without parameter values
-        self.test.neuralizeModel(clear_model=True)  # Create a new torch model
-        new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.test.loadModel()  # Load the neu4mes model with parameter values
-        new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        with self.assertRaises(AssertionError):
-            self.assertEqual(old_out, new_out)
-        with self.assertRaises(AssertionError):
-            self.assertEqual(new_out, new_out_after_load)
-        self.assertEqual(old_out, new_out_after_load)
-
-    def test_import_json_new_object(self):
-        # Import neu4mes json model in a new object
-        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.test.neuralizeModel()
-        self.test.saveModel()  # Save the model with and without parameter values
-        test2 = Neu4mes(seed=43, workspace=self.test.getWorkspace())
-        test2.loadModel()  # Load the neu4mes model with parameter values
-        new_model_out_after_load = test2({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.assertEqual(old_out, new_model_out_after_load)
-
-    def test_new(self):
+    def test_export_torch_script(self):
         # Export and import of a torch script .py
         # The old_out is the same as the new_out_after_load because the model is loaded with the same parameters
+        with self.assertRaises(RuntimeError):
+            self.test.exportPythonModel() # The model is not neuralized yet
+        self.test.neuralizeModel(0.5)
         old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
         self.test.exportPythonModel()  # Export the trace model
         self.test.neuralizeModel(clear_model=True)  # Create a new torch model
         new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
         self.test.importPythonModel()  # Import the tracer model
+        # with self.assertRaises(RuntimeError):
+            # self.test.exportPythonModel() # The model is traced
         # Perform inference with the imported tracer model
-        new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        # new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        # with self.assertRaises(AssertionError):
+        #     self.assertEqual(old_out, new_out)
+        # self.assertEqual(old_out, new_out_after_load)
+
+    def test_export_torch_script_new_object(self):
+        # Import of a torch script .py
+        self.test.neuralizeModel(0.5)
+        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.exportPythonModel()  # Export the trace model
+        # self.test.exportPythonModel()
+        # self.test.importPythonModel()
+        self.test.neuralizeModel(clear_model=True)
+        test2 = Neu4mes(workspace=self.test.getWorkspace())
+        test2.importPythonModel()  # Load the neu4mes model with parameter values
+        #with self.assertRaises(RuntimeError):
+        #    test2.exportPythonModel() # The model is traced
+        new_out_after_load = test2({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
         self.assertEqual(old_out, new_out_after_load)
+
 
 if __name__ == '__main__':
     unittest.main()

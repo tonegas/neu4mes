@@ -59,22 +59,12 @@ class Neu4mes:
         if self.log_internal == True:
             self.internals = {}
 
-        # Inizialize the model definition
-        #self.model_dict = {}
-        #self.minimize_dict = {}
-        #self.update_state_dict = {}
-
         # Models definition
         self.model_def = ModelDef()
-        #self.model_def_loaded = None
-        #self.model_def_values = None
-
-        # Network Parametrs
-        # To be removed
         self.input_n_samples = {}
         self.max_n_samples = 0
-        # To be removed
         self.neuralized = False
+        self.traced = False
         self.model = None
 
         # Dataaset Parameters
@@ -118,7 +108,7 @@ class Neu4mes:
         connect = copy.deepcopy(connect)
 
         ## Check neuralize
-        check(self.neuralized, ValueError, "The network is not neuralized.")
+        check(self.neuralized, RuntimeError, "The network is not neuralized.")
 
         ## Bild the list of inputs
         model_inputs = list(self.model_def['Inputs'].keys())
@@ -334,6 +324,8 @@ class Neu4mes:
 
     def neuralizeModel(self, sample_time = None, clear_model = False, model_def = None):
         if model_def is not None:
+            check(sample_time == None, ValueError, 'The sample_time must be None if a model_def is provided')
+            check(clear_model == False, ValueError, 'The clear_model must be False if a model_def is provided')
             self.model_def.update(model_def)
         else:
             if clear_model:
@@ -1062,7 +1054,7 @@ class Neu4mes:
     def exportPythonModel(self, name = 'net', model_path = None):
         check(self.model_def['States'] == {}, TypeError, "The network has state variables. The export to python is not possible.")
         if self.model_def is not None:
-            self.exporter.saveModel(self.model_def, name, model_path)
+            self.exporter.saveModel(self.model_def.model_def, name, model_path)
             self.exporter.exportPythonModel(name, model_path)
 
     def importPythonModel(self, name = None, model_folder = None):

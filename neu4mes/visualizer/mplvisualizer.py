@@ -1,13 +1,9 @@
 import subprocess, json, torch, inspect
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 from neu4mes.visualizer.textvisualizer import TextVisualizer
-from neu4mes.fuzzify import triangular, rectangular, custom_function, return_fuzzify
+from neu4mes.fuzzify import return_fuzzify
 from neu4mes.parametricfunction import return_standard_inputs, return_function
 from neu4mes.utils import check
-from mplplots import plots
 
 class MPLVisualizer(TextVisualizer):
     def __init__(self, verbose = 1):
