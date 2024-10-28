@@ -107,7 +107,7 @@ class Neu4mesExport(unittest.TestCase):
             self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
         test2 = Neu4mes(visualizer=None, workspace=self.test.getWorkspace())
         test2.loadModel()  # Load the neu4mes model with parameter values
-        self.assertEqual(test2.model_def.model_def, self.test.model_def.model_def)
+        self.assertEqual(test2.model_def.json, self.test.model_def.json)
 
     def test_export_json_untrained(self):
         if os.path.exists(self.test.getWorkspace()):

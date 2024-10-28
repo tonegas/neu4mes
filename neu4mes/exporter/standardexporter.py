@@ -53,7 +53,7 @@ class StandardExporter(Exporter):
         file_name = name + ".py"
         model_path = os.path.join(self.workspace_folder, file_name) if model_folder is None else os.path.join(model_folder, file_name)
         ## Export to python file
-        export_python_model(model_def.model_def, model, model_path)
+        export_python_model(model_def.json, model, model_path)
         self.visualizer.exportModel('Python Torch Model', model_path)
 
     def importPythonModel(self, name = 'net', model_folder = None):
@@ -92,19 +92,19 @@ class StandardExporter(Exporter):
         try:
             model_folder = self.workspace_folder if model_folder is None else model_folder
             model = import_onnx_model(name, model_folder)
-            self.n4m.visualizer.importModel('Onnx Model', os.path.join(model_folder,name+'.py'))
+            self.visualizer.importModel('Onnx Model', os.path.join(model_folder,name+'.py'))
         except Exception as e:
-            self.n4m.visualizer.warning(f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
+            self.visualizer.warning(f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
         return model
 
-    def exportReport(self, name = 'net', model_folder = None):
+    def exportReport(self, n4m, name = 'net', model_folder = None):
         # Combine the folder path and file name to form the complete file path
         model_folder = self.workspace_folder if model_folder is None else model_folder
         # Specify the JSON file name
         file_name = name + ".pdf"
         # Combine the folder path and file name to form the complete file path
         report_path = os.path.join(model_folder, file_name)
-        reporter = Reporter(self.n4m)
+        reporter = Reporter(n4m)
         reporter.exportReport(report_path)
-        self.n4m.visualizer.exportReport('Training Results', report_path)
+        self.visualizer.exportReport('Training Results', report_path)
 

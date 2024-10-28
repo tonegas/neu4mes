@@ -9,74 +9,77 @@ from neu4mes.input import Input, State
 from neu4mes.output import Output
 
 class ModelDef():
-    def __init__(self, model_def = None):
+    def __init__(self, model_def = MAIN_JSON):
+        # Models definition
+        self.json_base = copy.deepcopy(model_def)
+
         # Inizialize the model definition
+        self.json = copy.deepcopy(self.json_base)
+        if "SampleTime" in self.json['Info']:
+            self.sample_time = self.json['Info']["SampleTime"]
+        else:
+            self.sample_time = None
         self.model_dict = {}
         self.minimize_dict = {}
         self.update_state_dict = {}
 
-        # Models definition
-        self.model_def = model_def
-        self.sample_time = None
-
     def __contains__(self, key):
-        return key in self.model_def
+        return key in self.json
 
     def __getitem__(self, key):
-        return self.model_def[key]
+        return self.json[key]
 
     def __setitem__(self, key, value):
-        self.model_def[key] = value
+        self.json[key] = value
 
     def isDefined(self):
-        return self.model_def is not None
+        return self.json is not None
 
-    def update(self, model_def = MAIN_JSON, model_dict = None, minimize_dict = None, update_state_dict = None):
-        self.model_def = copy.deepcopy(model_def)
+    def update(self, model_def = None, model_dict = None, minimize_dict = None, update_state_dict = None):
+        self.json = copy.deepcopy(model_def) if model_def is not None else copy.deepcopy(self.json_base)
         model_dict = copy.deepcopy(model_dict) if model_dict is not None else self.model_dict
         minimize_dict = copy.deepcopy(minimize_dict) if minimize_dict is not None else self.minimize_dict
-        update_state_dict = copy.deepcopy(
-            update_state_dict) if update_state_dict is not None else self.update_state_dict
+        update_state_dict = copy.deepcopy(update_state_dict) if update_state_dict is not None else self.update_state_dict
 
         # Add models to the model_def
         for key, stream_list in model_dict.items():
             for stream in stream_list:
-                self.model_def = merge(self.model_def, stream.json)
+                self.json = merge(self.json, stream.json)
         if len(model_dict) > 1:
-            if 'Models' not in self.model_def:
-                self.model_def['Models'] = {}
+            if 'Models' not in self.json:
+                self.json['Models'] = {}
             for model_name, model_params in model_dict.items():
-                self.model_def['Models'][model_name] = {'Inputs': [], 'States': [], 'Outputs': [], 'Parameters': [],
+                self.json['Models'][model_name] = {'Inputs': [], 'States': [], 'Outputs': [], 'Parameters': [],
                                                         'Constants': []}
                 parameters, constants, inputs, states = set(), set(), set(), set()
                 for param in model_params:
-                    self.model_def['Models'][model_name]['Outputs'].append(param.name)
+                    self.json['Models'][model_name]['Outputs'].append(param.name)
                     parameters |= set(param.json['Parameters'].keys())
                     constants |= set(param.json['Constants'].keys())
                     inputs |= set(param.json['Inputs'].keys())
                     states |= set(param.json['States'].keys())
-                self.model_def['Models'][model_name]['Parameters'] = list(parameters)
-                self.model_def['Models'][model_name]['Constants'] = list(constants)
-                self.model_def['Models'][model_name]['Inputs'] = list(inputs)
-                self.model_def['Models'][model_name]['States'] = list(states)
+                self.json['Models'][model_name]['Parameters'] = list(parameters)
+                self.json['Models'][model_name]['Constants'] = list(constants)
+                self.json['Models'][model_name]['Inputs'] = list(inputs)
+                self.json['Models'][model_name]['States'] = list(states)
         elif len(model_dict) == 1:
-            self.model_def['Models'] = list(model_dict.keys())[0]
+            self.json['Models'] = list(model_dict.keys())[0]
 
-        if 'Minimizers' not in self.model_def:
-            self.model_def['Minimizers'] = {}
+        if 'Minimizers' not in self.json:
+            self.json['Minimizers'] = {}
         for key, minimize in minimize_dict.items():
-            self.model_def = merge(self.model_def, minimize['A'].json)
-            self.model_def = merge(self.model_def, minimize['B'].json)
-            self.model_def['Minimizers'][key] = {}
-            self.model_def['Minimizers'][key]['A'] = minimize['A'].name
-            self.model_def['Minimizers'][key]['B'] = minimize['B'].name
-            self.model_def['Minimizers'][key]['loss'] = minimize['loss']
+            self.json = merge(self.json, minimize['A'].json)
+            self.json = merge(self.json, minimize['B'].json)
+            self.json['Minimizers'][key] = {}
+            self.json['Minimizers'][key]['A'] = minimize['A'].name
+            self.json['Minimizers'][key]['B'] = minimize['B'].name
+            self.json['Minimizers'][key]['loss'] = minimize['loss']
 
         for key, update_state in update_state_dict.items():
-            self.model_def = merge(self.model_def, update_state.json)
+            self.json = merge(self.json, update_state.json)
 
-        if "SampleTime" in self.model_def['Info']:
-            self.sample_time = self.model_def['Info']["SampleTime"]
+        if "SampleTime" in self.json['Info']:
+            self.sample_time = self.json['Info']["SampleTime"]
 
 
     def __update_state(self, stream_out, state_list_in, UpdateState):
@@ -91,7 +94,7 @@ class ModelDef():
             check(stream_out.dim['dim'] == state_in.dim['dim'], ValueError,
                   f"The dimension of {stream_out.name} is not equal to the dimension of {state_in.name} ({stream_out.dim['dim']}!={state_in.dim['dim']}).")
             if type(stream_out) is Output:
-                stream_name = self.model_def['Outputs'][stream_out.name]
+                stream_name = self.json['Outputs'][stream_out.name]
                 stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
             self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
 
@@ -140,7 +143,7 @@ class ModelDef():
         self.update()
 
     def setBuildWindow(self, sample_time = None):
-        check(self.model_def is not None, RuntimeError, "No model is defined!")
+        check(self.json is not None, RuntimeError, "No model is defined!")
         if sample_time is not None:
             check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
             self.sample_time = sample_time
@@ -148,13 +151,13 @@ class ModelDef():
             if self.sample_time is None:
                 self.sample_time = 1
 
-        self.model_def['Info'] = {"SampleTime": self.sample_time}
+        self.json['Info'] = {"SampleTime": self.sample_time}
 
-        check(self.model_def['Inputs'] | self.model_def['States'] != {}, RuntimeError, "No model is defined!")
-        json_inputs = self.model_def['Inputs'] | self.model_def['States']
+        check(self.json['Inputs'] | self.json['States'] != {}, RuntimeError, "No model is defined!")
+        json_inputs = self.json['Inputs'] | self.json['States']
 
-        for key,value in self.model_def['States'].items():
-            check(closedloop_name in self.model_def['States'][key] or connect_name in self.model_def['States'][key],
+        for key,value in self.json['States'].items():
+            check(closedloop_name in self.json['States'][key] or connect_name in self.json['States'][key],
                   KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
 
         input_tw_backward, input_tw_forward, input_ns_backward, input_ns_forward = {}, {}, {}, {}
@@ -174,10 +177,10 @@ class ModelDef():
             value['ns'] = [input_ns_backward[key], input_ns_forward[key]]
             value['ntot'] = sum(value['ns'])
 
-        self.model_def['Info']['ns'] = [max(input_ns_backward.values()), max(input_ns_forward.values())]
-        self.model_def['Info']['ntot'] = sum(self.model_def['Info']['ns'])
+        self.json['Info']['ns'] = [max(input_ns_backward.values()), max(input_ns_forward.values())]
+        self.json['Info']['ntot'] = sum(self.json['Info']['ns'])
 
-        for k, v in (self.model_def['Parameters']|self.model_def['Constants']).items():
+        for k, v in (self.json['Parameters']|self.json['Constants']).items():
             if 'values' in v:
                 window = 'tw' if 'tw' in v.keys() else ('sw' if 'sw' in v.keys() else None)
                 if window == 'tw':
@@ -185,17 +188,17 @@ class ModelDef():
                       f"{k} has a different number of values for this sample time.")
 
 
-        # if self.model_def['Info']['ns'][0] < 0:
+        # if self.json['Info']['ns'][0] < 0:
         #     self.visualizer.warning(
-        #         f"The input is only in the far past the max_samples_backward is: {self.model_def['Info']['ns'][0]}")
-        # if self.model_def['Info']['ns'][1] < 0:
+        #         f"The input is only in the far past the max_samples_backward is: {self.json['Info']['ns'][0]}")
+        # if self.json['Info']['ns'][1] < 0:
         #     self.visualizer.warning(
-        #         f"The input is only in the far future the max_sample_forward is: {self.model_def['Info']['ns'][1]}")
+        #         f"The input is only in the far future the max_sample_forward is: {self.json['Info']['ns'][1]}")
 
     def updateParameters(self, model):
         if model is not None:
-            for key in self.model_def['Parameters'].keys():
+            for key in self.json['Parameters'].keys():
                 if key in model.all_parameters:
-                    self.model_def['Parameters'][key]['values'] = model.all_parameters[key].tolist()
-                    if 'init_fun' in self.model_def['Parameters'][key]:
-                        del self.model_def['Parameters'][key]['init_fun']
+                    self.json['Parameters'][key]['values'] = model.all_parameters[key].tolist()
+                    if 'init_fun' in self.json['Parameters'][key]:
+                        del self.json['Parameters'][key]['init_fun']
