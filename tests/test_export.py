@@ -76,12 +76,12 @@ class Neu4mesExport(unittest.TestCase):
         # Save torch model and load it
         self.test.neuralizeModel(0.5)
         old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
-        self.test.exporter.saveTorchModel()
+        self.test.saveTorchModel()
         self.test.neuralizeModel(clear_model=True)
         # The new_out is different from the old_out because the model is cleared
         new_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
         # The new_out_after_load is the same as the old_out because the model is loaded with the same parameters
-        self.test.exporter.loadTorchModel()
+        self.test.loadTorchModel()
         new_out_after_load = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
 
         with self.assertRaises(AssertionError):
@@ -91,7 +91,7 @@ class Neu4mesExport(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             test2 = Neu4mes(visualizer=None, workspace = self.result_path)
             # You need not neuralized model to load a torch model
-            test2.exporter.loadTorchModel()
+            test2.loadTorchModel()
 
     def test_export_json_not_neuralized(self):
         if os.path.exists(self.test.getWorkspace()):
@@ -262,8 +262,8 @@ class Neu4mesExport(unittest.TestCase):
         self.test.exportONNX(['x', 'y'], ['out', 'out2', 'out3', 'out4', 'out5', 'out6'])  # Export the onnx model
         # Export only the modelB in onnx format
         self.test.exportONNX(['x', 'y'], ['out3', 'out4', 'out2'], ['modelB'])  # Export the onnx model
-        self.assertEqual(os.path.exists(os.path.join(self.test.getWorkspace(), 'net.onnx')))
-        self.assertEqual(os.path.exists(os.path.join(self.test.getWorkspace(), 'net_modelB.onnx')))
+        self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net.onnx')))
+        self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net_modelB.onnx')))
 
 if __name__ == '__main__':
     unittest.main()

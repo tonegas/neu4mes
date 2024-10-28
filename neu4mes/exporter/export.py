@@ -198,13 +198,13 @@ def import_python_model(name, model_folder):
         module = importlib.import_module(module_name)
     return module.TracerModel()
 
-def export_onnx_model(input_order, output_order, model_def, model, input_n_samples, model_path):
+def export_onnx_model(model_def, model, input_order, output_order, model_path):
     dummy_inputs = []
     input_names = []
     dynamic_axes = {}
     for key in input_order:
         input_names.append(key)
-        window_size = input_n_samples[key]
+        window_size = model_def['Inputs'][key]['ntot']
         dummy_inputs.append(torch.randn(size=(1, window_size, model_def['Inputs'][key]['dim'])))
         dynamic_axes[key] = {0: 'batch_size'}
     output_names = output_order
