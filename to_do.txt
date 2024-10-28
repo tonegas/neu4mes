@@ -1,7 +1,6 @@
 General things to do / note:
-- the training of the NN_round_1 of ARD yields more oscillating results:
-  - when evaluating the NN with the weights trained in Keras, the results in neu4mes are similar to the ones in Keras, apart from some minor
-    oscillations probably due to float32 instead of float64.
+- try open loop evaluation of the mass estimator in keras and in neu4mes, to compare the CPU times
+- the full model of ARD takes a lot to be trained
 - when exporting the json in a net_trained.json, the function torch.searchsorted(x_data, x, right=True) is exported with true instead of True
 - closed loop training: 
   - run a profiler in CLion.
@@ -13,8 +12,8 @@ General things to do / note:
     training should last longer. Instead, it seems that the training lasts the same.
 - The new MPLVisualizer does not work in Python
 - shuffle_flag = True does not work or does not work as expected in closed-loop training
-- test reproducibility of the training
 - the symbolic tracer does not work
+- the user should be able to give each layer (including FIR layers) a custom name, and the same names should appear in the json as well, to make it easier to identify them and load them in a new model as initial weights
 - test with log_internal=True for the closed-loop training --> see the example test_recurrent_train.py
 - the requirements.txt do not work on a new environment (windows), only the requirements_macos_x86.txt work
 - compute the loss function in a consistent way after the training, in the resulting table printed by neu4mes
@@ -30,9 +29,6 @@ General things to do / note:
 - rewrite the function init_negexp: it should be centered around the present time step, and it should be decaying exponentially in the past and in the future.
 - function to interpolate the imported datasets at a rate given by the user
 - handle multiple datasets (or a single dataset that contains multiple independent datasets) when training in closed-loop
-
-Closed-loop training:
-- when training in open-loop and then re-training in closed-loop, the NN seems to swap the parameters of the FIR auto-regressive and the standard FIR layers. Check this better.
 
 Jupyter Notebook:
 - the MPLVisulizer does not seem to work in the notebook
