@@ -1,5 +1,7 @@
 import copy
 
+import numpy as np
+
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.utils import check, merge
 from neu4mes.relation import MAIN_JSON, Stream
@@ -72,6 +74,7 @@ class ModelDef():
 
         if "SampleTime" in self.model_def['Info']:
             self.sample_time = self.model_def['Info']["SampleTime"]
+
 
     def __update_state(self, stream_out, state_list_in, UpdateState):
         from neu4mes.input import  State
@@ -170,6 +173,15 @@ class ModelDef():
 
         self.model_def['Info']['ns'] = [max(input_ns_backward.values()), max(input_ns_forward.values())]
         self.model_def['Info']['ntot'] = sum(self.model_def['Info']['ns'])
+
+        for k, v in (self.model_def['Parameters']|self.model_def['Constants']).items():
+            if 'values' in v:
+                window = 'tw' if 'tw' in v.keys() else ('sw' if 'sw' in v.keys() else None)
+                if window == 'tw':
+                    check(np.array(v['values']).shape[0] == v['tw']/self.sample_time, ValueError,
+                      f"{k} has a different number of values for this sample time.")
+
+
         # if self.model_def['Info']['ns'][0] < 0:
         #     self.visualizer.warning(
         #         f"The input is only in the far past the max_samples_backward is: {self.model_def['Info']['ns'][0]}")

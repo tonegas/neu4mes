@@ -349,6 +349,7 @@ class Neu4mes:
         self.max_n_samples = max(input_ns_backward.values()) + max(input_ns_forward.values())
 
         self.neuralized = True
+        self.traced = False
         self.visualizer.showModel(self.model_def.model_def)
         self.visualizer.showModelInputWindow()
         self.visualizer.showBuiltModel()
@@ -1049,7 +1050,11 @@ class Neu4mes:
             name = 'net'
         model_def = self.exporter.loadModel(name, model_folder)
         if model_def:
-            self.neuralizeModel(model_def=model_def)
+            self.model_def = ModelDef()
+            self.model_def.update(model_def)
+            self.model = None
+            self.neuralized = False
+            self.traced = False
 
     def exportPythonModel(self, name = 'net', model_path = None):
         check(self.model_def['States'] == {}, TypeError, "The network has state variables. The export to python is not possible.")
@@ -1061,10 +1066,11 @@ class Neu4mes:
         if name is None:
             name = 'net'
         model_def = self.exporter.loadModel(name, model_folder)
-        self.neuralizeModel(model_def=model_def)
-        self.model = self.exporter.importPythonModel(name, model_folder)
-        self.traced = True
-        self.model_def.updateParameters(self.model)
+        if model_def is not None:
+            self.neuralizeModel(model_def=model_def)
+            self.model = self.exporter.importPythonModel(name, model_folder)
+            self.traced = True
+            self.model_def.updateParameters(self.model)
 
     def exportONNX(self, inputs_order, outputs_order,  models = None, name = 'net', model_path = None):
         check(self.model_def is not None, TypeError, "The network has not been defined.")

@@ -209,7 +209,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         input1 = Input('in1')
         rel = Fir(input1.tw([0.03,0.04]))
         fun = Output('out', rel)
-        test = Neu4mes()
+        test = Neu4mes(visualizer=None)
         test.addModel('fun',fun)
         test.neuralizeModel(0.01)
 
@@ -329,7 +329,7 @@ class Neu4mesNetworkBuildingTest(unittest.TestCase):
         self.assertEqual(6,test.model_def['Info']['ntot'])
 
     def test_example_rotto(self):
-        test = Neu4mes(seed=42)
+        test = Neu4mes(visualizer=None, seed=42)
         x = Input('x')
         y = Input('y')
         z = Input('z')

@@ -56,7 +56,7 @@ class StandardExporter(Exporter):
             model_def = load_model(model_path)
             self.n4m.visualizer.loadModel('JSON Model', model_path)
         except Exception as e:
-            self.n4m.visualizer.warning(f"The file {model_path} it is not found or not conformed.\n Error: {e}")
+            check(False, RuntimeError, f"The file {model_path} it is not found or not conformed.\n Error: {e}")
         return model_def
 
     def exportPythonModel(self, name = 'net', model_folder = None):
@@ -74,7 +74,8 @@ class StandardExporter(Exporter):
             model = import_python_model(name, model_folder)
             self.n4m.visualizer.importModel('Python Torch Model', os.path.join(model_folder,name+'.py'))
         except Exception as e:
-            self.n4m.visualizer.warning(f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
+            model = None
+            check(False, RuntimeError, f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
         return model
 
     def exportONNX(self, inputs_order, outputs_order, name = 'net', model_folder = None):

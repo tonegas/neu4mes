@@ -1,4 +1,4 @@
-import sys, os, torch
+import sys, os, torch, importlib
 from collections import OrderedDict
 
 from torch.fx import symbolic_trace
@@ -42,7 +42,7 @@ def export_python_model(model_def, model, model_path):
     # Get the symbolic tracer
     with torch.no_grad():
         trace = symbolic_trace(model)
-    attributes = set([line for line in trace.code.split() if 'self.' in line])
+    attributes = sorted(set([line for line in trace.code.split() if 'self.' in line]))
     saved_functions = []
 
     with open(model_path, 'w') as file:
@@ -106,7 +106,7 @@ def export_python_model(model_def, model, model_path):
                 if 'Fir' in key or 'Linear' in key:
                     if 'weights' in attr.split('.')[3]:
                         param = model_def['Relations'][key][2]
-                        value = model.all_parameters[param].squeeze(0) if 'Linear' in key else model.all_parameters[param]
+                        value = model.all_parameters[param] #.squeeze(0) if 'Linear' in key else model.all_parameters[param]
                         file.write(
                             f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.tensor({value.tolist()}), requires_grad=True)\n")
                     elif 'bias' in attr.split('.')[3]:
@@ -190,7 +190,12 @@ def export_pythononnx_model(input_order, outputs_order, model_path, model_onnx_p
 def import_python_model(name, model_folder):
     sys.path.insert(0, model_folder)
     module_name = os.path.basename(name)
-    module = __import__(module_name)
+    if module_name in sys.modules:
+        # Reload the module if it is already loaded
+        module = importlib.reload(sys.modules[module_name])
+    else:
+        # Import the module if it is not loaded
+        module = importlib.import_module(module_name)
     return module.TracerModel()
 
 def export_onnx_model(input_order, output_order, model_def, model, input_n_samples, model_path):
