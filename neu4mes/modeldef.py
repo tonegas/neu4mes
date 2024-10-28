@@ -28,6 +28,9 @@ class ModelDef():
     def __setitem__(self, key, value):
         self.model_def[key] = value
 
+    def isDefined(self):
+        return self.model_def is not None
+
     def update(self, model_def = MAIN_JSON, model_dict = None, minimize_dict = None, update_state_dict = None):
         self.model_def = copy.deepcopy(model_def)
         model_dict = copy.deepcopy(model_dict) if model_dict is not None else self.model_dict

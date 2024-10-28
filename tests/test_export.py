@@ -210,7 +210,60 @@ class Neu4mesExport(unittest.TestCase):
         new_out_after_load = test2({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
         self.assertEqual(old_out, new_out_after_load)
 
+    def test_export_trained_torch_script(self):
+        if os.path.exists(self.test.getWorkspace()):
+            shutil.rmtree(self.test.getWorkspace())
+            os.makedirs('./results', exist_ok=True)
+        # Perform training on an imported tracer model
+        data_x = np.arange(0.0, 1, 0.1)
+        data_y = np.arange(0.0, 1, 0.1)
+        a, b = -1.0, 2.0
+        dataset = {'x': data_x, 'y': data_y, 'z': a * data_x + b * data_y}
+        params = {'num_of_epochs': 1, 'lr': 0.01}
+        self.test.neuralizeModel(0.5,clear_model=True)
+        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.exportPythonModel()  # Export the trace model
+        self.test.loadData(name='dataset', source=dataset)  # Create the dataset
+        self.test.trainModel(optimizer='SGD', training_params=params)  # Train the traced model
+        new_out_after_train = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        with self.assertRaises(AssertionError):
+             self.assertEqual(old_out, new_out_after_train)
 
+    def test_export_torch_script_new_object_train(self):
+        if os.path.exists(self.test.getWorkspace()):
+            shutil.rmtree(self.test.getWorkspace())
+            os.makedirs('./results', exist_ok=True)
+        # Perform training on an imported new tracer model
+        self.test.neuralizeModel(0.5, clear_model=True)
+        old_out = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        self.test.exportPythonModel()  # Export the trace model
+        data_x = np.arange(0.0, 1, 0.1)
+        data_y = np.arange(0.0, 1, 0.1)
+        a, b = -1.0, 2.0
+        dataset = {'x': data_x, 'y': data_y, 'z': a * data_x + b * data_y}
+        params = {'num_of_epochs': 1, 'lr': 0.01}
+        self.test.loadData(name='dataset', source=dataset)  # Create the dataset
+        self.test.trainModel(optimizer='SGD', training_params=params)  # Train the traced model
+        old_out_after_train = self.test({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        with self.assertRaises(AssertionError):
+             self.assertEqual(old_out, old_out_after_train)
+        test2 = Neu4mes(visualizer=None, workspace=self.test.getWorkspace())
+        test2.importPythonModel()  # Load the neu4mes model with parameter values
+        test2.loadData(name='dataset', source=dataset)  # Create the dataset
+        test2.trainModel(optimizer='SGD', training_params=params)  # Train the traced model
+        new_out_after_train = test2({'x': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'y': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]})
+        with self.assertRaises(AssertionError):
+             self.assertEqual(old_out, new_out_after_train)
+        self.assertEqual(old_out_after_train, new_out_after_train)
+
+    def test_export_onnx(self):
+        self.test.neuralizeModel(0.5, clear_model=True)
+        # Export the all models in onnx format
+        self.test.exportONNX(['x', 'y'], ['out', 'out2', 'out3', 'out4', 'out5', 'out6'])  # Export the onnx model
+        # Export only the modelB in onnx format
+        self.test.exportONNX(['x', 'y'], ['out3', 'out4', 'out2'], ['modelB'])  # Export the onnx model
+        self.assertEqual(os.path.exists(os.path.join(self.test.getWorkspace(), 'net.onnx')))
+        self.assertEqual(os.path.exists(os.path.join(self.test.getWorkspace(), 'net_modelB.onnx')))
 
 if __name__ == '__main__':
     unittest.main()

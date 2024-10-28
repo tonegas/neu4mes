@@ -1,4 +1,5 @@
 import os, sys, torch
+
 from datetime import datetime
 
 from neu4mes.exporter.exporter import Exporter
@@ -7,34 +8,23 @@ from neu4mes.exporter.export import save_model, load_model, export_python_model,
 from neu4mes.utils import check
 
 class StandardExporter(Exporter):
-    def __init__(self, workspace=None, save_history=False):
-        # Export parameters
-        if workspace is not None:
-            self.workspace = workspace
-            os.makedirs(self.workspace, exist_ok=True)
-            if save_history:
-                self.folder = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-                self.workspace_folder = os.path.join(self.workspace, self.folder)
-            else:
-                self.workspace_folder = self.workspace
-            os.makedirs(self.workspace_folder, exist_ok=True)
+    def __init__(self, workspace=None, visualizer=None, save_history=False):
+        super().__init__(workspace, visualizer, save_history)
 
     def getWorkspace(self):
         return self.workspace_folder
 
-    def saveTorchModel(self, name = 'net', model_folder = None): #TODO, model = None)
-        check(self.n4m.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
+    def saveTorchModel(self, model, name = 'net', model_folder = None):
         file_name = name + ".pt"
         model_path = os.path.join(self.workspace_folder, file_name) if model_folder is None else os.path.join(model_folder,file_name)
-        torch.save(self.n4m.model.state_dict(), model_path)
-        self.n4m.visualizer.saveModel('Torch Model', model_path)
+        torch.save(model.state_dict(), model_path)
+        self.visualizer.saveModel('Torch Model', model_path)
 
-    def loadTorchModel(self, name = 'net', model_folder = None): #TODO, model = None):
-        check(self.n4m.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
+    def loadTorchModel(self, model, name = 'net', model_folder = None): #TODO, model = None):
         file_name = name + ".pt"
         model_path = os.path.join(self.workspace_folder, file_name) if model_folder is None else os.path.join(model_folder,file_name)
-        self.n4m.model.load_state_dict(torch.load(model_path))
-        self.n4m.visualizer.loadModel('Torch Model',model_path)
+        model.load_state_dict(torch.load(model_path))
+        self.visualizer.loadModel('Torch Model',model_path)
 
     def saveModel(self, model_def, name = 'net', model_folder = None):
         # Combine the folder path and file name to form the complete file path
@@ -78,9 +68,7 @@ class StandardExporter(Exporter):
             check(False, RuntimeError, f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
         return model
 
-    def exportONNX(self, inputs_order, outputs_order, name = 'net', model_folder = None):
-        check(self.n4m.traced == False, RuntimeError, 'The model is traced and cannot be exported to ONNX.\n Run neuralizeModel() to recreate a standard model.')
-        check(self.n4m.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
+    def exportONNX(self, model_def, model, inputs_order, outputs_order, name = 'net', model_folder = None, ):
         check(set(inputs_order) == set(self.n4m.model_def['Inputs'].keys()), ValueError,
               f'The inputs are not the same as the model inputs ({self.n4m.model_def["Inputs"].keys()}).')
         check(set(outputs_order) == set(self.n4m.model_def['Outputs'].keys()), ValueError,
@@ -93,13 +81,13 @@ class StandardExporter(Exporter):
         onnx_python_model_path = model_path.replace('.py', '_onnx.py')
         onnx_model_path = model_path.replace('.py', '.onnx')
         ## Export to python file (onnx compatible)
-        export_python_model(self.n4m.model_def, self.n4m.model, model_path)
+        export_python_model(model_def, model, model_path)
         self.n4m.visualizer.exportModel('Python Torch Model', model_path)
         export_pythononnx_model(inputs_order, outputs_order, model_path, onnx_python_model_path)
         self.n4m.visualizer.exportModel('Python Onnx Torch Model', onnx_python_model_path)
         ## Export to onnx file (onnx compatible)
         model = import_python_model(file_name.replace('.py', '_onnx'), model_folder)
-        export_onnx_model(inputs_order, outputs_order, self.n4m.model_def, model, self.n4m.input_n_samples, onnx_model_path)
+        export_onnx_model(inputs_order, outputs_order, model_def, model, onnx_model_path)
         self.n4m.visualizer.exportModel('Onnx Model', onnx_model_path)
 
     def importONNX(self, name = 'net', model_folder = None):

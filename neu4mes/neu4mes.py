@@ -41,12 +41,11 @@ class Neu4mes:
 
         # Exporter
         if exporter == 'Standard':
-            self.exporter = StandardExporter(workspace, save_history)
+            self.exporter = StandardExporter(workspace, self.visualizer, save_history)
         elif exporter != None:
             self.exporter = exporter
         else:
             self.exporter = Exporter()
-        self.exporter.set_n4m(self)
 
         ## Set the random seed for reproducibility
         if seed is not None:
@@ -1039,11 +1038,32 @@ class Neu4mes:
     def getWorkspace(self):
         return self.exporter.getWorkspace()
 
-    def saveModel(self, name = 'net', model_path = None):
+    def saveTorchModel(self, name = 'net', model_folder = None, models = None):
+        check(self.n4m.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
+        if models is not None:
+            model_def = ModelDef()
+            model_def.update(model_dict = {key: self.model_dict[key] for key in models if key in self.model_dict})
+            model_def.setBuildWindow(self.model_def['Info']['SampleTime'])
+            model_def.updateParameters(self.model)
+            model = Model(model_def)
+        else:
+            model = self.model
+        self.exporter.saveTorchModel(model, name, model_folder)
+
+    def loadTorchModel(self, name = 'net', model_folder = None):
+        check(self.n4m.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
+        self.exporter.loadTorchModel(self.model, name, model_folder)
+
+    def saveModel(self, name = 'net', model_path = None, models = None):
+        if models is not None:
+            model_def = ModelDef()
+            model_def.update(model_dict = {key: self.model_dict[key] for key in models if key in self.model_dict})
+            model_def.setBuildWindow(self.model_def['Info']['SampleTime'])
+            model_def.updateParameters(self.model)
+        else:
+            model_def = self.model_def
         if self.model_def is not None:
-            self.exporter.saveModel(self.model_def.model_def, name, model_path)
-        # if self.model_def_values is not None:
-        #     self.exporter.saveModel(self.model_def_values, name + '_trained', model_path)
+            self.exporter.saveModel(model_def, name, model_path)
 
     def loadModel(self, name = None, model_folder = None):
         if name is None:
@@ -1058,7 +1078,7 @@ class Neu4mes:
 
     def exportPythonModel(self, name = 'net', model_path = None):
         check(self.model_def['States'] == {}, TypeError, "The network has state variables. The export to python is not possible.")
-        if self.model_def is not None:
+        if self.model_def.isDefined():
             self.exporter.saveModel(self.model_def.model_def, name, model_path)
             self.exporter.exportPythonModel(name, model_path)
 
@@ -1066,26 +1086,23 @@ class Neu4mes:
         if name is None:
             name = 'net'
         model_def = self.exporter.loadModel(name, model_folder)
-        if model_def is not None:
+        if model_def.isDefined():
             self.neuralizeModel(model_def=model_def)
             self.model = self.exporter.importPythonModel(name, model_folder)
             self.traced = True
             self.model_def.updateParameters(self.model)
 
     def exportONNX(self, inputs_order, outputs_order,  models = None, name = 'net', model_path = None):
-        check(self.model_def is not None, TypeError, "The network has not been defined.")
-        old_model_def = copy.deepcopy(self.model_def)
-        model_def = copy.deepcopy(MAIN_JSON)
-        model_def['Info']['SampleTime'] = self.model_def['Info']['SampleTime']
-        if models is None:
-            self.__update_model(model_def, minimize_dict={})
-        else:
-            name += '_' + '_'.join(models)
-            self.__update_model(model_def, {key: self.model_dict[key] for key in models if key in self.model_dict}, minimize_dict={})
-        model_def = self.__get_torch_model()
-        self.__neuralize_model(model_def)
-        self.exporter.exportONNX(inputs_order, outputs_order, name, model_path)
-        self.__neuralize_model(old_model_def)
+        check(self.model_def.isDefined(), RuntimeError, "The network has not been defined.")
+        check(self.traced == False, RuntimeError, 'The model is traced and cannot be exported to ONNX.\n Run neuralizeModel() to recreate a standard model.')
+        check(self.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
+        model_def = ModelDef()
+        model_def.update(model_dict = {key: self.model_dict[key] for key in models if key in self.model_dict})
+        model_def.setBuildWindow(self.model_def['Info']['SampleTime'])
+        model_def.updateParameters(self.model)
+        model = Model(model_def)
+        self.exporter.exportONNX(model_def, model, inputs_order, outputs_order, name, model_path)
+
 
     def exportReport(self, name = 'net', model_path = None):
         self.exporter.exportReport(name, model_path)

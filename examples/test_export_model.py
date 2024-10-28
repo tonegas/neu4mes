@@ -158,7 +158,7 @@ print("-----------------------------------EXAMPLE 8-----------------------------
 # Perform training on an imported new tracer model
 test2.loadData(name='dataset', source=dataset) # Create the dataset
 test2.trainModel(optimizer='SGD',training_params=params) # Train the traced model
-new_out_after_trai_new = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
+new_out_after_trai_new = test2({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 print('new_out_after_train: ', new_out_after_train)
 print('new_out_after_trai_new: ', new_out_after_trai_new)
 print(f'the output are equal: {new_out_after_train == new_out_after_trai_new}')

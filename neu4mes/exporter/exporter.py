@@ -1,10 +1,33 @@
+import os
+
+from datetime import datetime
+
+from neu4mes.visualizer import  Visualizer
+
 class Exporter():
 
-    def __init__(self):
+    def __init__(self, workspace = None, visualizer = None, save_history = False):
+        # Export parameters
+        if workspace is not None:
+            self.workspace = workspace
+            os.makedirs(self.workspace, exist_ok=True)
+            if save_history:
+                self.folder = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+                self.workspace_folder = os.path.join(self.workspace, self.folder)
+            else:
+                self.workspace_folder = self.workspace
+            os.makedirs(self.workspace_folder, exist_ok=True)
+
+        if visualizer is not None:
+            self.visualizer = visualizer
+        else:
+            self.visualizer = Visualizer()
+
+    def saveTorchModel(self, model, name = 'net', model_folder = None):
         pass
 
-    def set_n4m(self, n4m):
-        self.n4m = n4m
+    def loadTorchModel(self, name = 'net', model_folder = None):
+        pass
 
     def saveModel(self, model, name = 'net', model_folder = None):
         pass
