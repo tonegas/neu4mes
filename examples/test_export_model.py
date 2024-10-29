@@ -40,12 +40,13 @@ sample_select = SampleSelect(x.sw(5),i=1)
 def fuzzyfun(x):
     return torch.tan(x)
 fuzzy = Fuzzify(output_dimension=4, range=[0,4], functions=fuzzyfun)(x.tw(1))
+fuzzyTriang = Fuzzify(centers=[1,2,3,7])(x.tw(1))
 
 out = Output('out', Fir(parfun_x(x.tw(1))+parfun_y(y.tw(1),c_v)))
 #out = Output('out', Fir(parfun_x(x.tw(1))+parfun_y(y.tw(1),c_v)+parfun_z(x.tw(5),t_5,c_5)))
 out2 = Output('out2', Add(w,x.tw(1))+Add(t,y.tw(1))+Add(w,c))
 out3 = Output('out3', Add(fir_w, fir_t))
-out4 = Output('out4', Linear(output_dimension=1)(fuzzy))
+out4 = Output('out4', Linear(output_dimension=1)(fuzzy+fuzzyTriang))
 out5 = Output('out5', Fir(time_part)+Fir(sample_select))
 out6 = Output('out6', LocalModel(output_function = Fir())(x.tw(1),fuzzy))
 
