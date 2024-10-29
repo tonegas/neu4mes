@@ -17,14 +17,9 @@ class Constant(NeuObj, Stream):
                  sw:int|None = None):
 
         NeuObj.__init__(self, name)
-        if type(values) is np.ndarray:
-            shape = values.shape
-            values = values.tolist()
-        elif is_numpy_float(values):
-            shape = values.shape
-            values = values.tolist()
-        else:
-            shape = np.array(values).shape
+        values = np.array(values)
+        shape = values.shape
+        values = values.tolist()
         if len(shape) == 0:
             self.dim = {'dim': 1}
         else:
@@ -65,20 +60,15 @@ class Parameter(NeuObj, Stream):
             if tw is not None:
                 check(sw is None, ValueError, "If tw is set sw must be None")
                 self.dim['tw'] = tw
-            if sw is not None:
+            elif sw is not None:
                 self.dim['sw'] = sw
 
             # deepcopy dimention information inside Parameters
             self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
         else:
-            if type(values) is np.ndarray:
-                shape = values.shape
-                values = values.tolist()
-            elif is_numpy_float(values):
-                shape = values.shape
-                values = values.tolist()
-            else:
-                shape = np.array(values).shape
+            values = np.array(values)
+            shape = values.shape
+            values = values.tolist()
             check(len(shape) >= 2, ValueError,
                   f"The shape of a parameter must have at least 2 dimensions.")
             values_dimensions = shape[1] if len(shape[1:]) == 1 else list(shape[1:])
