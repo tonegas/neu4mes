@@ -6,6 +6,9 @@ from collections.abc import Callable
 from neu4mes.relation import NeuObj, Stream
 from neu4mes.utils import check, enforce_types
 
+def is_numpy_float(var):
+    return isinstance(var, (np.float16, np.float32, np.float64))
+
 class Constant(NeuObj, Stream):
     @enforce_types
     def __init__(self, name:str,
@@ -15,8 +18,11 @@ class Constant(NeuObj, Stream):
 
         NeuObj.__init__(self, name)
         if type(values) is np.ndarray:
-            values = values.tolist()
             shape = values.shape
+            values = values.tolist()
+        elif is_numpy_float(values):
+            shape = values.shape
+            values = values.tolist()
         else:
             shape = np.array(values).shape
         if len(shape) == 0:
@@ -67,8 +73,11 @@ class Parameter(NeuObj, Stream):
             self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
         else:
             if type(values) is np.ndarray:
-                values = values.tolist()
                 shape = values.shape
+                values = values.tolist()
+            elif is_numpy_float(values):
+                shape = values.shape
+                values = values.tolist()
             else:
                 shape = np.array(values).shape
             check(len(shape) >= 2, ValueError,
