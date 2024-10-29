@@ -1,9 +1,15 @@
-import subprocess, json, torch, inspect
+import subprocess, json, os, importlib
 
 from neu4mes.visualizer.textvisualizer import TextVisualizer
 from neu4mes.fuzzify import return_fuzzify
 from neu4mes.parametricfunction import return_standard_inputs, return_function
 from neu4mes.utils import check
+
+def get_library_path(library_name):
+    spec = importlib.util.find_spec(library_name)
+    if spec is None:
+        raise ImportError(f"Library {library_name} not found")
+    return os.path.dirname(spec.origin)
 
 class MPLVisualizer(TextVisualizer):
     def __init__(self, verbose = 1):
@@ -11,10 +17,11 @@ class MPLVisualizer(TextVisualizer):
         # Path to the data visualizer script
         import signal
         import sys
-        self.training_visualizer_script = 'neu4mes/visualizer/dynamicmpl/trainingplot.py'
-        self.time_series_visualizer_script = 'neu4mes/visualizer/dynamicmpl/resultsplot.py'
-        self.fuzzy_visualizer_script = 'neu4mes/visualizer/dynamicmpl/fuzzyplot.py'
-        self.function_visualizer_script = 'neu4mes/visualizer/dynamicmpl/functionplot.py'
+        get_library_path('neu4mes')
+        self.training_visualizer_script = os.path.join(get_library_path('neu4mes'),'visualizer/dynamicmpl/trainingplot.py')
+        self.time_series_visualizer_script = os.path.join(get_library_path('neu4mes'),'visualizer/dynamicmpl/resultsplot.py')
+        self.fuzzy_visualizer_script = os.path.join(get_library_path('neu4mes'),'visualizer/dynamicmpl/fuzzyplot.py')
+        self.function_visualizer_script = os.path.join(get_library_path('neu4mes'),'visualizer/dynamicmpl/functionplot.py')
         self.process_training = {}
         self.process_results = {}
         self.process_function = {}
