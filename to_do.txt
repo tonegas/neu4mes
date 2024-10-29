@@ -1,5 +1,8 @@
 General things to do / note:
-- try open loop evaluation of the mass estimator in keras and in neu4mes, to compare the CPU times
+- Once the symbolic tracing works, we can do the following to speed-up the training:
+  - model.exportPythonModel() --> this will export the model in a Python script and will do the tracing
+  - model.importPythonModel() --> import the traced model
+  - jit compile in Pytorch or other tricks to pre-compile the model and speed-up the training
 - the full model of ARD takes a lot to be trained
 - when exporting the json in a net_trained.json, the function torch.searchsorted(x_data, x, right=True) is exported with true instead of True
 - closed loop training: 
