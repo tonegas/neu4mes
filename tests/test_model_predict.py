@@ -1022,7 +1022,7 @@ class MyTestCase(unittest.TestCase):
         test = Neu4mes(visualizer=None)
         test.addModel('out',[out_tw3, out_tw32,
                        in_TP1first, in_TP1mid, in_TP1last, in_TP1all, in_TP1off1, in_TP1off2, in_TP1off3])
-        test.neuralizeModel()
+        test.neuralizeModel(1)
         results = test({'in1': [0, 1, 2, 3, 4, 5, 6, 7]})
 
         self.assertEqual((1, 3), np.array(results['in_tw3']).shape)
@@ -1114,7 +1114,7 @@ class MyTestCase(unittest.TestCase):
         test.addModel('out',[out_tw3, out_tw32,
                        in_P1first, in_P1mid, in_P1last, in_P1all,
                        in_S1, in_S2, in_S3, in_S4])
-        test.neuralizeModel()
+        test.neuralizeModel(1)
         results = test({'in1': [[0,1,2,4], [1,3,4,5], [2,5,6,7], [3,3,4,1], [4,4,6,7], [5,6,7,8], [6,7,5,4],[7,2,3,1]]})
 
         self.assertEqual((1, 3, 4), np.array(results['in_tw3']).shape)

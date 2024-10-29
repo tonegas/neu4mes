@@ -6,6 +6,9 @@ from collections.abc import Callable
 from neu4mes.relation import NeuObj, Stream
 from neu4mes.utils import check, enforce_types
 
+def is_numpy_float(var):
+    return isinstance(var, (np.float16, np.float32, np.float64))
+
 class Constant(NeuObj, Stream):
     @enforce_types
     def __init__(self, name:str,
@@ -14,11 +17,9 @@ class Constant(NeuObj, Stream):
                  sw:int|None = None):
 
         NeuObj.__init__(self, name)
-        if type(values) is np.ndarray:
-            values = values.tolist()
-            shape = values.shape
-        else:
-            shape = np.array(values).shape
+        values = np.array(values)
+        shape = values.shape
+        values = values.tolist()
         if len(shape) == 0:
             self.dim = {'dim': 1}
         else:
@@ -61,17 +62,13 @@ class Parameter(NeuObj, Stream):
                 self.dim['tw'] = tw
             elif sw is not None:
                 self.dim['sw'] = sw
-            else:
-                self.dim['sw'] = 1
 
             # deepcopy dimention information inside Parameters
             self.json['Parameters'][self.name] = copy.deepcopy(self.dim)
         else:
-            if type(values) is np.ndarray:
-                values = values.tolist()
-                shape = values.shape
-            else:
-                shape = np.array(values).shape
+            values = np.array(values)
+            shape = values.shape
+            values = values.tolist()
             check(len(shape) >= 2, ValueError,
                   f"The shape of a parameter must have at least 2 dimensions.")
             values_dimensions = shape[1] if len(shape[1:]) == 1 else list(shape[1:])

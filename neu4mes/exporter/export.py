@@ -1,4 +1,4 @@
-import sys, os, torch
+import sys, os, torch, importlib
 from collections import OrderedDict
 
 from torch.fx import symbolic_trace
@@ -34,14 +34,30 @@ def save_model(model, model_path):
 
 def load_model(model_path):
     import json
-    json_file = open(model_path, )
-    return json.load(json_file)
+    with open(model_path, 'r', encoding='UTF-8') as file:
+        model_def = json.load(file)
+    return model_def
 
 def export_python_model(model_def, model, model_path):
     # Get the symbolic tracer
     with torch.no_grad():
         trace = symbolic_trace(model)
-    attributes = set([line for line in trace.code.split() if 'self.' in line])
+
+    ## Standard way to modify the graph
+    # # Replace all _tensor_constant variables with their constant values
+    # for node in trace.graph.nodes:
+    #     if node.op == 'get_attr' and node.target.startswith('_tensor_constant'):
+    #         constant_value = getattr(model, node.target).item()
+    #         with trace.graph.inserting_after(node):
+    #             new_node = trace.graph.create_node('call_function', torch.tensor, (constant_value,))
+    #         node.replace_all_uses_with(new_node)
+    #         trace.graph.erase_node(node)
+    #
+    # # Recompile the graph
+    # trace.recompile()
+    ## Standard way to modify the graph
+
+    attributes = sorted(set([line for line in trace.code.split() if 'self.' in line]))
     saved_functions = []
 
     with open(model_path, 'w') as file:
@@ -105,7 +121,7 @@ def export_python_model(model_def, model, model_path):
                 if 'Fir' in key or 'Linear' in key:
                     if 'weights' in attr.split('.')[3]:
                         param = model_def['Relations'][key][2]
-                        value = model.all_parameters[param].squeeze(0) if 'Linear' in key else model.all_parameters[param]
+                        value = model.all_parameters[param] #.squeeze(0) if 'Linear' in key else model.all_parameters[param]
                         file.write(
                             f"        self.all_parameters[\"{param}\"] = torch.nn.Parameter(torch.tensor({value.tolist()}), requires_grad=True)\n")
                     elif 'bias' in attr.split('.')[3]:
@@ -124,6 +140,10 @@ def export_python_model(model_def, model, model_path):
                 key = attr.split('.')[-1]
                 file.write(
                     f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.tensor({model.all_parameters[key].tolist()}), requires_grad=True)\n")
+            elif '_tensor_constant' in attr:
+                key = attr.split('.')[-1]
+                file.write(
+                    f"        {attr} = torch.tensor({getattr(model,key).item()})\n")
 
         file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
         file.write("        self.all_constants = torch.nn.ParameterDict(self.all_constants)\n")
@@ -189,16 +209,21 @@ def export_pythononnx_model(input_order, outputs_order, model_path, model_onnx_p
 def import_python_model(name, model_folder):
     sys.path.insert(0, model_folder)
     module_name = os.path.basename(name)
-    module = __import__(module_name)
+    if module_name in sys.modules:
+        # Reload the module if it is already loaded
+        module = importlib.reload(sys.modules[module_name])
+    else:
+        # Import the module if it is not loaded
+        module = importlib.import_module(module_name)
     return module.TracerModel()
 
-def export_onnx_model(input_order, output_order, model_def, model, input_n_samples, model_path):
+def export_onnx_model(model_def, model, input_order, output_order, model_path):
     dummy_inputs = []
     input_names = []
     dynamic_axes = {}
     for key in input_order:
         input_names.append(key)
-        window_size = input_n_samples[key]
+        window_size = model_def['Inputs'][key]['ntot']
         dummy_inputs.append(torch.randn(size=(1, window_size, model_def['Inputs'][key]['dim'])))
         dynamic_axes[key] = {0: 'batch_size'}
     output_names = output_order

@@ -14,6 +14,7 @@ from neu4mes.model import Model
 from neu4mes.utils import check, argmax_max, argmin_min, merge, tensor_to_list
 from neu4mes.optimizer import Optimizer, SGD, Adam
 from neu4mes.exporter import Exporter, StandardExporter
+from neu4mes.modeldef import ModelDef
 
 from neu4mes import LOG_LEVEL
 from neu4mes.logger import logging
@@ -40,12 +41,11 @@ class Neu4mes:
 
         # Exporter
         if exporter == 'Standard':
-            self.exporter = StandardExporter(workspace, save_history)
+            self.exporter = StandardExporter(workspace, self.visualizer, save_history)
         elif exporter != None:
             self.exporter = exporter
         else:
             self.exporter = Exporter()
-        self.exporter.set_n4m(self)
 
         ## Set the random seed for reproducibility
         if seed is not None:
@@ -58,23 +58,12 @@ class Neu4mes:
         if self.log_internal == True:
             self.internals = {}
 
-        # Inizialize the model definition
-        self.model_dict = {}
-        self.minimize_dict = {}
-        self.update_state_dict = {}
-
         # Models definition
-        self.model_def_loaded = None
-        self.model_def = None
-        self.model_def_values = None
-
-        # Network Parametrs
-        self.input_tw_backward, self.input_tw_forward = {}, {}
-        self.input_ns_backward, self.input_ns_forward = {}, {}
+        self.model_def = ModelDef()
         self.input_n_samples = {}
-        self.max_samples_backward, self.max_samples_forward = 0, 0
         self.max_n_samples = 0
         self.neuralized = False
+        self.traced = False
         self.model = None
 
         # Dataaset Parameters
@@ -118,7 +107,7 @@ class Neu4mes:
         connect = copy.deepcopy(connect)
 
         ## Check neuralize
-        check(self.neuralized, ValueError, "The network is not neuralized.")
+        check(self.neuralized, RuntimeError, "The network is not neuralized.")
 
         ## Bild the list of inputs
         model_inputs = list(self.model_def['Inputs'].keys())
@@ -313,174 +302,55 @@ class Neu4mes:
             print('The Dataset must first be loaded using <loadData> function!')
             return {}
 
-    # Use this function for build the model_def from the ditionaries: model_dict, minimize_dict, update_state_dict
-    def __update_model(self, model_def = MAIN_JSON, model_dict = None, minimize_dict = None, update_state_dict = None):
-        self.model_def = copy.deepcopy(model_def)
-        model_dict = copy.deepcopy(model_dict) if model_dict is not None else self.model_dict
-        minimize_dict = copy.deepcopy(minimize_dict) if minimize_dict is not None else self.minimize_dict
-        update_state_dict = copy.deepcopy(update_state_dict) if update_state_dict is not None else self.update_state_dict
-
-        # Add models to the model_def
-        for key, stream_list in model_dict.items():
-            for stream in stream_list:
-                self.model_def = merge(self.model_def, stream.json)
-        if len(model_dict) > 1:
-            if 'Models' not in self.model_def:
-                self.model_def['Models'] = {}
-            for model_name, model_params in model_dict.items():
-                self.model_def['Models'][model_name] = {'Inputs':[], 'States':[], 'Outputs':[], 'Parameters':[], 'Constants':[]}
-                for param in model_params:
-                    self.model_def['Models'][model_name]['Outputs'].append(param.name)
-                    self.model_def['Models'][model_name]['Parameters'] += list(set(param.json['Parameters'].keys()))
-                    self.model_def['Models'][model_name]['Constants'] += list(set(param.json['Constants'].keys()))
-                    self.model_def['Models'][model_name]['Inputs'] += list(set(param.json['Inputs'].keys()))
-                    self.model_def['Models'][model_name]['States'] += list(set(param.json['States'].keys()))
-        elif len(model_dict) == 1:
-            self.model_def['Models'] = list(model_dict.keys())[0]
-
-        if 'Minimizers' not in self.model_def:
-            self.model_def['Minimizers'] = {}
-        for key, minimize in minimize_dict.items():
-            self.model_def = merge(self.model_def, minimize['A'].json)
-            self.model_def = merge(self.model_def, minimize['B'].json)
-            self.model_def['Minimizers'][key] = {}
-            self.model_def['Minimizers'][key]['A'] = minimize['A'].name
-            self.model_def['Minimizers'][key]['B'] = minimize['B'].name
-            self.model_def['Minimizers'][key]['loss'] = minimize['loss']
-
-        for key, update_state in update_state_dict.items():
-            self.model_def = merge(self.model_def, update_state.json)
-
-    def __update_state(self, stream_out, state_list_in, UpdateState):
-        from neu4mes.input import  State
-        if type(state_list_in) is not list:
-            state_list_in = [state_list_in]
-        for state_in in state_list_in:
-            check(isinstance(stream_out, (Output, Stream)), TypeError,
-                  f"The {stream_out} must be a Stream or Output and not a {type(stream_out)}.")
-            check(type(state_in) is State, TypeError,
-                  f"The {state_in} must be a State and not a {type(state_in)}.")
-            check(stream_out.dim['dim'] == state_in.dim['dim'], ValueError,
-                  f"The dimension of {stream_out.name} is not equal to the dimension of {state_in.name} ({stream_out.dim['dim']}!={state_in.dim['dim']}).")
-            if type(stream_out) is Output:
-                stream_name = self.model_def['Outputs'][stream_out.name]
-                stream_out = Stream(stream_name,stream_out.json,stream_out.dim, 0)
-            self.update_state_dict[state_in.name] = UpdateState(stream_out, state_in)
-
     def addConnect(self, stream_out, state_list_in):
-        from neu4mes.input import Connect
-        self.__update_state(stream_out, state_list_in, Connect)
-        self.__update_model()
+        self.model_def.addConnect(stream_out, state_list_in)
 
     def addClosedLoop(self, stream_out, state_list_in):
-        from neu4mes.input import ClosedLoop
-        self.__update_state(stream_out, state_list_in, ClosedLoop)
-        self.__update_model()
+        self.model_def.addClosedLoop(stream_out, state_list_in)
 
     def addModel(self, name, stream_list):
-        if isinstance(stream_list, (Output,Stream)):
-            stream_list = [stream_list]
-        if type(stream_list) is list:
-            self.model_dict[name] = copy.deepcopy(stream_list)
-        else:
-            raise TypeError(f'stream_list is type {type(stream_list)} but must be an Output or Stream or a list of them')
-        self.__update_model()
+        self.model_def.addModel(name, stream_list)
 
     def removeModel(self, name_list):
-        if type(name_list) is str:
-            name_list = [name_list]
-        if type(name_list) is list:
-            for name in name_list:
-                check(name in self.model_dict, IndexError, f"The name {name} is not part of the available models")
-                del self.model_dict[name]
-        self.__update_model()
+        self.model_def.removeModel(name_list)
 
     def addMinimize(self, name, streamA, streamB, loss_function='mse'):
-        check(isinstance(streamA, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
-        check(isinstance(streamB, (Output, Stream)), TypeError, 'streamA must be an instance of Output or Stream')
-        check(streamA.dim == streamB.dim, ValueError, f'Dimension of streamA={streamA.dim} and streamB={streamB.dim} are not equal.')
-        self.minimize_dict[name]={'A':copy.deepcopy(streamA), 'B': copy.deepcopy(streamB), 'loss':loss_function}
-        self.__update_model()
+        self.model_def.addMinimize(name, streamA, streamB, loss_function)
         self.visualizer.showaddMinimize(name)
 
     def removeMinimize(self, name_list):
-        if type(name_list) is str:
-            name_list = [name_list]
-        if type(name_list) is list:
-            for name in name_list:
-                check(name in self.minimize_dict, IndexError, f"The name {name} is not part of the available minimuzes")
-                del self.minimize_dict[name]
-        self.__update_model()
-        self.visualizer.showaddMinimize(name)
+        self.model_def.removeMinimize(name_list)
 
-    # Use this function to get the parameters form the torch model and set the model_def_values
-    def __get_torch_model(self, clear_model = False):
-        if self.model is not None and clear_model == False:
-            self.model_def_values = copy.deepcopy(self.model_def)
-            for key in self.model_def_values['Parameters'].keys():
-                if key in self.model.all_parameters:
-                    self.model_def_values['Parameters'][key]['values'] = self.model.all_parameters[key].tolist()
-                    if 'init_fun' in self.model_def_values['Parameters'][key]:
-                        del self.model_def_values['Parameters'][key]['init_fun']
-            model_def = copy.deepcopy(self.model_def_values)
+    def neuralizeModel(self, sample_time = None, clear_model = False, model_def = None):
+        if model_def is not None:
+            check(sample_time == None, ValueError, 'The sample_time must be None if a model_def is provided')
+            check(clear_model == False, ValueError, 'The clear_model must be False if a model_def is provided')
+            self.model_def = ModelDef(model_def)
         else:
-            model_def = copy.deepcopy(self.model_def)
-        return model_def
-
-    # Use this function to create the torch model from a model_def
-    def __neuralize_model(self, model_def):
-        sample_time = model_def['SampleTime']
-
-        check(model_def['Inputs'] | model_def['States'] != {}, RuntimeError, "No model is defined!")
-        json_inputs = model_def['Inputs'] | model_def['States']
-
-        for key,value in model_def['States'].items():
-            check(closedloop_name in model_def['States'][key] or connect_name in model_def['States'][key],
-                  KeyError, f'Update function is missing for state {key}. Use Connect or ClosedLoop to update the state.')
-
-        for key, value in json_inputs.items():
-            self.input_tw_backward[key] = -value['tw'][0]
-            self.input_tw_forward[key] = value['tw'][1]
-            if value['sw'] == [0,0] and value['tw'] == [0,0]:
-                self.input_tw_backward[key] = sample_time
-            if value['sw'] == [0,0] :
-                self.input_ns_backward[key] = round(self.input_tw_backward[key] / sample_time)
-                self.input_ns_forward[key] = round(self.input_tw_forward[key] / sample_time)
+            if clear_model:
+                self.model_def.update()
             else:
-                self.input_ns_backward[key] = max(round(self.input_tw_backward[key] / sample_time),-value['sw'][0])
-                self.input_ns_forward[key] = max(round(self.input_tw_forward[key] / sample_time),value['sw'][1])
-            self.input_n_samples[key] = self.input_ns_backward[key] + self.input_ns_forward[key]
+                self.model_def.updateParameters(self.model)
 
-        self.max_samples_backward = max(self.input_ns_backward.values())
-        self.max_samples_forward = max(self.input_ns_forward.values())
-        if self.max_samples_backward < 0:
-            self.visualizer.warning(f"The input is only in the far past the max_samples_backward is: {self.max_samples_backward}")
-        if self.max_samples_forward < 0:
-            self.visualizer.warning(f"The input is only in the far future the max_sample_forward is: {self.max_samples_forward}")
-        self.max_n_samples = self.max_samples_forward + self.max_samples_backward
+        self.model_def.setBuildWindow(sample_time)
+        self.model = Model(self.model_def.json)
 
-        ## Build the network
-        self.model = Model(model_def, self.input_ns_backward, self.input_n_samples)
+        if self.model_def['Info']['ns'][0] < 0:
+            self.visualizer.warning(
+                f"The input is only in the far past the max_samples_backward is: {self.model_def['Info']['ns'][0]}")
+        if self.model_def['Info']['ns'][1] < 0:
+            self.visualizer.warning(
+                f"The input is only in the far future the max_sample_forward is: {self.model_def['Info']['ns'][1]}")
+        input_ns_backward = {key:value['ns'][0] for key, value in (self.model_def['Inputs']|self.model_def['States']).items()}
+        input_ns_forward = {key:value['ns'][1] for key, value in (self.model_def['Inputs']|self.model_def['States']).items()}
+        self.input_n_samples = {}
+        for key, value in (self.model_def['Inputs'] | self.model_def['States']).items():
+            self.input_n_samples[key] = input_ns_backward[key] + input_ns_forward[key]
+        self.max_n_samples = max(input_ns_backward.values()) + max(input_ns_forward.values())
+
         self.neuralized = True
         self.traced = False
-
-    # Use this function for finilize the model_def with the samples time and build the torch model
-    def neuralizeModel(self, sample_time = None, clear_model = False):
-        # Set sample time on the model_def
-        if sample_time is None:
-            if 'SampleTime' not in self.model_def or self.model_def['SampleTime'] == 0:
-                sample_time = 1
-            else:
-                sample_time = self.model_def['SampleTime']
-        else:
-            check(sample_time > 0, RuntimeError, 'Sample time must be strictly positive!')
-        self.model_def["SampleTime"] = sample_time
-
-        ## Get the trained model
-        model_def = self.__get_torch_model(clear_model)
-        self.__neuralize_model(model_def)
-        self.__get_torch_model(clear_model)
-        self.visualizer.showModel(model_def)
+        self.visualizer.showModel(self.model_def.json)
         self.visualizer.showModelInputWindow()
         self.visualizer.showBuiltModel()
 
@@ -494,6 +364,12 @@ class Neu4mes:
         if name in list(self.data.keys()):
             self.visualizer.warning(f'Dataset named {name} already loaded! overriding the existing one..')
         self.data[name] = {}
+
+        input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
+        input_ns_forward = {key:value['ns'][1] for key, value in json_inputs.items()}
+        max_samples_backward = max(input_ns_backward.values())
+        max_samples_forward = max(input_ns_forward.values())
+        max_n_samples = max_samples_backward + max_samples_forward
 
         num_of_samples = []
         if type(source) is str: ## we have a directory path containing the files
@@ -539,10 +415,10 @@ class Neu4mes:
                     continue
                 ## Cycle through all the windows
                 for key, idxs in format_idx.items():
-                    back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
+                    back, forw = input_ns_backward[key], input_ns_forward[key]
                     ## Save as numpy array the data
                     data = df.iloc[:, idxs[0]:idxs[1]].to_numpy()
-                    self.data[name][key] += [data[i-back:i+forw] for i in range(self.max_samples_backward, len(df)-self.max_samples_forward+1)]
+                    self.data[name][key] += [data[i-back:i+forw] for i in range(max_samples_backward, len(df)-max_samples_forward+1)]
 
             ## Stack the files
             for key in format_idx.keys():
@@ -562,9 +438,9 @@ class Neu4mes:
 
                 self.data[name][key] = []  ## Initialize the dataset
 
-                back, forw = self.input_ns_backward[key], self.input_ns_forward[key]
-                for idx in range(len(source[key]) - self.max_n_samples+1):
-                    self.data[name][key].append(source[key][idx + (self.max_samples_backward - back):idx + (self.max_samples_backward + forw)])
+                back, forw = input_ns_backward[key], input_ns_forward[key]
+                for idx in range(len(source[key]) - max_n_samples+1):
+                    self.data[name][key].append(source[key][idx + (max_samples_backward - back):idx + (max_samples_backward + forw)])
 
             ## Stack the files
             for key in model_inputs:
@@ -989,7 +865,8 @@ class Neu4mes:
         self.visualizer.showResults()
 
         ## Get trained model from torch and set the model_def_values
-        self.__get_torch_model()
+        #self.__get_torch_model()
+        self.model_def.updateParameters(self.model)
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, closed_loop, step, connect, shuffle=True, train=True):
         ## Sample Shuffle
@@ -997,6 +874,9 @@ class Neu4mes:
 
         ## Initialize the train losses vector
         aux_losses = torch.zeros([len(self.model_def['Minimizers']), n_samples//batch_size])
+
+        json_inputs = self.model_def['Inputs'] | self.model_def['States']
+        input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
 
         ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
         ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
@@ -1037,8 +917,8 @@ class Neu4mes:
                         if key in closed_loop.keys(): ## the input is recurrent
                             dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=1) ## Roll the time window
-                            XY[key][:, self.input_ns_backward[key]-dim:self.input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
-                            XY[key][:, self.input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, self.input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                            XY[key][:, input_ns_backward[key]-dim:input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
+                            XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
                         else: ## the input is not recurrent
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
                             XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
@@ -1159,54 +1039,93 @@ class Neu4mes:
     def getWorkspace(self):
         return self.exporter.getWorkspace()
 
-    def saveModel(self, name = 'net', model_path = None):
-        if self.model_def is not None:
-            self.exporter.saveModel(self.model_def, name, model_path)
-        if self.model_def_values is not None:
-            self.exporter.saveModel(self.model_def_values, name + '_trained', model_path)
+    def saveTorchModel(self, name = 'net', model_folder = None, models = None):
+        check(self.neuralized == True, RuntimeError, 'The model is not neuralized yet!')
+        if models is not None:
+            if name == 'net':
+                name += '_' + '_'.join(models)
+            model_def = ModelDef()
+            model_def.update(model_dict = {key: self.model_dict[key] for key in models if key in self.model_dict})
+            model_def.setBuildWindow(self.model_def['Info']['SampleTime'])
+            model_def.updateParameters(self.model)
+            model = Model(model_def.json)
+        else:
+            model = self.model
+        self.exporter.saveTorchModel(model, name, model_folder)
+
+    def loadTorchModel(self, name = 'net', model_folder = None):
+        check(self.neuralized == True, RuntimeError, 'The model is not neuralized yet.')
+        self.exporter.loadTorchModel(self.model, name, model_folder)
+
+    def saveModel(self, name = 'net', model_path = None, models = None):
+        if models is not None:
+            if name == 'net':
+                name += '_' + '_'.join(models)
+            model_def = ModelDef()
+            model_def.update(model_dict = {key: self.model_dict[key] for key in models if key in self.model_dict})
+            model_def.setBuildWindow(self.model_def['Info']['SampleTime'])
+            model_def.updateParameters(self.model)
+        else:
+            model_def = self.model_def
+        check(model_def.isDefined(), RuntimeError, "The network has not been defined.")
+        self.exporter.saveModel(model_def.json, name, model_path)
 
     def loadModel(self, name = None, model_folder = None):
         if name is None:
             name = 'net'
-            self.model_def_loaded = self.exporter.loadModel(name + '_trained', model_folder)
-            if self.model_def_loaded is None:
-                self.model_def_loaded = self.exporter.loadModel(name, model_folder)
-        else:
-            self.model_def_loaded = self.exporter.loadModel(name, model_folder)
-        if self.model_def_loaded:
-            self.__update_model(self.model_def_loaded)
-            self.__neuralize_model(self.model_def_loaded)
+        model_def = self.exporter.loadModel(name, model_folder)
+        check(model_def, RuntimeError, "Error to load the network.")
+        self.model_def = ModelDef(model_def)
+        self.model = None
+        self.neuralized = False
+        self.traced = False
 
-    def exportPythonModel(self, name = 'net', model_path = None):
-        check(self.model_def['States'] == {}, TypeError, "The network has state variables. The export to python is not possible.")
-        if self.model_def is not None:
-            self.exporter.saveModel(self.model_def, name, model_path)
-            self.exporter.exportPythonModel(name, model_path)
+    def exportPythonModel(self, name = 'net', model_path = None, models = None):
+        if models is not None:
+            if name == 'net':
+                name += '_' + '_'.join(models)
+            model_def = ModelDef()
+            model_def.update(model_dict = {key: self.model_dict[key] for key in models if key in self.model_dict})
+            model_def.setBuildWindow(self.model_def['Info']['SampleTime'])
+            model_def.updateParameters(self.model)
+            model = Model(model_def.json)
+        else:
+            model_def = self.model_def
+            model = self.model
+        check(model_def['States'] == {}, TypeError, "The network has state variables. The export to python is not possible.")
+        check(model_def.isDefined(), RuntimeError, "The network has not been defined.")
+        check(self.traced == False, RuntimeError,
+                  'The model is traced and cannot be exported to Python.\n Run neuralizeModel() to recreate a standard model.')
+        check(self.neuralized == True, RuntimeError, 'The model is not neuralized yet.')
+        self.exporter.saveModel(model_def.json, name, model_path)
+        self.exporter.exportPythonModel(model_def, model, name, model_path)
 
     def importPythonModel(self, name = None, model_folder = None):
         if name is None:
             name = 'net'
-        self.model_def_loaded = self.exporter.loadModel(name, model_folder)
-        self.__update_model(model_def=self.model_def_loaded)
-        self.__neuralize_model(self.model_def_loaded)
+        model_def = self.exporter.loadModel(name, model_folder)
+        check(model_def is not None, RuntimeError, "Error to load the network.")
+        self.neuralizeModel(model_def=model_def)
         self.model = self.exporter.importPythonModel(name, model_folder)
         self.traced = True
-        self.__get_torch_model()
+        self.model_def.updateParameters(self.model)
 
-    def exportONNX(self, inputs_order, outputs_order,  models = None, name = 'net', model_path = None):
-        check(self.model_def is not None, TypeError, "The network has not been defined.")
-        old_model_def = copy.deepcopy(self.model_def)
-        model_def = copy.deepcopy(MAIN_JSON)
-        model_def['SampleTime'] = self.model_def['SampleTime']
-        if models is None:
-            self.__update_model(model_def, minimize_dict={})
+    def exportONNX(self, inputs_order, outputs_order,  models = None, name = 'net', model_folder = None):
+        check(self.model_def.isDefined(), RuntimeError, "The network has not been defined.")
+        check(self.traced == False, RuntimeError, 'The model is traced and cannot be exported to ONNX.\n Run neuralizeModel() to recreate a standard model.')
+        check(self.neuralized == True, RuntimeError, 'The model is not neuralized yet.')
+        check(self.model_def.model_dict != {}, RuntimeError, 'The model is loaded and not created.')
+        model_def = ModelDef()
+        if models is not None:
+            if name == 'net':
+                name += '_' + '_'.join(models)
+            model_def.update(model_dict = {key: self.model_def.model_dict[key] for key in models if key in self.model_def.model_dict})
         else:
-            name += '_' + '_'.join(models)
-            self.__update_model(model_def, {key: self.model_dict[key] for key in models if key in self.model_dict}, minimize_dict={})
-        model_def = self.__get_torch_model()
-        self.__neuralize_model(model_def)
-        self.exporter.exportONNX(inputs_order, outputs_order, name, model_path)
-        self.__neuralize_model(old_model_def)
+            model_def.update(model_dict = self.model_def.model_dict)
+        model_def.setBuildWindow(self.model_def['Info']['SampleTime'])
+        model_def.updateParameters(self.model)
+        model = Model(model_def.json)
+        self.exporter.exportONNX(model_def, model, inputs_order, outputs_order, name, model_folder)
 
-    def exportReport(self, name = 'net', model_path = None):
-        self.exporter.exportReport(name, model_path)
+    def exportReport(self, name = 'net', model_folder = None):
+        self.exporter.exportReport(self, name, model_folder)

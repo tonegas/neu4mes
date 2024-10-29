@@ -6,7 +6,7 @@ def init_negexp(indexes, params_size, dict_param = {'size_index':0, 'first_value
     import numpy as np
     size_index = dict_param['size_index']
     # check if the size of the list of parameters is 1, to avoid a division by zero
-    x = 1 if params_size[size_index]-1 == 0 else indexes[size_index]/(params_size[size_index]-1)  
+    x = 1 if params_size[size_index]-1 == 0 else indexes[size_index]/(params_size[size_index]-1)
     return dict_param['first_value']*np.exp(-dict_param['lambda']*(1-x))
 
 def init_exp(indexes, params_size, dict_param = {'size_index':0, 'max_value':1, 'lambda':3, 'monotonicity':'decreasing'}):

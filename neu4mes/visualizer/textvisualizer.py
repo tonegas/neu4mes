@@ -37,7 +37,7 @@ class TextVisualizer(Visualizer):
             print(color(pformat(model),GREEN))
             self.__line()
 
-    def showaddMinimize(self,variable_name):
+    def showMinimize(self,variable_name):
         if self.verbose >= 2:
             self.__title(f" Minimize Error of {variable_name} with {self.n4m.model_def['Minimizers'][variable_name]['loss']} ")
             self.__paramjson(f"Model {self.n4m.model_def['Minimizers'][variable_name]['A'].name}", self.n4m.model_def['Minimizers'][variable_name]['A'].json)
@@ -227,23 +227,24 @@ class TextVisualizer(Visualizer):
     def showResult(self, name_data):
         eng = lambda val: np.format_float_scientific(val, precision=3)
         if self.verbose >= 1:
+            dim_loss = len(max(self.n4m.model_def['Minimizers'].keys(),key=len))
             loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.model_def['Minimizers'].items())])
-            self.__title(f" Neu4mes Model Results for {name_data} ", 12 + (len(loss_type_list) + 2) * 20)
-            print(color('|' + (f'Loss').center(10, ' ') + '|'), end='')
+            self.__title(f" Neu4mes Model Results for {name_data} ", dim_loss + 2 + (len(loss_type_list) + 2) * 20)
+            print(color('|' + (f'Loss').center(dim_loss, ' ') + '|'), end='')
             for loss in loss_type_list:
                 print(color((f'{loss}').center(19, ' ') + '|'), end='')
             print(color((f'FVU').center(19, ' ') + '|'), end='')
             print(color((f'AIC').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10, ' ') + '|'), end='')
+            print(color('|' + (f'').center(dim_loss, ' ') + '|'), end='')
             for i in range(len(loss_type_list)):
                 print(color((f'small better').center(19, ' ') + '|'), end='')
             print(color((f'small better').center(19, ' ') + '|'), end='')
             print(color((f'lower better').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
+            print(color('|' + (f'').center(dim_loss + 20 * (len(loss_type_list) + 2), '-') + '|'))
             for ind, (key, value) in enumerate(self.n4m.model_def['Minimizers'].items()):
-                print(color('|'+(f'{key}').center(10, ' ') + '|'), end='')
+                print(color('|'+(f'{key}').center(dim_loss, ' ') + '|'), end='')
                 for loss in list(loss_type_list):
                     if value["loss"] == loss:
                         print(color((f'{eng(self.n4m.performance[name_data][key][value["loss"]])}').center(19, ' ') + '|'), end='')
@@ -252,13 +253,13 @@ class TextVisualizer(Visualizer):
                 print(color((f'{eng(self.n4m.performance[name_data][key]["fvu"]["total"])}').center(19, ' ') + '|'), end='')
                 print(color((f'{eng(self.n4m.performance[name_data][key]["aic"]["value"])}').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
-            print(color('|'+(f'Total').center(10, ' ') + '|'), end='')
+            print(color('|' + (f'').center(dim_loss + 20 * (len(loss_type_list) + 2), '-') + '|'))
+            print(color('|'+(f'Total').center(dim_loss, ' ') + '|'), end='')
             print(color((f'{eng(self.n4m.performance[name_data]["total"]["mean_error"])}').center(len(loss_type_list)*20-1, ' ') + '|'), end='')
             print(color((f'{eng(self.n4m.performance[name_data]["total"]["fvu"])}').center(19, ' ') + '|'), end='')
             print(color((f'{eng(self.n4m.performance[name_data]["total"]["aic"])}').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
+            print(color('|' + (f'').center(dim_loss + 20 * (len(loss_type_list) + 2), '-') + '|'))
 
         if self.verbose >= 2:
             self.__title(" Detalied Results ")

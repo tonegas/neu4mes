@@ -1,3 +1,4 @@
+import copy
 import sys
 import os
 import torch
@@ -39,12 +40,13 @@ sample_select = SampleSelect(x.sw(5),i=1)
 def fuzzyfun(x):
     return torch.tan(x)
 fuzzy = Fuzzify(output_dimension=4, range=[0,4], functions=fuzzyfun)(x.tw(1))
+fuzzyTriang = Fuzzify(centers=[1,2,3,7])(x.tw(1))
 
 out = Output('out', Fir(parfun_x(x.tw(1))+parfun_y(y.tw(1),c_v)))
 #out = Output('out', Fir(parfun_x(x.tw(1))+parfun_y(y.tw(1),c_v)+parfun_z(x.tw(5),t_5,c_5)))
 out2 = Output('out2', Add(w,x.tw(1))+Add(t,y.tw(1))+Add(w,c))
 out3 = Output('out3', Add(fir_w, fir_t))
-out4 = Output('out4', Linear(output_dimension=1)(fuzzy))
+out4 = Output('out4', Linear(output_dimension=1)(fuzzy+fuzzyTriang))
 out5 = Output('out5', Fir(time_part)+Fir(sample_select))
 out6 = Output('out6', LocalModel(output_function = Fir())(x.tw(1),fuzzy))
 
@@ -53,19 +55,20 @@ test.addModel('modelB',[out2,out3,out4])
 test.addModel('modelC',[out4,out5,out6])
 test.addMinimize('error1', x.last(), out)
 test.addMinimize('error2', y.last(), out3, loss_function='rmse')
-test.addMinimize('error3', z.last(), out6, loss_function='rmse')
+test.addMinimize('error3', z.sw([-5,-4]), out6, loss_function='rmse')
 test.neuralizeModel(0.5)
+test_created = copy.deepcopy(test)
 
 print("-----------------------------------EXAMPLE 1------------------------------------")
 # Export torch file .pt
 # Save torch model and load it
 old_out = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
-test.exporter.saveTorchModel()
+test.saveTorchModel()
 test.neuralizeModel(0.5, clear_model=True)
 # The new_out is different from the old_out because the model is cleared
 new_out = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 # The new_out_after_load is the same as the old_out because the model is loaded with the same parameters
-test.exporter.loadTorchModel()
+test.loadTorchModel()
 new_out_after_load = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 print('old_out: ', old_out)
 print('new_out: ', new_out)
@@ -90,6 +93,7 @@ test.neuralizeModel(clear_model = True) # Create a new torch model
 new_out = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 test.loadModel() # Load the neu4mes model without parameter values
 # Use the preloaded torch model for inference
+test.neuralizeModel()
 new_out_after_load = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 print('old_out: ', old_out)
 print('new_out: ', new_out)
@@ -104,6 +108,7 @@ test.saveModel() # Save the model with and without parameter values
 test.neuralizeModel(clear_model=True) # Create a new torch model
 new_out = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 test.loadModel() # Load the neu4mes model with parameter values
+test.neuralizeModel()
 new_out_after_load = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 print('old_out: ', old_out)
 print('new_out: ', new_out)
@@ -114,10 +119,11 @@ print("-----------------------------------EXAMPLE 4-----------------------------
 # Import neu4mes json model in a new object
 test2 = Neu4mes(seed=43, workspace=test.getWorkspace())
 test2.loadModel() # Load the neu4mes model with parameter values
+test2.neuralizeModel()
 new_model_out_after_load = test2({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 print('new_out_after_load: ', new_out_after_load)
 print('new_model_out_after_load: ', new_model_out_after_load)
-print(f'the output are equal: {old_out == new_out_after_load}')
+print(f'the output are equal: {old_out == new_model_out_after_load}')
 
 print("-----------------------------------EXAMPLE 5------------------------------------")
 # Export and import of a torch script .py
@@ -146,7 +152,7 @@ data_x = np.arange(0.0,1,0.1)
 data_y = np.arange(0.0,1,0.1)
 a,b = -1.0, 2.0
 dataset = {'x': data_x, 'y': data_y, 'z':a*data_x+b*data_y}
-params = {'num_of_epochs': 1, 'lr': 0.01}
+params = {'num_of_epochs': 30, 'lr': 0.01}
 test.loadData(name='dataset', source=dataset) # Create the dataset
 test.trainModel(optimizer='SGD',training_params=params) # Train the traced model
 new_out_after_train = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
@@ -158,15 +164,22 @@ print("-----------------------------------EXAMPLE 8-----------------------------
 # Perform training on an imported new tracer model
 test2.loadData(name='dataset', source=dataset) # Create the dataset
 test2.trainModel(optimizer='SGD',training_params=params) # Train the traced model
-new_out_after_trai_new = test({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
+new_out_after_trai_new = test2({'x':[1,2,3,4,5,6,7,8,9,10],'y':[2,3,4,5,6,7,8,9,10,11]})
 print('new_out_after_train: ', new_out_after_train)
 print('new_out_after_trai_new: ', new_out_after_trai_new)
 print(f'the output are equal: {new_out_after_train == new_out_after_trai_new}')
 
 print("-----------------------------------EXAMPLE 9------------------------------------")
 # Export the all models in onnx format
+test = copy.deepcopy(test_created)
 test.exportONNX(['x','y'],['out','out2','out3','out4','out5','out6']) # Export the onnx model
 
 print("-----------------------------------EXAMPLE 10-----------------------------------")
 # Export only the modelB in onnx format
 test.exportONNX(['x','y'],['out3','out4','out2'], ['modelB']) # Export the onnx model
+
+print("-----------------------------------EXAMPLE 11-----------------------------------")
+# Export of the report of training and results performances
+test.loadData(name='dataset', source=dataset) # Create the dataset
+test.trainModel(optimizer='SGD',training_params=params) # Train the traced model
+test.exportReport()
