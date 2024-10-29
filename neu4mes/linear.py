@@ -106,23 +106,8 @@ class Linear(NeuObj, AutoToStream):
         stream_json = merge(self.json,obj.json)
         stream_json['Relations'][stream_name] = [linear_relation_name, [obj.name], self.Wname, self.bname, self.dropout]
         return Stream(stream_name, stream_json,{'dim': self.output_dimension, window:obj.dim[window]})
-'''
-class Linear_Layer(nn.Module):
-    def __init__(self, weights, bias, dropout):
-        super(Linear_Layer, self).__init__()
-        biasbool = False if bias is None else True
-        self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
-        self.lin = nn.Linear(in_features=weights.size(1), out_features=weights.size(2), bias=biasbool)
-        self.lin.weight = nn.Parameter(weights[0].t())
-        if biasbool:
-            self.lin.bias = nn.Parameter(bias)
 
-    def forward(self, x):
-        if self.dropout is not None:
-            x = self.dropout(x)
-        x = self.lin(x)
-        return x
-'''
+
 class Linear_Layer(nn.Module):
     def __init__(self, weights, bias=None, dropout=0):
         super(Linear_Layer, self).__init__()
@@ -137,7 +122,7 @@ class Linear_Layer(nn.Module):
         if self.bias is not None:
             y += self.bias  # Add bias
         # Add dropout if necessary
-        if self.dropout:
+        if self.dropout is not None:
             y = self.dropout(y)
         return y
 
