@@ -127,13 +127,13 @@ class Linear_Layer(nn.Module):
     def __init__(self, weights, bias=None, dropout=0):
         super(Linear_Layer, self).__init__()
         self.dropout = nn.Dropout(p=dropout) if dropout > 0 else None
-        self.weights = weights[0]
+        self.weights = weights
         self.bias = bias
 
     def forward(self, x):
         # x is expected to be of shape [batch, window, input_dimension]
         # Using torch.einsum for batch matrix multiplication
-        y = torch.einsum('bwi,io->bwo', x, self.weights)  # y will have shape [batch, window, output_features]
+        y = torch.einsum('bwi,io->bwo', x, self.weights[0])  # y will have shape [batch, window, output_features]
         if self.bias is not None:
             y += self.bias  # Add bias
         # Add dropout if necessary

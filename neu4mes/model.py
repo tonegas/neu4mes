@@ -7,24 +7,22 @@ import torch
 import copy
 
 class Model(nn.Module):
-    def __init__(self, model_def,  input_ns_backward, input_n_samples):
+    def __init__(self, model_def):
         super(Model, self).__init__()
+        model_def = copy.deepcopy(model_def)
         self.inputs = model_def['Inputs']
         self.outputs = model_def['Outputs']
         self.relations = model_def['Relations']
         self.params = model_def['Parameters']
         self.constants = model_def['Constants']
-        self.sample_time = model_def['SampleTime']
+        self.sample_time = model_def['Info']['SampleTime']
         self.functions = model_def['Functions']
         self.state_model_main = model_def['States']
         self.minimizers = model_def['Minimizers']
         self.state_model = copy.deepcopy(self.state_model_main)
-        self.input_ns_backward = input_ns_backward
-        self.input_n_samples = input_n_samples
+        self.input_ns_backward = {key:value['ns'][0] for key, value in (model_def['Inputs']|model_def['States']).items()}
+        self.input_n_samples = {key:value['ntot'] for key, value in (model_def['Inputs']|model_def['States']).items()}
         self.minimizers_keys = [self.minimizers[key]['A'] for key in self.minimizers] + [self.minimizers[key]['B'] for key in self.minimizers]
-
-        #self.batch_size = 1
-
 
         ## Build the network
         self.all_parameters = {}

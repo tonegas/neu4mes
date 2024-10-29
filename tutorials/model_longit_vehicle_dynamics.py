@@ -1,19 +1,3 @@
-"""                                                                                                                                                                                                                                                                                                                                                                        
-___  ______________ _____ _     _____ _   _ _____     _     _____ _   _ _____ _____ _____    _   _ _____ _   _ _____ _____  _      _____   ________   ___   _   
-|  \/  |  _  |  _  \  ___| |   |_   _| \ | |  __ \   | |   |  _  | \ | |  __ \_   _|_   _|  | | | |  ___| | | |_   _/  __ \| |    |  ___|  |  _  \ \ / / \ | |  
-| .  . | | | | | | | |__ | |     | | |  \| | |  \/   | |   | | | |  \| | |  \/ | |   | |    | | | | |__ | |_| | | | | /  \/| |    | |__    | | | |\ V /|  \| |  
-| |\/| | | | | | | |  __|| |     | | | . ` | | __    | |   | | | | . ` | | __  | |   | |    | | | |  __||  _  | | | | |    | |    |  __|   | | | | \ / | . ` |  
-| |  | \ \_/ / |/ /| |___| |_____| |_| |\  | |_\ \   | |___\ \_/ / |\  | |_\ \_| |_  | |_   \ \_/ / |___| | | |_| |_| \__/\| |____| |___   | |/ /  | | | |\  |_ 
-\_|  |_/\___/|___/ \____/\_____/\___/\_| \_/\____/   \_____/\___/\_| \_/\____/\___/  \_(_)   \___/\____/\_| |_/\___/ \____/\_____/\____/   |___/   \_/ \_| \_(_)
-                                                                                                                                                                
-This tutorial implements a physics-driven neural model of the vehicle longitudinal dynamics. 
-This model is depicted in Fig. 2 of the paper titled:
-
-"Modelling longitudinal vehicle dynamics with neural networks"
-
-(available at https://www.tandfonline.com/doi/full/10.1080/00423114.2019.1638947)                                                                                                                                                                          
-""" 
-
 import sys
 import os
 # append a new directory to sys.path
@@ -23,7 +7,7 @@ sys.path.append(os.getcwd())
 from neu4mes import *
 
 # Create neu4mes structure
-vehicle = Neu4mes(visualizer='Standard',seed=0)
+vehicle = Neu4mes(visualizer=MPLVisualizer(),seed=0)
 
 # Dimensions of the layers
 n  = 25
@@ -70,7 +54,7 @@ vehicle.filterData(filter_function = filter_function, dataset_name = 'trainingse
 optimizer_params = [{'params':'gravity','weight_decay': 0.1}]
 optimizer_defaults = {'weight_decay': 0.00001}
 training_params = {'num_of_epochs':150, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003}
-vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True, 
+vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True,
                    add_optimizer_params=optimizer_params, add_optimizer_defaults=optimizer_defaults, training_params=training_params)
 
 ## Neural network Predict

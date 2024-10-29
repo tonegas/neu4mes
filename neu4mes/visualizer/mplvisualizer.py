@@ -1,13 +1,9 @@
 import subprocess, json, torch, inspect
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 from neu4mes.visualizer.textvisualizer import TextVisualizer
-from neu4mes.fuzzify import triangular, rectangular, custom_function, return_fuzzify
+from neu4mes.fuzzify import return_fuzzify
 from neu4mes.parametricfunction import return_standard_inputs, return_function
 from neu4mes.utils import check
-from mplplots import plots
 
 class MPLVisualizer(TextVisualizer):
     def __init__(self, verbose = 1):
@@ -76,7 +72,7 @@ class MPLVisualizer(TextVisualizer):
                     "performance": self.n4m.performance[name_data][key],
                     "prediction_A": self.n4m.prediction[name_data][key]['A'],
                     "prediction_B": self.n4m.prediction[name_data][key]['B'],
-                    "sample_time": self.n4m.model_def["SampleTime"]}
+                    "sample_time": self.n4m.model_def['Info']["SampleTime"]}
             try:
                 # Send data to the visualizer process
                 self.process_results[key].stdin.write(f"{json.dumps(data)}\n")

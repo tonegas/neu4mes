@@ -20,7 +20,10 @@ class Reporter:
         for key, value in self.n4m.model_def['Minimizers'].items():
             fig = plt.figure(figsize=(10, 5))
             ax = fig.add_subplot(111)
-            plots.plot_training(ax, f"Training Loss of {key}", key, self.n4m.train_losses[key], self.n4m.val_losses[key])
+            if key in self.n4m.val_losses:
+                plots.plot_training(ax, f"Training Loss of {key}", key, self.n4m.train_losses[key], self.n4m.val_losses[key])
+            else:
+                plots.plot_training(ax, f"Training Loss of {key}", key, self.n4m.train_losses[key])
             training = io.BytesIO()
             plt.savefig(training, format='png')
             training.seek(0)
@@ -35,7 +38,7 @@ class Reporter:
                 fig = plt.figure(figsize=(10, 5))
                 ax = fig.add_subplot(111)
                 plots.plot_results(ax, name_data, key, self.n4m.prediction[name_data][key]['A'],
-                               self.n4m.prediction[name_data][key]['B'], self.n4m.model_def["SampleTime"])
+                               self.n4m.prediction[name_data][key]['B'], self.n4m.model_def['Info']["SampleTime"])
                 # Add a text box with correlation coefficient
                 results = io.BytesIO()
                 plt.savefig(results, format='png')
