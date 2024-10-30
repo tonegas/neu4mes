@@ -21,200 +21,291 @@ class Neu4mesTrainingTest(unittest.TestCase):
         else:
             self.assertAlmostEqual(data1, data2, places=precision)
 
-    def test_training_values_fir(self):
+    def test_analysis_results(self):
         input1 = Input('in1')
-        target = Input('out1')
+        target1 = Input('out1')
+        target2 = Input('out2')
         a = Parameter('a', values=[[1]])
         output1 = Output('out', Fir(parameter=a)(input1.last()))
 
         test = Neu4mes(visualizer=None,seed=42)
         test.addModel('model', output1)
-        test.addMinimize('error', target.last(), output1)
+        test.addMinimize('error1', target1.last(), output1)
+        test.addMinimize('error2', target2.last(), output1)
         test.neuralizeModel()
 
-        dataset = {'in1': [1], 'out1': [2]}
+        dataset = {'in1': [1,1,1,1,1,1,1,1,1,1], 'out1': [2,2,2,2,2,2,2,2,2,2], 'out2': [3,3,3,3,3,3,3,3,3,3]}
         test.loadData(name='dataset', source=dataset)
 
-        self.assertListEqual([[1.0]],test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[3.0]],test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[1.0]],test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=2)
-        self.assertListEqual([[1.0]],test.model.all_parameters['a'].data.numpy().tolist())
+        # Test prediction
+        test.resultAnalysis('dataset')
+        self.assertEqual({'A': [[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]]],
+                               'B': [[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]]]},
+                         test.prediction['dataset']['error1'])
+        self.assertEqual((1.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error1']['mse'])
+        self.assertEqual((2.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error2']['mse'])
+        self.assertEqual((1+4)/2.0, test.performance['dataset']['total']['mean_error'])
 
-    def test_training_values_linear(self):
-        NeuObj.reset_count()
+        test.resultAnalysis('dataset', batch_size = 5)
+        self.assertEqual({'A': [[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]]],
+                               'B': [[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]]]},
+                         test.prediction['dataset']['error1'])
+        self.assertEqual((1.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error1']['mse'])
+        self.assertEqual((2.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error2']['mse'])
+        self.assertEqual((1+4)/2.0, test.performance['dataset']['total']['mean_error'])
+
+        test.resultAnalysis('dataset', batch_size = 6)
+        self.assertEqual({'A': [[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]]],
+                               'B': [[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]]]},
+                         test.prediction['dataset']['error1'])
+        self.assertEqual((1.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error1']['mse'])
+        self.assertEqual((2.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error2']['mse'])
+        self.assertEqual((1+4)/2.0, test.performance['dataset']['total']['mean_error'])
+
+        dataset = {'in1': [1,1,1,1,1,1,2,2,3,3], 'out1': [2,2,2,2,2,2,2,2,2,2], 'out2': [3,3,3,3,3,3,3,3,3,3]}
+        test.loadData(name='dataset2', source=dataset)
+
+        test.resultAnalysis('dataset2')
+        self.assertAlmostEqual((1.0 ** 2.0) * 8.0 / 10.0, test.performance['dataset2']['error1']['mse'], places=6)
+        self.assertAlmostEqual(((2.0 ** 2) * 6.0 + (1.0 ** 2) * 2.0) / 10.0, test.performance['dataset2']['error2']['mse'], places=6)
+        self.assertAlmostEqual(((1.0 ** 2) * 8.0 / 10.0 + ((2.0 ** 2) * 6.0 + (1.0 ** 2) * 2.0) / 10.0 )/2.0, test.performance['dataset2']['total']['mean_error'], places=6)
+
+        test.resultAnalysis('dataset2', batch_size = 5)
+        self.assertAlmostEqual((1.0 ** 2.0) * 8.0 / 10.0, test.performance['dataset2']['error1']['mse'], places=6)
+        self.assertAlmostEqual(((2.0 ** 2) * 6.0 + (1.0 ** 2) * 2.0) / 10.0, test.performance['dataset2']['error2']['mse'], places=6)
+        self.assertAlmostEqual(((1.0 ** 2) * 8.0 / 10.0 + ((2.0 ** 2) * 6.0 + (1.0 ** 2) * 2.0) / 10.0 )/2.0, test.performance['dataset2']['total']['mean_error'], places=6)
+
+        test.resultAnalysis('dataset2', batch_size = 6)
+        self.assertEqual({'A': [[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]]],
+                               'B': [[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]],[[1.0]]]},
+                         test.prediction['dataset2']['error1'])
+        self.assertEqual((1.0 ** 2) * 6.0 / 6.0, test.performance['dataset2']['error1']['mse'])
+        self.assertEqual((2.0 ** 2) * 6.0 / 6.0, test.performance['dataset2']['error2']['mse'])
+        self.assertEqual((1+4)/2.0, test.performance['dataset2']['total']['mean_error'])
+
+        test.resultAnalysis('dataset2', minimize_gain={'error1': 0.5, 'error2': 0.0})
+        self.assertAlmostEqual((1.0 ** 2.0) * 8.0 / 10.0 * 0.5, test.performance['dataset2']['error1']['mse'], places=6)
+        self.assertAlmostEqual(0.0, test.performance['dataset2']['error2']['mse'], places=6)
+        self.assertAlmostEqual(((1.0 ** 2) * 8.0 / 10.0 * 0.5 + 0.0)/2.0, test.performance['dataset2']['total']['mean_error'], places=6)
+
+    def test_analysis_results_closed_loop_state(self):
+        input1 = State('in1')
+        target1 = Input('out1')
+        target2 = Input('out2')
+        a = Parameter('a', values=[[2]])
+        output1 = Output('out', Fir(parameter=a)(input1.last()))
+
+        test = Neu4mes(visualizer=None,seed=42)
+        test.addModel('model', output1)
+        test.addClosedLoop(output1,input1)
+        test.addMinimize('error1', target1.last(), output1)
+        test.addMinimize('error2', target2.last(), output1)
+        test.neuralizeModel()
+
+        #Prediction samples = None
+        dataset = {'in1': [1,1,1,1,1,1,1,1,1,1], 'out1': [2,2,2,2,2,2,2,2,2,2], 'out2': [3,3,3,3,3,3,3,3,3,3]}
+        test.loadData(name='dataset', source=dataset)
+
+        # Test prediction
+        test.resultAnalysis('dataset')
+        self.assertEqual({'A': [[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]]],
+                               'B': [[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]],[[2.0]]]},
+                         test.prediction['dataset']['error1'])
+        self.assertEqual((0.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error1']['mse'])
+        self.assertEqual((1.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error2']['mse'])
+        self.assertEqual((0+1)/2.0, test.performance['dataset']['total']['mean_error'])
+
+        dataset = {'in1': [1,1,1,1,1,1,2,2,3,3], 'out1': [2,2,2,2,2,2,2,2,2,2], 'out2': [3,3,3,3,3,3,3,3,3,3]}
+        test.loadData(name='dataset2', source=dataset)
+
+        test.resultAnalysis('dataset2', batch_size = 5)
+        self.assertEqual((0.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error1']['mse'])
+        self.assertEqual((1.0 ** 2) * 10.0 / 10.0, test.performance['dataset']['error2']['mse'])
+        self.assertEqual((0+1)/2.0, test.performance['dataset']['total']['mean_error'])
+
+        # Prediction samples = 5
+        dataset = {'in1': [1,2,3,4,5,6,7,8,9,10], 'out1': [11,12,13,14,15,16,17,18,19,20], 'out2': [10,20,30,40,50,60,70,80,90,100]}
+        test.loadData(name='dataset', source=dataset)
+
+        test.resultAnalysis('dataset', prediction_samples=5, batch_size=2)
+        A =[[[[11.0]], [[12.0]], [[13.0]], [[14.0]]],
+                                   [[[12.0]], [[13.0]], [[14.0]], [[15.0]]],
+                                   [[[13.0]], [[14.0]], [[15.0]], [[16.0]]],
+                                   [[[14.0]], [[15.0]], [[16.0]], [[17.0]]],
+                                   [[[15.0]], [[16.0]], [[17.0]], [[18.0]]],
+                                   [[[16.0]], [[17.0]], [[18.0]], [[19.0]]]]
+        B =[[[[2.0]], [[4.0]], [[6.0]], [[8.0]]],
+                                   [[[4.0]], [[8.0]], [[12.0]], [[16.0]]],
+                                   [[[8.0]], [[16.0]], [[24.0]], [[32.0]]],
+                                   [[[16.0]], [[32.0]], [[48.0]], [[64.0]]],
+                                   [[[32.0]], [[64.0]], [[96.0]], [[128.0]]],
+                                   [[[64.0]], [[128.0]], [[192.0]], [[256.0]]]]
+        C = [[[[10.0]], [[20.0]], [[30.0]], [[40.0]]],
+                                   [[[20.0]], [[30.0]], [[40.0]], [[50.0]]],
+                                   [[[30.0]], [[40.0]], [[50.0]], [[60.0]]],
+                                   [[[40.0]], [[50.0]], [[60.0]], [[70.0]]],
+                                   [[[50.0]], [[60.0]], [[70.0]], [[80.0]]],
+                                   [[[60.0]], [[70.0]], [[80.0]], [[90.0]]]]
+        self.assertEqual({'A': A, 'B': B}, test.prediction['dataset']['error1'])
+        self.assertEqual({'A': C, 'B': B}, test.prediction['dataset']['error2'])
+        self.assertAlmostEqual(np.sum((np.array(A).flatten()-np.array(B).flatten())**2)/24.0, test.performance['dataset']['error1']['mse'], places=3)
+        self.assertAlmostEqual(np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/24.0, test.performance['dataset']['error2']['mse'], places=3)
+        self.assertAlmostEqual((np.sum((np.array(A).flatten()-np.array(B).flatten())**2)/24.0+np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/24.0)/2.0, test.performance['dataset']['total']['mean_error'], places=3)
+
+        test.resultAnalysis('dataset', prediction_samples=5, batch_size=4)
+        A =[[[[11.0]], [[12.0]], [[13.0]], [[14.0]]],
+                                   [[[12.0]], [[13.0]], [[14.0]], [[15.0]]],
+                                   [[[13.0]], [[14.0]], [[15.0]], [[16.0]]],
+                                   [[[14.0]], [[15.0]], [[16.0]], [[17.0]]],
+                                   [[[15.0]], [[16.0]], [[17.0]], [[18.0]]],
+                                   [[[16.0]], [[17.0]], [[18.0]], [[19.0]]]]
+        B =[[[[2.0]], [[4.0]], [[6.0]], [[8.0]]],
+                                   [[[4.0]], [[8.0]], [[12.0]], [[16.0]]],
+                                   [[[8.0]], [[16.0]], [[24.0]], [[32.0]]],
+                                   [[[16.0]], [[32.0]], [[48.0]], [[64.0]]],
+                                   [[[32.0]], [[64.0]], [[96.0]], [[128.0]]],
+                                   [[[64.0]], [[128.0]], [[192.0]], [[256.0]]]]
+        C = [[[[10.0]], [[20.0]], [[30.0]], [[40.0]]],
+                                   [[[20.0]], [[30.0]], [[40.0]], [[50.0]]],
+                                   [[[30.0]], [[40.0]], [[50.0]], [[60.0]]],
+                                   [[[40.0]], [[50.0]], [[60.0]], [[70.0]]],
+                                   [[[50.0]], [[60.0]], [[70.0]], [[80.0]]],
+                                   [[[60.0]], [[70.0]], [[80.0]], [[90.0]]]]
+        self.assertEqual({'A': A, 'B': B}, test.prediction['dataset']['error1'])
+        self.assertEqual({'A': C, 'B': B}, test.prediction['dataset']['error2'])
+        self.assertAlmostEqual(np.sum((np.array(A).flatten()-np.array(B).flatten())**2)/24.0, test.performance['dataset']['error1']['mse'], places=3)
+        self.assertAlmostEqual(np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/24.0, test.performance['dataset']['error2']['mse'], places=3)
+        self.assertAlmostEqual((np.sum((np.array(A).flatten()-np.array(B).flatten())**2)/24.0+np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/24.0)/2.0, test.performance['dataset']['total']['mean_error'], places=3)
+
+        test.resultAnalysis('dataset', prediction_samples=4, batch_size=6)
+        A =[[[[11.0]], [[12.0]], [[13.0]], [[14.0]], [[15.0]], [[16.0]]],
+                                   [[[12.0]], [[13.0]], [[14.0]], [[15.0]], [[16.0]], [[17.0]]],
+                                   [[[13.0]], [[14.0]], [[15.0]], [[16.0]], [[17.0]], [[18.0]]],
+                                   [[[14.0]], [[15.0]], [[16.0]], [[17.0]], [[18.0]], [[19.0]]],
+                                   [[[15.0]], [[16.0]], [[17.0]], [[18.0]], [[19.0]], [[20.0]]]]
+        B =[[[[2.0]], [[4.0]], [[6.0]], [[8.0]], [[10.0]], [[12.0]]],
+                                   [[[4.0]], [[8.0]], [[12.0]], [[16.0]], [[20.0]], [[24.0]]],
+                                   [[[8.0]], [[16.0]], [[24.0]], [[32.0]], [[40.0]], [[48.0]]],
+                                   [[[16.0]], [[32.0]], [[48.0]], [[64.0]], [[80.0]], [[96.0]]],
+                                   [[[32.0]], [[64.0]], [[96.0]], [[128.0]], [[160.0]], [[192.0]]]]
+        C = [[[[10.0]], [[20.0]], [[30.0]], [[40.0]], [[50.0]], [[60.0]]],
+                                   [[[20.0]], [[30.0]], [[40.0]], [[50.0]], [[60.0]], [[70.0]]],
+                                   [[[30.0]], [[40.0]], [[50.0]], [[60.0]], [[70.0]], [[80.0]]],
+                                   [[[40.0]], [[50.0]], [[60.0]], [[70.0]], [[80.0]], [[90.0]]],
+                                   [[[50.0]], [[60.0]], [[70.0]], [[80.0]], [[90.0]], [[100.0]]]]
+        self.assertEqual({'A': A, 'B': B}, test.prediction['dataset']['error1'])
+        self.assertEqual({'A': C, 'B': B}, test.prediction['dataset']['error2'])
+        self.assertAlmostEqual(np.sum((np.array(A).flatten()-np.array(B).flatten())**2)/30.0, test.performance['dataset']['error1']['mse'], places=3)
+        self.assertAlmostEqual(np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/30.0, test.performance['dataset']['error2']['mse'], places=3)
+        self.assertAlmostEqual((np.sum((np.array(A).flatten()-np.array(B).flatten())**2)/30.0+np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/30.0)/2.0, test.performance['dataset']['total']['mean_error'], places=3)
+
+
+    def test_analysis_results_closed_loop(self):
         input1 = Input('in1')
-        target = Input('out1')
-        W = Parameter('W', values=[[[1]]])
-        b = Parameter('b', values=[[1]])
-        output1 = Output('out', Linear(W=W,b=b)(input1.last()))
+        target1 = Input('out1')
+        target2 = Input('out2')
+        a = Parameter('a', values=[[2]])
+        output1 = Output('out', Fir(parameter=a)(input1.last()))
 
         test = Neu4mes(visualizer=None, seed=42)
         test.addModel('model', output1)
-        test.addMinimize('error', target.last(), output1)
+        test.addMinimize('error1', target1.last(), output1)
+        test.addMinimize('error2', target2.last(), output1)
         test.neuralizeModel()
 
-        dataset = {'in1': [1], 'out1': [3]}
+        dataset = {'in1': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'out1': [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+                   'out2': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
         test.loadData(name='dataset', source=dataset)
 
-        self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[[3.0]]], test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[3.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[[-3.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[-3.0]], test.model.all_parameters['b'].data.numpy().tolist())
+        test.resultAnalysis('dataset', prediction_samples=5, batch_size=2, closed_loop={'in1':'out'})
+        A = [[[[11.0]], [[12.0]], [[13.0]], [[14.0]]],
+             [[[12.0]], [[13.0]], [[14.0]], [[15.0]]],
+             [[[13.0]], [[14.0]], [[15.0]], [[16.0]]],
+             [[[14.0]], [[15.0]], [[16.0]], [[17.0]]],
+             [[[15.0]], [[16.0]], [[17.0]], [[18.0]]],
+             [[[16.0]], [[17.0]], [[18.0]], [[19.0]]]]
+        B = [[[[2.0]], [[4.0]], [[6.0]], [[8.0]]],
+             [[[4.0]], [[8.0]], [[12.0]], [[16.0]]],
+             [[[8.0]], [[16.0]], [[24.0]], [[32.0]]],
+             [[[16.0]], [[32.0]], [[48.0]], [[64.0]]],
+             [[[32.0]], [[64.0]], [[96.0]], [[128.0]]],
+             [[[64.0]], [[128.0]], [[192.0]], [[256.0]]]]
+        C = [[[[10.0]], [[20.0]], [[30.0]], [[40.0]]],
+             [[[20.0]], [[30.0]], [[40.0]], [[50.0]]],
+             [[[30.0]], [[40.0]], [[50.0]], [[60.0]]],
+             [[[40.0]], [[50.0]], [[60.0]], [[70.0]]],
+             [[[50.0]], [[60.0]], [[70.0]], [[80.0]]],
+             [[[60.0]], [[70.0]], [[80.0]], [[90.0]]]]
+        self.assertEqual({'A': A, 'B': B}, test.prediction['dataset']['error1'])
+        self.assertEqual({'A': C, 'B': B}, test.prediction['dataset']['error2'])
+        self.assertAlmostEqual(np.sum((np.array(A).flatten() - np.array(B).flatten()) ** 2) / 24.0,
+                               test.performance['dataset']['error1']['mse'], places=3)
+        self.assertAlmostEqual(np.sum((np.array(C).flatten() - np.array(B).flatten()) ** 2) / 24.0,
+                               test.performance['dataset']['error2']['mse'], places=3)
+        self.assertAlmostEqual((np.sum((np.array(A).flatten() - np.array(B).flatten()) ** 2) / 24.0 + np.sum(
+            (np.array(C).flatten() - np.array(B).flatten()) ** 2) / 24.0) / 2.0,
+                               test.performance['dataset']['total']['mean_error'], places=3)
 
-    def test_training_clear_model(self):
-        NeuObj.reset_count()
-        input1 = Input('in1')
-        target = Input('int1')
-        a = Parameter('a', values=[[1]])
-        fir_out = Fir(parameter=a)(input1.last())
-        output1 = Output('out1', fir_out)
+        test.resultAnalysis('dataset', prediction_samples=5, batch_size=4, closed_loop={'in1':'out'})
+        A = [[[[11.0]], [[12.0]], [[13.0]], [[14.0]]],
+             [[[12.0]], [[13.0]], [[14.0]], [[15.0]]],
+             [[[13.0]], [[14.0]], [[15.0]], [[16.0]]],
+             [[[14.0]], [[15.0]], [[16.0]], [[17.0]]],
+             [[[15.0]], [[16.0]], [[17.0]], [[18.0]]],
+             [[[16.0]], [[17.0]], [[18.0]], [[19.0]]]]
+        B = [[[[2.0]], [[4.0]], [[6.0]], [[8.0]]],
+             [[[4.0]], [[8.0]], [[12.0]], [[16.0]]],
+             [[[8.0]], [[16.0]], [[24.0]], [[32.0]]],
+             [[[16.0]], [[32.0]], [[48.0]], [[64.0]]],
+             [[[32.0]], [[64.0]], [[96.0]], [[128.0]]],
+             [[[64.0]], [[128.0]], [[192.0]], [[256.0]]]]
+        C = [[[[10.0]], [[20.0]], [[30.0]], [[40.0]]],
+             [[[20.0]], [[30.0]], [[40.0]], [[50.0]]],
+             [[[30.0]], [[40.0]], [[50.0]], [[60.0]]],
+             [[[40.0]], [[50.0]], [[60.0]], [[70.0]]],
+             [[[50.0]], [[60.0]], [[70.0]], [[80.0]]],
+             [[[60.0]], [[70.0]], [[80.0]], [[90.0]]]]
+        self.assertEqual({'A': A, 'B': B}, test.prediction['dataset']['error1'])
+        self.assertEqual({'A': C, 'B': B}, test.prediction['dataset']['error2'])
+        self.assertAlmostEqual(np.sum((np.array(A).flatten() - np.array(B).flatten()) ** 2) / 24.0,
+                               test.performance['dataset']['error1']['mse'], places=3)
+        self.assertAlmostEqual(np.sum((np.array(C).flatten() - np.array(B).flatten()) ** 2) / 24.0,
+                               test.performance['dataset']['error2']['mse'], places=3)
+        self.assertAlmostEqual((np.sum((np.array(A).flatten() - np.array(B).flatten()) ** 2) / 24.0 + np.sum(
+            (np.array(C).flatten() - np.array(B).flatten()) ** 2) / 24.0) / 2.0,
+                               test.performance['dataset']['total']['mean_error'], places=3)
 
-        W = Parameter('W', values=[[[1]]])
-        b = Parameter('b', values=[[1]])
-        output2 = Output('out2', Linear(W=W,b=b)(fir_out))
+        test.resultAnalysis('dataset', prediction_samples=4, batch_size=6, closed_loop={'in1':'out'})
+        A = [[[[11.0]], [[12.0]], [[13.0]], [[14.0]], [[15.0]], [[16.0]]],
+             [[[12.0]], [[13.0]], [[14.0]], [[15.0]], [[16.0]], [[17.0]]],
+             [[[13.0]], [[14.0]], [[15.0]], [[16.0]], [[17.0]], [[18.0]]],
+             [[[14.0]], [[15.0]], [[16.0]], [[17.0]], [[18.0]], [[19.0]]],
+             [[[15.0]], [[16.0]], [[17.0]], [[18.0]], [[19.0]], [[20.0]]]]
+        B = [[[[2.0]], [[4.0]], [[6.0]], [[8.0]], [[10.0]], [[12.0]]],
+             [[[4.0]], [[8.0]], [[12.0]], [[16.0]], [[20.0]], [[24.0]]],
+             [[[8.0]], [[16.0]], [[24.0]], [[32.0]], [[40.0]], [[48.0]]],
+             [[[16.0]], [[32.0]], [[48.0]], [[64.0]], [[80.0]], [[96.0]]],
+             [[[32.0]], [[64.0]], [[96.0]], [[128.0]], [[160.0]], [[192.0]]]]
+        C = [[[[10.0]], [[20.0]], [[30.0]], [[40.0]], [[50.0]], [[60.0]]],
+             [[[20.0]], [[30.0]], [[40.0]], [[50.0]], [[60.0]], [[70.0]]],
+             [[[30.0]], [[40.0]], [[50.0]], [[60.0]], [[70.0]], [[80.0]]],
+             [[[40.0]], [[50.0]], [[60.0]], [[70.0]], [[80.0]], [[90.0]]],
+             [[[50.0]], [[60.0]], [[70.0]], [[80.0]], [[90.0]], [[100.0]]]]
+        self.assertEqual({'A': A, 'B': B}, test.prediction['dataset']['error1'])
+        self.assertEqual({'A': C, 'B': B}, test.prediction['dataset']['error2'])
+        self.assertAlmostEqual(np.sum((np.array(A).flatten() - np.array(B).flatten()) ** 2) / 30.0,
+                               test.performance['dataset']['error1']['mse'], places=3)
+        self.assertAlmostEqual(np.sum((np.array(C).flatten() - np.array(B).flatten()) ** 2) / 30.0,
+                               test.performance['dataset']['error2']['mse'], places=3)
+        self.assertAlmostEqual((np.sum((np.array(A).flatten() - np.array(B).flatten()) ** 2) / 30.0 + np.sum(
+            (np.array(C).flatten() - np.array(B).flatten()) ** 2) / 30.0) / 2.0,
+                               test.performance['dataset']['total']['mean_error'], places=3)
 
-        test = Neu4mes(visualizer=None, seed=42)
-        test.addModel('model', [output1,output2])
-        test.addMinimize('error', target.last(), output2)
-        test.neuralizeModel()
-        self.assertEqual({'out1': [1.0], 'out2': [2.0]}, test({'in1': [1]}))
+    def test_analysis_results_connect(self):
+        pass
 
-        dataset = {'in1': [1], 'int1': [3]}
-        test.loadData(name='dataset', source=dataset)
-
-        self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[[3.0]]], test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[3.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[3.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[[-51.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[-15.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[-51.0]], test.model.all_parameters['a'].data.numpy().tolist())
-
-        test.neuralizeModel(clear_model=True)
-        self.assertListEqual([[[1.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[1.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[1.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[[3.0]]], test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[3.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[3.0]], test.model.all_parameters['a'].data.numpy().tolist())
-        test.trainModel(optimizer='SGD', splits=[100, 0, 0], lr=1, num_of_epochs=1)
-        self.assertListEqual([[[-51.0]]],test.model.all_parameters['W'].data.numpy().tolist())
-        self.assertListEqual([[-15.0]], test.model.all_parameters['b'].data.numpy().tolist())
-        self.assertListEqual([[-51.0]], test.model.all_parameters['a'].data.numpy().tolist())
-
-    def test_multimodel_with_loss_gain_and_lr_gain(self):
-        ## Model1
-        input1 = Input('in1')
-        a1 = Parameter('a1', dimensions=1, tw=0.05, values=[[1],[1],[1],[1],[1]])
-        output11 = Output('out11', Fir(parameter=a1)(input1.tw(0.05)))
-        a2 = Parameter('a2', dimensions=1, tw=0.05, values=[[1], [1], [1], [1], [1]])
-        output12 = Output('out12', Fir(parameter=a2)(input1.tw(0.05)))
-        a3 = Parameter('a3', dimensions=1, tw=0.05, values=[[1], [1], [1], [1], [1]])
-        output13 = Output('out13', Fir(parameter=a3)(input1.tw(0.05)))
-
-        test = Neu4mes(visualizer=None, seed=42)
-        test.addModel('model1', [output11, output12, output13])
-        test.addMinimize('error11', input1.next(), output11)
-        test.addMinimize('error12', input1.next(), output12)
-        test.addMinimize('error13', input1.next(), output13)
-
-        ## Model2
-        input2 = Input('in2')
-        b1 = Parameter('b1', dimensions=1, tw=0.05, values=[[1],[1],[1],[1],[1]])
-        output21 = Output('out21', Fir(parameter=b1)(input2.tw(0.05)))
-        b2 = Parameter('b2', dimensions=1, tw=0.05, values=[[1],[1],[1],[1],[1]])
-        output22 = Output('out22', Fir(parameter=b2)(input2.tw(0.05)))
-        b3 = Parameter('b3', dimensions=1, tw=0.05, values=[[1],[1],[1],[1],[1]])
-        output23 = Output('out23', Fir(parameter=b3)(input2.tw(0.05)))
-
-        test.addModel('model2', [output21, output22, output23])
-        test.addMinimize('error21', input2.next(), output21)
-        test.addMinimize('error22', input2.next(), output22)
-        test.addMinimize('error23', input2.next(), output23)
-        test.neuralizeModel(0.01)
-
-        data_in1 = [1, 1, 1, 1, 1, 2]
-        data_in2 = [1, 1, 1, 1, 1, 2]
-        dataset = {'in1': data_in1, 'in2': data_in2}
-
-        test.loadData(name='dataset', source=dataset)
-
-        ## Train only model1
-        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
-        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
-        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
-        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
-        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[1], [1], [1], [1], [1]])
-        test.trainModel(optimizer='SGD', models='model1', splits=[100,0,0], lr=1, num_of_epochs=1)
-        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-
-        ## Train only model2
-        test.neuralizeModel(0.01, clear_model=True)
-        test.trainModel(optimizer='SGD', models='model2', splits=[100,0,0], lr=1, num_of_epochs=1)
-        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-
-        ## Train both models
-        test.neuralizeModel(0.01, clear_model=True)
-        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1)
-        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-
-        ## Train both models but set the gain of a to zero and the gain of b to double
-        test.neuralizeModel(0.01, clear_model=True)
-        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1, lr_param={'a1':0, 'b1':2})
-        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-11],[-11],[-11],[-11],[-11]])
-        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-
-        ## Train both models but set the minimize gain of error1 to zero and the minimize gain of error2 to double
-        test.neuralizeModel(0.01, clear_model=True)
-        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1, minimize_gain={'error11':0})
-        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[1],[1],[1],[1],[1]])
-        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-
-        ## Train both models but set the minimize gain of error1 to zero and the minimize gain of error2 to double
-        test.neuralizeModel(0.01, clear_model=True)
-        test.trainModel(optimizer='SGD', models=['model1','model2'], splits=[100,0,0], lr=1, num_of_epochs=1, minimize_gain={'error11':-1,'error22':2})
-        self.assertListEqual(test.model.all_parameters['a1'].data.numpy().tolist(), [[7],[7],[7],[7],[7]])
-        self.assertListEqual(test.model.all_parameters['b1'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['a2'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b2'].data.numpy().tolist(), [[-11],[-11],[-11],[-11],[-11]])
-        self.assertListEqual(test.model.all_parameters['a3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
-        self.assertListEqual(test.model.all_parameters['b3'].data.numpy().tolist(), [[-5],[-5],[-5],[-5],[-5]])
+    def test_analysis_results_connect_state(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

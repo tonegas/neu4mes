@@ -83,7 +83,7 @@ class Neu4mes:
             'early_stopping' : None, 'early_stopping_params' : {},
             'minimize_gain' : {},
             'num_of_epochs': 100,
-            'train_batch_size' : 128, 'val_batch_size' : 1, 'test_batch_size' : 1,
+            'train_batch_size' : 128, 'val_batch_size' : None, 'test_batch_size' : None,
             'optimizer' : 'Adam',
             'lr' : 0.001, 'lr_param' : {},
             'optimizer_params' : [], 'add_optimizer_params' : [],
@@ -532,12 +532,21 @@ class Neu4mes:
         self.__get_parameter(train_batch_size = train_batch_size)
         self.__get_parameter(val_batch_size = val_batch_size)
         self.__get_parameter(test_batch_size = test_batch_size)
+
         if self.run_training_params['train_batch_size'] > self.run_training_params['n_samples_train']:
             self.run_training_params['train_batch_size'] = self.run_training_params['n_samples_train']
-        if  self.run_training_params['val_batch_size'] > self.run_training_params['n_samples_val']:
-            self.run_training_params['val_batch_size'] = self.run_training_params['n_samples_val']
-        if self.run_training_params['test_batch_size'] > self.run_training_params['n_samples_test']:
-            self.run_training_params['test_batch_size'] = self.run_training_params['n_samples_test']
+
+        if self.run_training_params['recurrent_train']:
+            if self.run_training_params['val_batch_size'] is None or self.run_training_params['val_batch_size'] > self.run_training_params['n_samples_val']:
+                self.run_training_params['val_batch_size'] = max(0,self.run_training_params['n_samples_val'] - self.run_training_params['prediction_samples'])
+            if self.run_training_params['test_batch_size'] is None or self.run_training_params['test_batch_size'] > self.run_training_params['n_samples_test']:
+                self.run_training_params['test_batch_size'] = max(0,self.run_training_params['n_samples_test'] - self.run_training_params['prediction_samples'])
+        else:
+            if self.run_training_params['val_batch_size'] is None or self.run_training_params['val_batch_size'] > self.run_training_params['n_samples_val']:
+                self.run_training_params['val_batch_size'] = self.run_training_params['n_samples_val']
+            if self.run_training_params['test_batch_size'] is None or self.run_training_params['test_batch_size'] > self.run_training_params['n_samples_test']:
+                self.run_training_params['test_batch_size'] = self.run_training_params['n_samples_test']
+
         return self.run_training_params['train_batch_size'], self.run_training_params['val_batch_size'], self.run_training_params['test_batch_size']
 
     def __inizilize_optimizer(self, optimizer, optimizer_params, optimizer_defaults, add_optimizer_params, add_optimizer_defaults, models, lr, lr_param):
@@ -857,13 +866,13 @@ class Neu4mes:
         self.val_losses = val_losses
         self.test_losses = test_losses
 
-        self.resultAnalysis(train_dataset, XY_train, closed_loop, connect,  prediction_samples, step, train_batch_size)
+        self.resultAnalysis(train_dataset, XY_train, minimize_gain, closed_loop, connect,  prediction_samples, step, train_batch_size)
         self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
-            self.resultAnalysis(validation_dataset, XY_val, closed_loop, connect,  prediction_samples, step, val_batch_size)
+            self.resultAnalysis(validation_dataset, XY_val, minimize_gain, closed_loop, connect,  prediction_samples, step, val_batch_size)
             self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
-            self.resultAnalysis(test_dataset, XY_test, closed_loop, connect,  prediction_samples, step, test_batch_size)
+            self.resultAnalysis(test_dataset, XY_test, minimize_gain, closed_loop, connect,  prediction_samples, step, test_batch_size)
             self.visualizer.showResult(test_dataset)
 
         # if self.run_training_params['n_samples_test'] > 0:
@@ -972,44 +981,140 @@ class Neu4mes:
             if train:
                 total_loss.backward()
                 self.optimizer.step()
-                self.visualizer.showWeightsInTrain(batch = idx/batch_size)
+                self.visualizer.showWeightsInTrain(batch = idx//batch_size)
 
         ## return the losses
         return aux_losses
 
-    def resultAnalysis(self, name_data, XY_data, closed_loop = {}, connect = {},  prediction_sample = None, step = 1, batch_size = None):
+    def resultAnalysis(self, dataset, data = None, minimize_gain = {}, closed_loop = {}, connect = {},  prediction_samples = None, step = 1, batch_size = None):
         import warnings
         with torch.inference_mode():
             ## Init model for retults analysis
             self.model.eval()
-            self.performance[name_data] = {}
-            self.prediction[name_data] = {}
+            self.performance[dataset] = {}
+            self.prediction[dataset] = {}
             A = {}
             B = {}
-            aux_losses = {}
+            total_losses = {}
+
+            # Create the losses
+            losses = {}
+            for name, values in self.model_def['Minimizers'].items():
+                losses[name] = CustomLoss(values['loss'])
 
             recurrent = False
-            if (closed_loop or connect or self.model_def['States']) and prediction_sample is not None:
+            if (closed_loop or connect or self.model_def['States']) and prediction_samples is not None:
                 recurrent = True
 
+            if data is None:
+                check(dataset in self.data.keys(), ValueError, f'The dataset {dataset} is not loaded!')
+                data = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[dataset].items()}
+            n_samples = len(data[list(data.keys())[0]])
+
             if recurrent:
-                ## Update State variables if necessary
-                self.model.reset_states(XY_data, only = False)
-                self.model.reset_connect_variables(connect, XY_data, only=False)
+                json_inputs = self.model_def['Inputs'] | self.model_def['States']
+                input_ns_backward = {key: value['ns'][0] for key, value in json_inputs.items()}
+                batch_size = batch_size if batch_size is not None else n_samples - prediction_samples
+                initial_value = 0
 
-            _, minimize_out = self.model(XY_data)
-            for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
-                A[key] = minimize_out[value['A']]
-                B[key] = minimize_out[value['B']]
-                loss = self.losses[key](minimize_out[value['A']], minimize_out[value['B']])
-                aux_losses[key] = loss.detach().numpy()
+                for key, value in self.model_def['Minimizers'].items():
+                    total_losses[key], A[key], B[key] = [], [], []
+                    for horizon_idx in range(prediction_samples + 1):
+                        A[key].append([])
+                        B[key].append([])
+
+                for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
+                    ## Build the input tensor
+                    XY = {key: val[idx:idx + batch_size] for key, val in data.items()}
+                    ## collect the horizon labels
+                    XY_horizon = {key: val[idx:idx + batch_size + prediction_samples] for key, val in data.items()}
+                    horizon_losses = {key: [] for key in self.model_def['Minimizers'].keys()}
+
+                    ## Reset state variables with zeros or using inputs
+                    self.model.reset_states(XY, only=False)
+                    self.model.reset_connect_variables(connect, XY, only=False)
+
+                    for horizon_idx in range(prediction_samples + 1):
+                        out, minimize_out = self.model(XY)  ## Forward pass
+
+                        ## Loss Calculation
+                        for key, value in self.model_def['Minimizers'].items():
+                            A[key][horizon_idx].append(minimize_out[value['A']])
+                            B[key][horizon_idx].append(minimize_out[value['B']])
+                            loss = losses[key](minimize_out[value['A']], minimize_out[value['B']])
+                            loss = (loss * minimize_gain[key]) if key in minimize_gain.keys() else loss  ## Multiply by the gain if necessary
+                            horizon_losses[key].append(loss)
+
+                        ## remove the states variables from the data
+                        if prediction_samples > 1:
+                            for state_key in self.model_def['States'].keys():
+                                if state_key in XY.keys():
+                                    del XY[state_key]
+
+                        ## Update the input with the recurrent prediction
+                        if horizon_idx < prediction_samples:
+                            for key in XY.keys():
+                                if key in closed_loop.keys():  ## the input is recurrent
+                                    dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
+                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=1)  ## Roll the time window
+                                    XY[key][:, input_ns_backward[key] - dim:input_ns_backward[key], :] = out[
+                                        closed_loop[key]]  ## substitute with the predicted value
+                                    XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][
+                                                                             horizon_idx:horizon_idx + batch_size,
+                                                                             input_ns_backward[key]:,
+                                                                             :]  ## fill the remaining values from the dataset
+                                else:  ## the input is not recurrent
+                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
+                                    XY[key][-1] = XY_horizon[key][
+                                        batch_size + horizon_idx]  ## take the next sample from the dataset
+
+                    ## Calculate the total loss
+                    for key in self.model_def['Minimizers'].keys():
+                        loss = sum(horizon_losses[key]) / (prediction_samples + 1)
+                        total_losses[key].append(loss.detach().numpy())
+
+                for key, value in self.model_def['Minimizers'].items():
+                    for horizon_idx in range(prediction_samples + 1):
+                        A[key][horizon_idx] = np.concat(A[key][horizon_idx])
+                        B[key][horizon_idx] = np.concat(B[key][horizon_idx])
+                    total_losses[key] = np.mean(total_losses[key])
+
+            else:
+                if batch_size is None:
+                    batch_size = n_samples
+
+                for key, value in self.model_def['Minimizers'].items():
+                    total_losses[key], A[key], B[key] = [], [], []
+
+                for idx in range(0, (n_samples - batch_size + 1), batch_size):
+                    ## Build the input tensor
+                    XY = {key: val[idx:idx + batch_size] for key, val in data.items()}
+                    if (closed_loop or connect or self.model_def['States']):
+                        ## Reset state variables with zeros or using inputs
+                        self.model.reset_states(XY, only=False)
+                        self.model.reset_connect_variables(connect, XY, only=False)
+
+                    ## Model Forward
+                    _, minimize_out = self.model(XY)  ## Forward pass
+                    ## Loss Calculation
+                    for key, value in self.model_def['Minimizers'].items():
+                        A[key].append(minimize_out[value['A']].numpy())
+                        B[key].append(minimize_out[value['B']].numpy())
+                        loss = losses[key](minimize_out[value['A']], minimize_out[value['B']])
+                        loss = (loss * minimize_gain[key]) if key in minimize_gain.keys() else loss
+                        total_losses[key].append(loss.detach().numpy())
+
+                for key, value in self.model_def['Minimizers'].items():
+                    A[key] = np.concat(A[key])
+                    B[key] = np.concat(B[key])
+                    total_losses[key] = np.mean(total_losses[key])
 
             for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
-                A_np = A[key].detach().numpy()
-                B_np = B[key].detach().numpy()
-                self.performance[name_data][key] = {}
-                self.performance[name_data][key][value['loss']] = np.mean(aux_losses[key]).item()
-                self.performance[name_data][key]['fvu'] = {}
+                A_np = np.array(A[key])
+                B_np = np.array(B[key])
+                self.performance[dataset][key] = {}
+                self.performance[dataset][key][value['loss']] = np.mean(total_losses[key]).item()
+                self.performance[dataset][key]['fvu'] = {}
                 # Compute FVU
                 residual = A_np - B_np
                 error_var = np.var(residual)
@@ -1017,12 +1122,12 @@ class Neu4mes:
                 #error_var_manual = np.sum((residual-error_mean) ** 2) / (len(self.prediction['B'][ind]) - 0)
                 #print(f"{key} var np:{new_error_var} and var manual:{error_var_manual}")
                 with warnings.catch_warnings(record=True) as w:
-                    self.performance[name_data][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
-                    self.performance[name_data][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
+                    self.performance[dataset][key]['fvu']['A'] = (error_var / np.var(A_np)).item()
+                    self.performance[dataset][key]['fvu']['B'] = (error_var / np.var(B_np)).item()
                     if w and np.var(A_np) == 0.0 and  np.var(B_np) == 0.0:
-                        self.performance[name_data][key]['fvu']['A'] = np.nan
-                        self.performance[name_data][key]['fvu']['B'] = np.nan
-                self.performance[name_data][key]['fvu']['total'] = np.mean([self.performance[name_data][key]['fvu']['A'],self.performance[name_data][key]['fvu']['B']]).item()
+                        self.performance[dataset][key]['fvu']['A'] = np.nan
+                        self.performance[dataset][key]['fvu']['B'] = np.nan
+                self.performance[dataset][key]['fvu']['total'] = np.mean([self.performance[dataset][key]['fvu']['A'],self.performance[dataset][key]['fvu']['B']]).item()
                 # Compute AIC
                 #normal_dist = norm(0, error_var ** 0.5)
                 #probability_of_residual = normal_dist.pdf(residual)
@@ -1039,16 +1144,16 @@ class Neu4mes:
                 #print(f"{key} total_params:{total_params}")
                 aic = - 2 * log_likelihood + 2 * total_params
                 #print(f"{key} aic:{aic}")
-                self.performance[name_data][key]['aic'] = {'value':aic,'total_params':total_params,'log_likelihood':log_likelihood}
+                self.performance[dataset][key]['aic'] = {'value':aic,'total_params':total_params,'log_likelihood':log_likelihood}
                 # Prediction and target
-                self.prediction[name_data][key] = {}
-                self.prediction[name_data][key]['A'] = A_np.tolist()
-                self.prediction[name_data][key]['B'] = B_np.tolist()
+                self.prediction[dataset][key] = {}
+                self.prediction[dataset][key]['A'] = A_np.tolist()
+                self.prediction[dataset][key]['B'] = B_np.tolist()
 
-            self.performance[name_data]['total'] = {}
-            self.performance[name_data]['total']['mean_error'] = np.mean([value for key,value in aux_losses.items()])
-            self.performance[name_data]['total']['fvu'] = np.mean([self.performance[name_data][key]['fvu']['total'] for key in self.model_def['Minimizers'].keys()])
-            self.performance[name_data]['total']['aic'] = np.mean([self.performance[name_data][key]['aic']['value']for key in self.model_def['Minimizers'].keys()])
+            self.performance[dataset]['total'] = {}
+            self.performance[dataset]['total']['mean_error'] = np.mean([value for key,value in total_losses.items()])
+            self.performance[dataset]['total']['fvu'] = np.mean([self.performance[dataset][key]['fvu']['total'] for key in self.model_def['Minimizers'].keys()])
+            self.performance[dataset]['total']['aic'] = np.mean([self.performance[dataset][key]['aic']['value']for key in self.model_def['Minimizers'].keys()])
 
     def getWorkspace(self):
         return self.exporter.getWorkspace()
