@@ -4,7 +4,7 @@ from pprint import pformat
 import subprocess
 import json
 
-from neu4mes.visualizer.visualizer import Visualizer, color, GREEN, RED
+from neu4mes.visualizer.visualizer import Visualizer, color, GREEN, RED, BLUE
 
 class TextVisualizer(Visualizer):
     def __init__(self, verbose=1):
@@ -23,7 +23,7 @@ class TextVisualizer(Visualizer):
         print(color('-'.center(80, '-'),GREEN))
 
     def __info(self,name, dim =30):
-        print(color((name).ljust(dim),GREEN))
+        print(color((name).ljust(dim),BLUE))
 
     def __paramjson(self,name, value, dim =30):
         lines = pformat(value, width=80 - dim).strip().splitlines()

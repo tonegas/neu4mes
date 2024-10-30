@@ -850,22 +850,6 @@ class Neu4mes:
         self.visualizer.showEndTraining(num_of_epochs-1, train_losses, val_losses)
         self.visualizer.showTrainingTime(end-start)
 
-        ## Test the model
-        if n_samples_test > 0:
-            ## TEST
-            self.model.eval()
-            if recurrent_train:
-                losses = self.__recurrentTrain(XY_test, n_samples_test, test_batch_size, minimize_gain, closed_loop, connect, prediction_samples, step, shuffle=False, train=False)
-            else:
-                losses = self.__Train(XY_test, n_samples_test, test_batch_size, minimize_gain, shuffle=False, train=False)
-            ## save the losses
-            for ind, key in enumerate(self.model_def['Minimizers'].keys()):
-                test_losses[key] = torch.mean(losses[ind]).tolist()
-
-        self.train_losses = train_losses
-        self.val_losses = val_losses
-        self.test_losses = test_losses
-
         self.resultAnalysis(train_dataset, XY_train, minimize_gain, closed_loop, connect,  prediction_samples, step, train_batch_size)
         self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
@@ -875,14 +859,9 @@ class Neu4mes:
             self.resultAnalysis(test_dataset, XY_test, minimize_gain, closed_loop, connect,  prediction_samples, step, test_batch_size)
             self.visualizer.showResult(test_dataset)
 
-        # if self.run_training_params['n_samples_test'] > 0:
-        #     self.ExportReport(XY_test, train_loss=train_losses, val_loss=val_losses)
-        # elif self.run_training_params['n_samples_val'] > 0:
-        #     self.ExportReport(XY_val, train_loss=train_losses, val_loss=val_losses)
         self.visualizer.showResults()
 
-        ## Get trained model from torch and set the model_def_values
-        #self.__get_torch_model()
+        ## Get trained model from torch and set the model_def
         self.model_def.updateParameters(self.model)
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, closed_loop, connect, prediction_samples, step, shuffle=True, train=True):
