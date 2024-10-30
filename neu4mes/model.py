@@ -270,10 +270,11 @@ class Model(nn.Module):
                                                dtype=torch.float32, requires_grad=False)
         else:
             if type(values) is set:
-                for key in values:
-                    batch = self.states[key].shape[0] if key in self.states else 1
-                    window_size = self.input_n_samples[key]
-                    self.states[key] = torch.zeros(size=(batch, window_size, self.state_model[key]['dim']),
+                for key in self.state_model.keys():
+                    if key in values:
+                        batch = self.states[key].shape[0] if key in self.states else 1
+                        window_size = self.input_n_samples[key]
+                        self.states[key] = torch.zeros(size=(batch, window_size, self.state_model[key]['dim']),
                                                    dtype=torch.float32, requires_grad=False)
             else:
                 for key in self.state_model.keys():
