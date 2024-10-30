@@ -22,6 +22,9 @@ class TextVisualizer(Visualizer):
     def __singleline(self):
         print(color('-'.center(80, '-'),GREEN))
 
+    def __info(self,name, dim =30):
+        print(color((name).ljust(dim),GREEN))
+
     def __paramjson(self,name, value, dim =30):
         lines = pformat(value, width=80 - dim).strip().splitlines()
         vai = ('\n' + (' ' * dim)).join(x for x in lines)
@@ -192,9 +195,50 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 1:
             self.__title(" Neu4mes Model Train Parameters ")
             par = self.n4m.run_training_params
+
+            if par['recurrent_train']:
+                batch_size = par['train_batch_size']
+                n_samples = par['n_samples_train']
+                prediction_samples = par['prediction_samples']
+                step = par['step']
+                n_update = len(range(0, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)))
+                unused_samples = n_samples - n_update * (batch_size + step - 1) - prediction_samples
+            else:
+                batch_size = par['train_batch_size']
+                n_samples = par['n_samples_train']
+                n_update = len(range(0, (n_samples - batch_size + 1), batch_size))
+                unused_samples = n_samples - n_update * batch_size
+
             self.__paramjson("models:", par['models'])
+            self.__paramjson("num of epochs:", par['num_of_epochs'])
+            self.__param("update per epochs:", f"{n_update}")
+            if par['recurrent_train']:
+                self.__info("update per epochs=(n_samples-batch_size-prediction_samples+1)/(batch_size+step-1)")
+            else:
+                self.__info("update per epochs=(n_samples-batch_size+1)/batch_size")
+
+            if par['shuffle_data']:
+                self.__param('shuffle data:', str(par['shuffle_data']))
+
+            if 'early_stopping' in par:
+                self.__param('early stopping:', par['early_stopping'])
+                self.__paramjson('early stopping params:', par['early_stopping_params'])
+
+            if par['recurrent_train']:
+                self.__param("prediction samples:", f"{par['prediction_samples']}")
+                self.__param("step:", f"{par['step']}")
+                self.__paramjson("closed loop:", par['closed_loop'])
+                self.__paramjson("connect:", par['connect'])
+
             self.__param("train dataset:", f"{par['train_dataset']}")
-            self.__param("train {batch size, samples}:", f"{{{par['train_batch_size']}, {par['n_samples_train']}}}")
+            self.__param(" - num of samples:", f"{n_samples}")
+            self.__param(" - batch size:", f"{batch_size}")
+            self.__param(" - unused samples:", f"{unused_samples}")
+            if not par['recurrent_train']:
+                self.__info("unused samples=n_samples-prediction_samples-update_per_epochs*(batch_size+step-1)")
+            else:
+                self.__info("unused samples=n_samples-update_per_epochs*batch_size")
+
             if par['n_samples_val']:
                 self.__param("val dataset:", f"{par['validation_dataset']}")
                 self.__param("val {batch size, samples}:", f"{{{par['val_batch_size']}, {par['n_samples_val']}}}")
@@ -202,20 +246,7 @@ class TextVisualizer(Visualizer):
                 self.__param("test dataset:", f"{par['test_dataset']}")
                 self.__param("test {batch size, samples}:", f"{{{par['test_batch_size']}, {par['n_samples_test']}}}")
 
-            self.__paramjson("num of epochs:", par['num_of_epochs'])
-            if par['shuffle_data']:
-                self.__param('shuffle data:', str(par['shuffle_data']))
-            if 'early_stopping' in par:
-                self.__param('early stopping:', par['early_stopping'])
-                self.__paramjson('early stopping params:', par['early_stopping_params'])
-
             self.__paramjson('minimizers:', par['minimizers'])
-
-            if par['recurrent_train']:
-                self.__param("prediction samples:", str(par['prediction_samples']))
-                self.__param("step:", str(par['step']))
-                self.__paramjson("closed loop:", par['closed_loop'])
-                self.__paramjson("connect:", par['connect'])
 
             self.__param("optimizer:", par['optimizer'])
             self.__paramjson("optimizer defaults:",self.n4m.run_training_params['optimizer_defaults'])
