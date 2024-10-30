@@ -688,15 +688,15 @@ class Neu4mes:
                 if val_size == 0.0 and test_size == 0.0: ## we have only training set
                     XY_train[key] = torch.from_numpy(samples).to(torch.float32)
                 elif val_size == 0.0 and test_size != 0.0: ## we have only training and test set
-                    XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
-                    XY_test[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
+                    XY_train[key] = torch.from_numpy(samples[:n_samples_train]).to(torch.float32)
+                    XY_test[key] = torch.from_numpy(samples[n_samples_train:]).to(torch.float32)
                 elif val_size != 0.0 and test_size == 0.0: ## we have only training and validation set
-                    XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
-                    XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):]).to(torch.float32)
+                    XY_train[key] = torch.from_numpy(samples[:n_samples_train]).to(torch.float32)
+                    XY_val[key] = torch.from_numpy(samples[n_samples_train:]).to(torch.float32)
                 else: ## we have training, validation and test set
-                    XY_train[key] = torch.from_numpy(samples[:round(len(samples)*train_size)]).to(torch.float32)
-                    XY_val[key] = torch.from_numpy(samples[round(len(samples)*train_size):-round(len(samples)*test_size)]).to(torch.float32)
-                    XY_test[key] = torch.from_numpy(samples[-round(len(samples)*test_size):]).to(torch.float32)
+                    XY_train[key] = torch.from_numpy(samples[:n_samples_train]).to(torch.float32)
+                    XY_val[key] = torch.from_numpy(samples[n_samples_train:-n_samples_test]).to(torch.float32)
+                    XY_test[key] = torch.from_numpy(samples[n_samples_train+n_samples_val:]).to(torch.float32)
 
             ## Set name for resultsAnalysis
             train_dataset = self.__get_parameter(train_dataset = f"train_{dataset}_{train_size:0.2f}")
@@ -718,6 +718,7 @@ class Neu4mes:
                 self.visualizer.warning(f'Test Dataset [{test_dataset}] Not Loaded. The training will continue without test')
 
             ## Split into train, validation and test
+            XY_train, XY_val, XY_test = {}, {}, {}
             n_samples_train = self.num_of_samples[train_dataset]
             XY_train = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[train_dataset].items()}
             if validation_dataset in datasets:
@@ -726,6 +727,13 @@ class Neu4mes:
             if test_dataset in datasets:
                 n_samples_test = self.num_of_samples[test_dataset]
                 XY_test = {key: torch.from_numpy(val).to(torch.float32) for key, val in self.data[test_dataset].items()}
+
+        for key in XY_train.keys():
+            assert n_samples_train == XY_train[key].shape[0], f'The number of train samples {n_samples_train}!={XY_train[key].shape[0]} not compliant.'
+            if key in XY_val:
+                assert n_samples_val == XY_val[key].shape[0], f'The number of val samples {n_samples_val}!={XY_val[key].shape[0]} not compliant.'
+            if key in XY_test:
+                assert n_samples_test == XY_test[key].shape[0], f'The number of test samples {n_samples_test}!={XY_test[key].shape[0]} not compliant.'
 
         assert n_samples_train > 0, f'There are {n_samples_train} samples for training.'
         self.run_training_params['n_samples_train'] = n_samples_train
@@ -849,13 +857,13 @@ class Neu4mes:
         self.val_losses = val_losses
         self.test_losses = test_losses
 
-        self.resultAnalysis(train_dataset, XY_train, self.run_training_params)
+        self.resultAnalysis(train_dataset, XY_train, closed_loop, connect,  prediction_samples, step, train_batch_size)
         self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
-            self.resultAnalysis(validation_dataset, XY_val, self.run_training_params)
+            self.resultAnalysis(validation_dataset, XY_val, closed_loop, connect,  prediction_samples, step, val_batch_size)
             self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
-            self.resultAnalysis(test_dataset, XY_test, self.run_training_params)
+            self.resultAnalysis(test_dataset, XY_test, closed_loop, connect,  prediction_samples, step, test_batch_size)
             self.visualizer.showResult(test_dataset)
 
         # if self.run_training_params['n_samples_test'] > 0:
@@ -969,9 +977,8 @@ class Neu4mes:
         ## return the losses
         return aux_losses
 
-    def resultAnalysis(self, name_data, XY_data, training_params):
+    def resultAnalysis(self, name_data, XY_data, closed_loop = {}, connect = {},  prediction_sample = None, step = 1, batch_size = None):
         import warnings
-        connect = training_params['connect'] if 'connect' in training_params else {}
         with torch.inference_mode():
             ## Init model for retults analysis
             self.model.eval()
@@ -981,9 +988,14 @@ class Neu4mes:
             B = {}
             aux_losses = {}
 
-            ## Update State variables if necessary
-            self.model.reset_states(XY_data, only = False)
-            self.model.reset_connect_variables(connect, XY_data, only=False)
+            recurrent = False
+            if (closed_loop or connect or self.model_def['States']) and prediction_sample is not None:
+                recurrent = True
+
+            if recurrent:
+                ## Update State variables if necessary
+                self.model.reset_states(XY_data, only = False)
+                self.model.reset_connect_variables(connect, XY_data, only=False)
 
             _, minimize_out = self.model(XY_data)
             for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
