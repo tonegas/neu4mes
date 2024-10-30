@@ -799,7 +799,7 @@ class Neu4mes:
             ## TRAIN
             self.model.train()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_train, n_samples_train, train_batch_size, minimize_gain, prediction_samples, closed_loop, step, connect, shuffle=shuffle_data, train=True)
+                losses = self.__recurrentTrain(XY_train, n_samples_train, train_batch_size, minimize_gain, closed_loop, connect, prediction_samples, step, shuffle=shuffle_data, train=True)
             else:
                 losses = self.__Train(XY_train,n_samples_train, train_batch_size, minimize_gain, shuffle=shuffle_data, train=True)
             ## save the losses
@@ -810,7 +810,7 @@ class Neu4mes:
                 ## VALIDATION
                 self.model.eval()
                 if recurrent_train:
-                    losses = self.__recurrentTrain(XY_val, n_samples_val, val_batch_size, minimize_gain, prediction_samples, closed_loop, step, connect, shuffle=False, train=False)
+                    losses = self.__recurrentTrain(XY_val, n_samples_val, val_batch_size, minimize_gain, closed_loop, connect, prediction_samples, step, shuffle=False, train=False)
                 else:
                     losses = self.__Train(XY_val, n_samples_val, val_batch_size, minimize_gain, shuffle=False, train=False)
                 ## save the losses
@@ -838,7 +838,7 @@ class Neu4mes:
             ## TEST
             self.model.eval()
             if recurrent_train:
-                losses = self.__recurrentTrain(XY_test, n_samples_test, test_batch_size, minimize_gain, prediction_samples, closed_loop, step, connect, shuffle=False, train=False)
+                losses = self.__recurrentTrain(XY_test, n_samples_test, test_batch_size, minimize_gain, closed_loop, connect, prediction_samples, step, shuffle=False, train=False)
             else:
                 losses = self.__Train(XY_test, n_samples_test, test_batch_size, minimize_gain, shuffle=False, train=False)
             ## save the losses
@@ -849,13 +849,13 @@ class Neu4mes:
         self.val_losses = val_losses
         self.test_losses = test_losses
 
-        self.resultAnalysis(train_dataset, XY_train, connect, closed_loop)
+        self.resultAnalysis(train_dataset, XY_train, self.run_training_params)
         self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
-            self.resultAnalysis(validation_dataset, XY_val, connect, closed_loop)
+            self.resultAnalysis(validation_dataset, XY_val, self.run_training_params)
             self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
-            self.resultAnalysis(test_dataset, XY_test, connect, closed_loop)
+            self.resultAnalysis(test_dataset, XY_test, self.run_training_params)
             self.visualizer.showResult(test_dataset)
 
         # if self.run_training_params['n_samples_test'] > 0:
@@ -868,7 +868,7 @@ class Neu4mes:
         #self.__get_torch_model()
         self.model_def.updateParameters(self.model)
 
-    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, prediction_samples, closed_loop, step, connect, shuffle=True, train=True):
+    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, closed_loop, connect, prediction_samples, step, shuffle=True, train=True):
         ## Sample Shuffle
         initial_value = random.randint(0, step - 1) if shuffle else 0
 
@@ -926,8 +926,9 @@ class Neu4mes:
             ## Calculate the total loss
             total_loss = 0
             for ind in range(len(self.model_def['Minimizers'])):
-                total_loss += sum(horizon_losses[ind])/(prediction_samples+1)
-                aux_losses[ind][idx//batch_size] = total_loss.item()
+                loss = sum(horizon_losses[ind])/(prediction_samples+1)
+                aux_losses[ind][idx//batch_size] = loss.item()
+                total_loss += loss
 
             ## Gradient Step
             if train:
@@ -957,7 +958,7 @@ class Neu4mes:
             for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
                 loss = self.losses[key](minimize_out[value['A']], minimize_out[value['B']])
                 loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
-                aux_losses[ind][idx//batch_size]= loss.item()
+                aux_losses[ind][idx//batch_size] = loss.item()
                 total_loss += loss
             ## Gradient step
             if train:
@@ -968,8 +969,9 @@ class Neu4mes:
         ## return the losses
         return aux_losses
 
-    def resultAnalysis(self, name_data, XY_data, connect, closed_loop):
+    def resultAnalysis(self, name_data, XY_data, training_params):
         import warnings
+        connect = training_params['connect'] if 'connect' in training_params else {}
         with torch.inference_mode():
             ## Init model for retults analysis
             self.model.eval()
