@@ -5,8 +5,10 @@ import numpy as np
 from neu4mes.input import closedloop_name, connect_name
 from neu4mes.utils import check, merge
 from neu4mes.relation import MAIN_JSON, Stream
-from neu4mes.input import Input, State
 from neu4mes.output import Output
+
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.INFO)
 
 class ModelDef():
     def __init__(self, model_def = MAIN_JSON):
@@ -179,6 +181,12 @@ class ModelDef():
 
         self.json['Info']['ns'] = [max(input_ns_backward.values()), max(input_ns_forward.values())]
         self.json['Info']['ntot'] = sum(self.json['Info']['ns'])
+        if self.json['Info']['ns'][0] < 0:
+            log.warning(
+                f"The input is only in the far past the max_samples_backward is: {self.json['Info']['ns'][0]}")
+        if self.json['Info']['ns'][1] < 0:
+            log.warning(
+                f"The input is only in the far future the max_sample_forward is: {self.json['Info']['ns'][1]}")
 
         for k, v in (self.json['Parameters']|self.json['Constants']).items():
             if 'values' in v:
@@ -187,13 +195,6 @@ class ModelDef():
                     check(np.array(v['values']).shape[0] == v['tw']/self.sample_time, ValueError,
                       f"{k} has a different number of values for this sample time.")
 
-
-        # if self.json['Info']['ns'][0] < 0:
-        #     self.visualizer.warning(
-        #         f"The input is only in the far past the max_samples_backward is: {self.json['Info']['ns'][0]}")
-        # if self.json['Info']['ns'][1] < 0:
-        #     self.visualizer.warning(
-        #         f"The input is only in the far future the max_sample_forward is: {self.json['Info']['ns'][1]}")
 
     def updateParameters(self, model):
         if model is not None:

@@ -4,22 +4,16 @@ import numpy as np
 import pandas as pd
 
 # Neu4mes packages
-from neu4mes.input import closedloop_name, connect_name
-from neu4mes.relation import MAIN_JSON
-from neu4mes.visualizer import TextVisualizer, Visualizer, MPLVisualizer, MPLNotebookVisualizer
+from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
-from neu4mes.output import Output
-from neu4mes.relation import Stream
 from neu4mes.model import Model
-from neu4mes.utils import check, argmax_max, argmin_min, merge, tensor_to_list
+from neu4mes.utils import check, argmax_max, argmin_min, tensor_to_list
 from neu4mes.optimizer import Optimizer, SGD, Adam
 from neu4mes.exporter import Exporter, StandardExporter
 from neu4mes.modeldef import ModelDef
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.DEBUG, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.INFO)
 
 class Neu4mes:
     def __init__(self,
@@ -117,7 +111,7 @@ class Neu4mes:
         extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
         if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
             ## Ignoring extra inputs
-            self.visualizer.warning(f'The complete model inputs are {model_inputs}, the provided input are {provided_inputs}. Ignoring {extra_inputs}...')
+            log.warning(f'The complete model inputs are {model_inputs}, the provided input are {provided_inputs}. Ignoring {extra_inputs}...')
             for key in extra_inputs:
                 del inputs[key]
             provided_inputs = list(inputs.keys())
@@ -172,7 +166,7 @@ class Neu4mes:
 
         ## Autofill the missing inputs
         if missing_inputs:
-            self.visualizer.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
+            log.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
             for key in missing_inputs:
                 inputs[key] = np.zeros(
                     shape=(self.input_n_samples[key] + window_dim - 1, self.model_def['Inputs'][key]['dim']),
@@ -201,7 +195,7 @@ class Neu4mes:
 
         ## Warning the users about different time windows between samples
         if min_dim != max_dim:
-            self.visualizer.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
+            log.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
 
         result_dict = {} ## initialize the resulting dictionary
         for key in self.model_def['Outputs'].keys():
@@ -335,12 +329,6 @@ class Neu4mes:
         self.model_def.setBuildWindow(sample_time)
         self.model = Model(self.model_def.json)
 
-        if self.model_def['Info']['ns'][0] < 0:
-            self.visualizer.warning(
-                f"The input is only in the far past the max_samples_backward is: {self.model_def['Info']['ns'][0]}")
-        if self.model_def['Info']['ns'][1] < 0:
-            self.visualizer.warning(
-                f"The input is only in the far future the max_sample_forward is: {self.model_def['Info']['ns'][1]}")
         input_ns_backward = {key:value['ns'][0] for key, value in (self.model_def['Inputs']|self.model_def['States']).items()}
         input_ns_forward = {key:value['ns'][1] for key, value in (self.model_def['Inputs']|self.model_def['States']).items()}
         self.input_n_samples = {}
@@ -362,7 +350,7 @@ class Neu4mes:
         model_inputs = list(json_inputs.keys())
         ## Initialize the dictionary containing the data
         if name in list(self.data.keys()):
-            self.visualizer.warning(f'Dataset named {name} already loaded! overriding the existing one..')
+            log.warning(f'Dataset named {name} already loaded! overriding the existing one..')
         self.data[name] = {}
 
         input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
@@ -411,7 +399,7 @@ class Neu4mes:
                     ## read the csv
                     df = pd.read_csv(os.path.join(source,file), skiprows=skiplines, delimiter=delimiter, header=header)
                 except:
-                    self.visualizer.warning(f'Cannot read file {os.path.join(source,file)}')
+                    log.warning(f'Cannot read file {os.path.join(source,file)}')
                     continue
                 ## Cycle through all the windows
                 for key, idxs in format_idx.items():
@@ -646,17 +634,17 @@ class Neu4mes:
             for input, output in closed_loop.items():
                 check(input in self.model_def['Inputs'], ValueError, f'the tag {input} is not an input variable.')
                 check(output in self.model_def['Outputs'], ValueError, f'the tag {output} is not an output of the network')
-                self.visualizer.warning(f'Recurrent train: closing the loop between the the input ports {input} and the output ports {output} for {prediction_samples} samples')
+                log.warning(f'Recurrent train: closing the loop between the the input ports {input} and the output ports {output} for {prediction_samples} samples')
         elif connect:
             for connect_in, connect_out in connect.items():
                 check(connect_in in self.model_def['Inputs'], ValueError, f'the tag {connect_in} is not an input variable.')
                 check(connect_out in self.model_def['Outputs'], ValueError, f'the tag {connect_out} is not an output of the network')
-                self.visualizer.warning(f'Recurrent train: connecting the input ports {connect_in} with output ports {connect_out} for {prediction_samples} samples')
+                log.warning(f'Recurrent train: connecting the input ports {connect_in} with output ports {connect_out} for {prediction_samples} samples')
         elif self.model_def['States']: ## if we have state variables we have to do the recurrent train
-            self.visualizer.warning(f"Recurrent train: update States variables {list(self.model_def['States'].keys())} for {prediction_samples} samples")
+            log.warning(f"Recurrent train: update States variables {list(self.model_def['States'].keys())} for {prediction_samples} samples")
         else:
             if prediction_samples != 0:
-                self.visualizer.warning(
+                log.warning(
                     f"The value of the prediction_samples={prediction_samples} is not used in not recursive network.")
             recurrent_train = False
         self.run_training_params['recurrent_train'] = recurrent_train
@@ -722,9 +710,9 @@ class Neu4mes:
 
             check(train_dataset in datasets, KeyError, f'{train_dataset} Not Loaded!')
             if validation_dataset is not None and validation_dataset not in datasets:
-                self.visualizer.warning(f'Validation Dataset [{validation_dataset}] Not Loaded. The training will continue without validation')
+                log.warning(f'Validation Dataset [{validation_dataset}] Not Loaded. The training will continue without validation')
             if test_dataset is not None and test_dataset not in datasets:
-                self.visualizer.warning(f'Test Dataset [{test_dataset}] Not Loaded. The training will continue without test')
+                log.warning(f'Test Dataset [{test_dataset}] Not Loaded. The training will continue without test')
 
             ## Split into train, validation and test
             XY_train, XY_val, XY_test = {}, {}, {}
@@ -837,7 +825,7 @@ class Neu4mes:
             ## Early-stopping
             if early_stopping:
                 if early_stopping(train_losses, val_losses, early_stopping_params):
-                    self.visualizer.warning('Stopping the training..')
+                    log.warning('Stopping the training..')
                     break
 
             ## Visualize the training...
