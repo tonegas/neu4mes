@@ -1,12 +1,15 @@
-import sys
-import os
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
+import sys, os, unittest
 
-import unittest, logging
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
+
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
+
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 # 8 Tests
 # This test file tests the json, in particular

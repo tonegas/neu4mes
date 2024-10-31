@@ -1,14 +1,15 @@
-import sys
-import os
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
+import sys, os, torch, unittest
 
-import unittest
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-import torch
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
+
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 # 17 Tests
 # This file test the model prediction in particular the output value
