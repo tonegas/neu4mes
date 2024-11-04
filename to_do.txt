@@ -21,7 +21,6 @@ Most important:
   - investigate the warning "Creating a tensor from a list of numpy.ndarrays is extremely slow ..."
 - The new MPLVisualizer does not work in Python
 - shuffle_flag = True does not work or does not work as expected in closed-loop training
-- the symbolic tracer does not work
 - the user should be able to give each layer (including FIR layers) a custom name, and the same names should appear in the json as well, to make it easier to identify them and load them in a new model as initial weights
 - test with log_internal=True for the closed-loop training --> see the example test_recurrent_train.py
 - the requirements.txt do not work on a new environment (windows), only the requirements_macos_x86.txt work
