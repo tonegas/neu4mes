@@ -1,17 +1,15 @@
-import unittest, torch, shutil
+import sys, os, unittest, torch, shutil
 
-import sys
-import os
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.DEBUG, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
+
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 # 10 Tests
 # Test of export the network to a file

@@ -9,10 +9,8 @@ from neu4mes.model import Model
 from neu4mes.parameter import Parameter
 from neu4mes.utils import check, merge, enforce_types
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.DEBUG, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
 
 linear_relation_name = 'Linear'
 class Linear(NeuObj, AutoToStream):

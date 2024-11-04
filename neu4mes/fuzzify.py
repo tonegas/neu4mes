@@ -9,11 +9,8 @@ from neu4mes.relation import NeuObj, Stream
 from neu4mes.model import Model
 from neu4mes.utils import check, merge, enforce_types
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.ERROR, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
 
 fuzzify_relation_name = 'Fuzzify'
 

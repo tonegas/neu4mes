@@ -1,13 +1,15 @@
-import unittest
+import unittest, sys, os, torch
 
-import torch
-import sys
-import os
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
+
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
+
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 # 11 Tests
 # This file tests the dimensions and the of the element created in the pytorch environment

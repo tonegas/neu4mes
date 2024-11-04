@@ -1,12 +1,15 @@
-import unittest
+import unittest, os, sys
 
-import sys
-import os
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
+
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
+
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 # 14 Tests
 # Test the value of the weight after the recurrent training

@@ -1,28 +1,23 @@
-import logging
-import sys
-import os
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
+import sys, os, unittest
 
-import unittest
-import numpy as np
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.CRITICAL)
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 # 16 Tests
 # This file test the data loading in particular:
 # The shape and the value of the inputs
 
-import os
 train_folder = os.path.join(os.path.dirname(__file__), 'data/')
 val_folder = os.path.join(os.path.dirname(__file__), 'val_data/')
 test_folder = os.path.join(os.path.dirname(__file__), 'test_data/')
-
 
 class Neu4mesCreateDatasetTest(unittest.TestCase):
     

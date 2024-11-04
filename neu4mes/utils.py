@@ -4,11 +4,8 @@ from pprint import pformat
 from functools import wraps
 from typing import get_type_hints
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
-
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
 
 def enforce_types(func):
     @wraps(func)

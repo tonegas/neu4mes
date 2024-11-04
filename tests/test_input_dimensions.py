@@ -1,15 +1,15 @@
 import unittest, sys, os, torch
 
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.DEBUG, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
+
+# append a new directory to sys.path
+sys.path.append(os.getcwd())
 
 # 13 Tests
 # This file tests the dimensions of the inputs in particular:
@@ -24,7 +24,6 @@ log.setLevel(max(logging.DEBUG, LOG_LEVEL))
 class Neu4mesNetworkBuildingTest(unittest.TestCase):
 
     def test_network_building_very_simple(self):
-
         input1 = Input('in1')
         rel1 = Fir(input1.last())
         fun = Output('out', rel1)

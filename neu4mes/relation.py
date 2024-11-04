@@ -4,10 +4,8 @@ import numpy as np
 
 from neu4mes.utils import check, merge
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
 
 MAIN_JSON = {
                 'Info' : {},

@@ -21,9 +21,6 @@ class Visualizer():
     def set_n4m(self, n4m):
         self.n4m = n4m
 
-    def warning(self, msg):
-        print(color(msg, YELLOW))
-
     def showModel(self, model):
         pass
 
