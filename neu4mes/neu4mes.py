@@ -857,14 +857,15 @@ class Neu4mes:
         initial_value = random.randint(0, step - 1) if shuffle else 0
 
         ## Initialize the train losses vector
-        aux_losses = torch.zeros([len(self.model_def['Minimizers']), n_samples//batch_size])
+        list_update = range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1))
+        aux_losses = torch.zeros([len(self.model_def['Minimizers']), len(list_update)])
 
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
         input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
 
         ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
         ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
-        for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
+        for valval, idx in enumerate(list_update):
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
 
@@ -911,7 +912,7 @@ class Neu4mes:
             total_loss = 0
             for ind in range(len(self.model_def['Minimizers'])):
                 loss = sum(horizon_losses[ind])/(prediction_samples+1)
-                aux_losses[ind][idx//batch_size] = loss.item()
+                aux_losses[ind][valval] = loss.item()
                 total_loss += loss
 
             ## Gradient Step

@@ -202,7 +202,7 @@ class TextVisualizer(Visualizer):
                 prediction_samples = par['prediction_samples']
                 step = par['step']
                 n_update = len(range(0, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)))
-                unused_samples = n_samples - n_update * (batch_size + step - 1) - prediction_samples
+                unused_samples = (n_samples-1) - range(0, (n_samples - 1), (batch_size + step - 1))[-1]
             else:
                 batch_size = par['train_batch_size']
                 n_samples = par['n_samples_train']
@@ -234,7 +234,7 @@ class TextVisualizer(Visualizer):
             self.__param(" - num of samples:", f"{n_samples}")
             self.__param(" - batch size:", f"{batch_size}")
             self.__param(" - unused samples:", f"{unused_samples}")
-            if not par['recurrent_train']:
+            if par['recurrent_train']:
                 self.__info("unused samples=n_samples-prediction_samples-update_per_epochs*(batch_size+step-1)")
             else:
                 self.__info("unused samples=n_samples-update_per_epochs*batch_size")
