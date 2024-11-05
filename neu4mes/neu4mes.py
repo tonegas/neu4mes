@@ -839,13 +839,10 @@ class Neu4mes:
         self.visualizer.showTrainingTime(end-start)
 
         self.resultAnalysis(train_dataset, XY_train, minimize_gain, closed_loop, connect,  prediction_samples, step, train_batch_size)
-        self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val, minimize_gain, closed_loop, connect,  prediction_samples, step, val_batch_size)
-            self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test, minimize_gain, closed_loop, connect,  prediction_samples, step, test_batch_size)
-            self.visualizer.showResult(test_dataset)
 
         self.visualizer.showResults()
 
@@ -856,15 +853,16 @@ class Neu4mes:
         ## Sample Shuffle
         initial_value = random.randint(0, step - 1) if shuffle else 0
 
+        list_of_batch_indexes = range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1))
         ## Initialize the train losses vector
-        aux_losses = torch.zeros([len(self.model_def['Minimizers']), n_samples//batch_size])
+        aux_losses = torch.zeros([len(self.model_def['Minimizers']), len(list_of_batch_indexes)])
 
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
         input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
 
         ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
         ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
-        for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
+        for batch_val, idx in enumerate(list_of_batch_indexes):
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
 
@@ -911,14 +909,14 @@ class Neu4mes:
             total_loss = 0
             for ind in range(len(self.model_def['Minimizers'])):
                 loss = sum(horizon_losses[ind])/(prediction_samples+1)
-                aux_losses[ind][idx//batch_size] = loss.item()
+                aux_losses[ind][batch_val] = loss.item()
                 total_loss += loss
 
             ## Gradient Step
             if train:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
-                self.visualizer.showWeightsInTrain(batch = idx/(batch_size + step - 1))
+                self.visualizer.showWeightsInTrain(batch = batch_val)
 
         ## return the losses
         return aux_losses
@@ -1121,6 +1119,8 @@ class Neu4mes:
             self.performance[dataset]['total']['mean_error'] = np.mean([value for key,value in total_losses.items()])
             self.performance[dataset]['total']['fvu'] = np.mean([self.performance[dataset][key]['fvu']['total'] for key in self.model_def['Minimizers'].keys()])
             self.performance[dataset]['total']['aic'] = np.mean([self.performance[dataset][key]['aic']['value']for key in self.model_def['Minimizers'].keys()])
+
+        self.visualizer.showResult(dataset)
 
     def getWorkspace(self):
         return self.exporter.getWorkspace()
