@@ -37,14 +37,15 @@ class Neu4mesVisualizer(unittest.TestCase):
         c_5 = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
         parfun_x = ParamFun(myFun, parameters=[K_x], constants=[c_v])
         parfun_y = ParamFun(myFun, parameters=[K_y])
-        parfun_z = ParamFun(myFun)
+        #parfun_z = ParamFun(myFun)
+        parfun_zz = ParamFun(myFun)
         fir_w = Fir(parameter=w_5)(x.tw(5))
         fir_t = Fir(parameter=t_5)(y.tw(5))
         time_part = TimePart(x.tw(5), i=1, j=3)
         sample_select = SampleSelect(x.sw(5), i=1)
 
         def fuzzyfun(x):
-            return torch.tan(x)
+            return torch.sin(x)
 
         fuzzy = Fuzzify(output_dimension=4, range=[0, 4], functions=fuzzyfun)(x.tw(1))
         fuzzyTriang = Fuzzify(centers=[1, 2, 3, 7])(x.tw(1))
@@ -56,12 +57,14 @@ class Neu4mesVisualizer(unittest.TestCase):
         self.out4 = Output('out4', Linear(output_dimension=1)(fuzzy+fuzzyTriang))
         self.out5 = Output('out5', Fir(time_part) + Fir(sample_select))
         self.out6 = Output('out6', LocalModel(output_function=Fir())(x.tw(1), fuzzy))
+        self.out7 = Output('out7', parfun_zz(z.last()))
 
     def test_export_textvisualizer(self):
         test = Neu4mes(visualizer=TextVisualizer(5), seed=42)
         test.addModel('modelA', self.out)
         test.addModel('modelB', [self.out2, self.out3, self.out4])
         test.addModel('modelC', [self.out4, self.out5, self.out6])
+        test.addModel('modelD', self.out7)
         test.addMinimize('error1', self.x.last(), self.out)
         test.addMinimize('error2', self.y.last(), self.out3, loss_function='rmse')
         test.addMinimize('error3', self.z.last(), self.out6, loss_function='rmse')
@@ -82,6 +85,7 @@ class Neu4mesVisualizer(unittest.TestCase):
         test.addModel('modelA', self.out)
         test.addModel('modelB', [self.out2, self.out3, self.out4])
         test.addModel('modelC', [self.out4, self.out5, self.out6])
+        test.addModel('modelD', self.out7)
         test.addMinimize('error1', self.x.last(), self.out)
         test.addMinimize('error2', self.y.last(), self.out3, loss_function='rmse')
         test.addMinimize('error3', self.z.last(), self.out6, loss_function='rmse')
@@ -98,6 +102,14 @@ class Neu4mesVisualizer(unittest.TestCase):
         test.trainModel(optimizer='SGD', training_params=params)
         m.closeResult()
         m.closeTraining()
+        list_of_functions = list(test.model_def['Functions'].keys())
+        with self.assertRaises(ValueError):
+            m.showFunctions(list_of_functions[1])
+        m.closeFunctions()
+        m.showFunctions(list_of_functions[0])
+        m.showFunctions(list_of_functions[4])
+        m.showFunctions(list_of_functions[3])
+        m.closeFunctions()
 
     # def test_export_mplnotebookvisualizer(self):
     #     m = MPLNotebookVisualizer(5)

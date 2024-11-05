@@ -265,7 +265,15 @@ class Neu4mesExport(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net_modelB.onnx')))
 
     def test_export_report(self):
-        pass
+        self.test.neuralizeModel(0.5, clear_model=True)
+        data_x = np.arange(0.0, 1, 0.1)
+        data_y = np.arange(0.0, 1, 0.1)
+        a, b = -1.0, 2.0
+        dataset = {'x': data_x, 'y': data_y, 'z': a * data_x + b * data_y}
+        params = {'num_of_epochs': 1, 'lr': 0.01}
+        self.test.loadData(name='dataset', source=dataset)  # Create the dataset
+        self.test.trainModel(optimizer='SGD', training_params=params)  # Train the traced model
+        self.test.exportReport()
 
 if __name__ == '__main__':
     unittest.main()

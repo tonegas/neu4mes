@@ -39,6 +39,7 @@ class MPLVisualizer(TextVisualizer):
             self.process_results = {}
             for key in self.process_function.keys():
                 self.process_function[key].terminate()
+                self.process_functios[key].wait()
             sys.exit()
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -115,6 +116,10 @@ class MPLVisualizer(TextVisualizer):
         check(self.n4m.neuralized, ValueError, "The model has not been neuralized.")
         for key, value in self.n4m.model_def['Functions'].items():
             if key in functions:
+                if key in self.process_function and self.process_function[key].poll() is None:
+                    self.process_function[key].terminate()
+                    self.process_function[key].wait()
+
                 if 'functions' in self.n4m.model_def['Functions'][key]:
                     x, activ_fun = return_fuzzify(value, xlim, num_points)
                     data = {"name": key,
@@ -126,7 +131,7 @@ class MPLVisualizer(TextVisualizer):
                                                                   stdin=subprocess.PIPE,
                                                                   text=True)
                 elif 'code':
-                    function_inputs = return_standard_inputs(value, self.n4m.model, xlim, num_points)
+                    function_inputs = return_standard_inputs(value, self.n4m.model_def, xlim, num_points)
                     function_output, function_input_list = return_function(value, function_inputs)
 
                     data = {"name": key}
@@ -150,11 +155,22 @@ class MPLVisualizer(TextVisualizer):
                     # Send data to the visualizer process
                     self.process_function[key].stdin.write(f"{json.dumps(data)}\n")
                     self.process_function[key].stdin.flush()
+                    self.process_function[key].stdin.close()
                 except BrokenPipeError:
-                    if self.closed_process is False:
-                        self.closed_process = True
-                        self.warning("The visualizer process has been closed.")
+                    self.closeFunctions()
+                    log.warning(f"The visualizer {functions} process has been closed.")
 
+    def closeFunctions(self, functions = None):
+        if functions is None:
+            for key in self.process_function.keys():
+                self.process_function[key].terminate()
+                self.process_function[key].wait()
+            self.process_function = {}
+        else:
+            for key in functions:
+                self.process_function[key].terminate()
+                self.process_function[key].wait()
+                self.process_function.pop(key)
 
     def closeTraining(self, minimizer = None):
         if minimizer is None:
