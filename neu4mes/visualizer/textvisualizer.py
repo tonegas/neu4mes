@@ -202,7 +202,7 @@ class TextVisualizer(Visualizer):
                 prediction_samples = par['prediction_samples']
                 step = par['step']
                 n_update = len(range(0, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)))
-                unused_samples = (n_samples-1) - range(0, (n_samples - 1), (batch_size + step - 1))[-1]
+                unused_samples = (n_samples-1) - range(prediction_samples+batch_size-1, n_samples, (batch_size + step - 1))[-1]
             else:
                 batch_size = par['train_batch_size']
                 n_samples = par['n_samples_train']
