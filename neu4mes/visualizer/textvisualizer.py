@@ -49,13 +49,17 @@ class TextVisualizer(Visualizer):
 
     def showModelInputWindow(self):
         if self.verbose >= 2:
+            input_ns_backward = {key: value['ns'][0] for key, value in
+                                 (self.n4m.model_def['Inputs'] | self.n4m.model_def['States']).items()}
+            input_ns_forward = {key: value['ns'][1] for key, value in
+                                (self.n4m.model_def['Inputs'] | self.n4m.model_def['States']).items()}
             self.__title(" Neu4mes Model Input Windows ")
-            self.__paramjson("time_window_backward:",self.n4m.input_tw_backward)
-            self.__paramjson("time_window_forward:",self.n4m.input_tw_forward)
-            self.__paramjson("sample_window_backward:", self.n4m.input_ns_backward)
-            self.__paramjson("sample_window_forward:", self.n4m.input_ns_forward)
+            #self.__paramjson("time_window_backward:",self.n4m.input_tw_backward)
+            #self.__paramjson("time_window_forward:",self.n4m.input_tw_forward)
+            self.__paramjson("sample_window_backward:", input_ns_backward)
+            self.__paramjson("sample_window_forward:", input_ns_forward)
             self.__paramjson("input_n_samples:", self.n4m.input_n_samples)
-            self.__param("max_samples [backw, forw]:", f"[{self.n4m.max_samples_backward},{self.n4m.max_samples_forward}]")
+            self.__param("max_samples [backw, forw]:", f"[{self.n4m.model_def['Info']['ns'][0]},{self.n4m.model_def['Info']['ns'][1]}]")
             self.__param("max_samples total:",f"{self.n4m.max_n_samples}")
             self.__line()
 
@@ -82,7 +86,7 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 2:
             par = self.n4m.run_training_params
             dim = len(self.n4m.model_def['Minimizers'])
-            COLOR = RED
+            COLOR = BLUE
             if epoch is not None:
                 print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|',COLOR), end='')
                 print(color((f' Params end epochs {epoch + 1} ').center(20 * (dim + 1) - 1, '-') + '|',COLOR))
@@ -92,7 +96,7 @@ class TextVisualizer(Visualizer):
                 print(color((f' Params end batch {batch + 1} ').center(20 * (dim + 1) - 1, '-') + '|', COLOR))
 
             for key, param in self.n4m.model.all_parameters.items():
-                if key in weights or weights is None:
+                if weights is None or key in weights:
                     print(color('|' + (f"{key}").center(10, ' ') + '|', COLOR), end='')
                     print(color((f'{param.tolist()}').center(20 * (dim + 1) - 1, ' ') + '|', COLOR))
 
@@ -234,7 +238,7 @@ class TextVisualizer(Visualizer):
             self.__param(" - num of samples:", f"{n_samples}")
             self.__param(" - batch size:", f"{batch_size}")
             self.__param(" - unused samples:", f"{unused_samples}")
-            if not par['recurrent_train']:
+            if par['recurrent_train']:
                 self.__info("unused samples=n_samples-prediction_samples-update_per_epochs*(batch_size+step-1)")
             else:
                 self.__info("unused samples=n_samples-update_per_epochs*batch_size")

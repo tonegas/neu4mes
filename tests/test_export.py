@@ -264,5 +264,8 @@ class Neu4mesExport(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net.onnx')))
         self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net_modelB.onnx')))
 
+    def test_export_report(self):
+        pass
+
 if __name__ == '__main__':
     unittest.main()

@@ -5,6 +5,9 @@ from neu4mes.fuzzify import return_fuzzify
 from neu4mes.parametricfunction import return_standard_inputs, return_function
 from neu4mes.utils import check
 
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.INFO)
+
 def get_library_path(library_name):
     spec = importlib.util.find_spec(library_name)
     if spec is None:
@@ -25,12 +28,15 @@ class MPLVisualizer(TextVisualizer):
         self.process_training = {}
         self.process_results = {}
         self.process_function = {}
-        self.closed_process = False
         def signal_handler(sig, frame):
             for key in self.process_training.keys():
                 self.process_training[key].terminate()
-            for key in self.process_results.keys():
-                self.process_results[key].terminate()
+                self.process_training[key].wait()
+            for name_data in self.process_results.keys():
+                for key in self.process_results[name_data].keys():
+                    self.process_results[name_data][key].terminate()
+                    self.process_results[name_data][key].wait()
+            self.process_results = {}
             for key in self.process_function.keys():
                 self.process_function[key].terminate()
             sys.exit()
@@ -41,39 +47,52 @@ class MPLVisualizer(TextVisualizer):
         pass
 
     def showTraining(self, epoch, train_losses, val_losses):
+        for key in self.n4m.model_def['Minimizers'].keys():
+            if key in self.process_training and self.process_training[key].poll() is None:
+                self.process_training[key].terminate()
+                self.process_training[key].wait()
+        self.process_training[key] = {}
+
         if epoch == 0:
             for key in self.n4m.model_def['Minimizers'].keys():
                 # Start the data visualizer process
                 self.process_training[key] = subprocess.Popen(['python', self.training_visualizer_script], stdin=subprocess.PIPE, text=True)
 
         num_of_epochs = self.n4m.run_training_params['num_of_epochs']
+        train_dataset = self.n4m.run_training_params['train_dataset']
+        validation_dataset = self.n4m.run_training_params['validation_dataset']
         if epoch+1 <= num_of_epochs:
             for key in self.n4m.model_def['Minimizers'].keys():
                 if val_losses:
                     val_loss = val_losses[key][epoch]
                 else:
                     val_loss = []
-                data = {"title":"Training", "key": key, "last": num_of_epochs - (epoch + 1), "epoch": epoch,
+                data = {"title":f"Training on {train_dataset} and {validation_dataset}", "key": key, "last": num_of_epochs - (epoch + 1), "epoch": epoch,
                         "train_losses": train_losses[key][epoch], "val_losses": val_loss}
                 try:
                     # Send data to the visualizer process
                     self.process_training[key].stdin.write(f"{json.dumps(data)}\n")
                     self.process_training[key].stdin.flush()
+                    self.process_training[key].stdin.close()
                 except BrokenPipeError:
-                    if self.closed_process is False:
-                        self.closed_process = True
-                        self.warning("The visualizer process has been closed.")
-
-        if epoch+1 == num_of_epochs:
-            for key in self.n4m.model_def['Minimizers'].keys():
-                self.process_training[key].terminate()
+                    self.closeTraining()
+                    log.warning("The visualizer process has been closed.")
 
     def showResult(self, name_data):
         super().showResult(name_data)
+        check(name_data in self.n4m.performance, ValueError, f"Results not available for {name_data}.")
+        if name_data in self.process_results:
+            for key in self.n4m.model_def['Minimizers'].keys():
+                if key in self.process_results[name_data] and self.process_results[name_data][key].poll() is None:
+                    self.process_results[name_data][key].terminate()
+                    self.process_results[name_data][key].wait()
+                self.process_results[name_data][key] = None
+        self.process_results[name_data] = {}
+
         for key in self.n4m.model_def['Minimizers'].keys():
             # Start the data visualizer process
-            self.process_results[key] = subprocess.Popen(['python', self.time_series_visualizer_script], stdin=subprocess.PIPE,
-                                                text=True)
+            self.process_results[name_data][key] = subprocess.Popen(['python', self.time_series_visualizer_script], stdin=subprocess.PIPE,
+                                                    text=True)
             data = {"name_data": name_data,
                     "key": key,
                     "performance": self.n4m.performance[name_data][key],
@@ -82,12 +101,12 @@ class MPLVisualizer(TextVisualizer):
                     "sample_time": self.n4m.model_def['Info']["SampleTime"]}
             try:
                 # Send data to the visualizer process
-                self.process_results[key].stdin.write(f"{json.dumps(data)}\n")
-                self.process_results[key].stdin.flush()
+                self.process_results[name_data][key].stdin.write(f"{json.dumps(data)}\n")
+                self.process_results[name_data][key].stdin.flush()
+                self.process_results[name_data][key].stdin.close()
             except BrokenPipeError:
-                if self.closed_process is False:
-                    self.closed_process = True
-                    self.warning("The visualizer process has been closed.")
+                self.closeResult(self, name_data)
+                log.warning(f"The visualizer {name_data} process has been closed.")
 
     def showWeights(self, weights = None):
         pass
@@ -107,7 +126,7 @@ class MPLVisualizer(TextVisualizer):
                                                                   stdin=subprocess.PIPE,
                                                                   text=True)
                 elif 'code':
-                    function_inputs = return_standard_inputs(value, self.n4m.model_def_values, xlim, num_points)
+                    function_inputs = return_standard_inputs(value, self.n4m.model, xlim, num_points)
                     function_output, function_input_list = return_function(value, function_inputs)
 
                     data = {"name": key}
@@ -136,6 +155,37 @@ class MPLVisualizer(TextVisualizer):
                         self.closed_process = True
                         self.warning("The visualizer process has been closed.")
 
+
+    def closeTraining(self, minimizer = None):
+        if minimizer is None:
+            for key in self.n4m.model_def['Minimizers'].keys():
+                if key in self.process_training and self.process_training[key].poll() is None:
+                    self.process_training[key].terminate()
+                    self.process_training[key].wait()
+            self.process_training[key] = {}
+        else:
+            self.process_training[minimizer].terminate()
+            self.process_training[minimizer].wait()
+            self.process_training.pop(minimizer)
+
+    def closeResult(self, name_data = None, minimizer = None):
+        if name_data is None:
+            check(minimizer is None, ValueError, "If name_data is None, minimizer must be None.")
+            for name_data in self.process_results.keys():
+                for key in self.process_results[name_data].keys():
+                    self.process_results[name_data][key].terminate()
+                    self.process_results[name_data][key].wait()
+            self.process_results = {}
+        else:
+            if minimizer is None:
+                for key in self.process_results[name_data].keys():
+                    self.process_results[name_data][key].terminate()
+                    self.process_results[name_data][key].wait()
+                self.process_results[name_data] = {}
+            else:
+                self.process_results[name_data][minimizer].terminate()
+                self.process_results[name_data][minimizer].wait()
+                self.process_results[name_data].pop(minimizer)
 
 
 
