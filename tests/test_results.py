@@ -200,7 +200,6 @@ class Neu4mesTrainingTest(unittest.TestCase):
         self.assertAlmostEqual(np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/30.0, test.performance['dataset']['error2']['mse'], places=3)
         self.assertAlmostEqual((np.sum((np.array(A).flatten()-np.array(B).flatten())**2)/30.0+np.sum((np.array(C).flatten()-np.array(B).flatten())**2)/30.0)/2.0, test.performance['dataset']['total']['mean_error'], places=3)
 
-
     def test_analysis_results_closed_loop(self):
         input1 = Input('in1')
         target1 = Input('out1')
@@ -302,11 +301,11 @@ class Neu4mesTrainingTest(unittest.TestCase):
             (np.array(C).flatten() - np.array(B).flatten()) ** 2) / 30.0) / 2.0,
                                test.performance['dataset']['total']['mean_error'], places=3)
 
-    def test_analysis_results_connect(self):
-        pass
+    # def test_analysis_results_connect(self):
+    #     pass
 
-    def test_analysis_results_connect_state(self):
-        pass
+    # def test_analysis_results_connect_state(self):
+    #     pass
 
 if __name__ == '__main__':
     unittest.main()
