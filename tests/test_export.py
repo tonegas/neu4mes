@@ -19,7 +19,7 @@ class Neu4mesExport(unittest.TestCase):
         super(Neu4mesExport, self).__init__(*args, **kwargs)
 
         self.result_path = './results'
-        self.test = Neu4mes(visualizer=None, seed=42, workspace=self.result_path)
+        self.test = Neu4mes(seed=42, workspace=self.result_path)
 
         x = Input('x')
         y = Input('y')
@@ -265,6 +265,7 @@ class Neu4mesExport(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net_modelB.onnx')))
 
     def test_export_report(self):
+        self.test.resetSeed(42)
         self.test.neuralizeModel(0.5, clear_model=True)
         data_x = np.arange(0.0, 10, 0.1)
         data_y = np.arange(0.0, 10, 0.1)

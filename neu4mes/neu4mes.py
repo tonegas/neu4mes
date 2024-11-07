@@ -43,9 +43,7 @@ class Neu4mes:
 
         ## Set the random seed for reproducibility
         if seed is not None:
-            torch.manual_seed(seed=seed) ## set the pytorch seed
-            random.seed(seed) ## set the random module seed
-            np.random.seed(seed) ## set the numpy seed
+            self.resetSeed(seed)
 
         # Save internal
         self.log_internal = log_internal
@@ -94,6 +92,12 @@ class Neu4mes:
         self.training = {}
         self.performance = {}
         self.prediction = {}
+
+    def resetSeed(self, seed):
+        torch.manual_seed(seed)  ## set the pytorch seed
+        torch.cuda.manual_seed_all(seed)
+        random.seed(seed)  ## set the random module seed
+        np.random.seed(seed)  ## set the numpy seed
 
     def __call__(self, inputs = {}, sampled = False, closed_loop = {}, connect = {}, prediction_samples = 'auto', num_of_samples = 'auto'):#, align_input = False):
         ## Copy dict for avoid python bug
