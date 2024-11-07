@@ -797,8 +797,18 @@ class Neu4mes:
             keys -= set(self.run_training_params['closed_loop'].keys())
         check(set(keys).issubset(set(XY_train.keys())), KeyError, f"Not all the mandatory keys {keys} are present in the training dataset {set(XY_train.keys())}.")
 
-        # Show the training params
-        check((n_samples_train - train_batch_size - prediction_samples + 1) > 0, ValueError, f"The number of available sample are (n_samples_train - train_batch_size - prediction_samples + 1) = {(n_samples_train - train_batch_size - prediction_samples + 1)}.")
+        # Evaluate the number of update for epochs and the unsued samples
+        if recurrent_train:
+            list_of_batch_indexes = range(0, (n_samples_train - train_batch_size - prediction_samples + 1), (train_batch_size + step - 1))
+            update_per_epochs = len(list_of_batch_indexes)
+            unused_samples = n_samples_train - list_of_batch_indexes[-1] - train_batch_size - prediction_samples
+        else:
+            list_of_batch_indexes = range(0, (n_samples_train - train_batch_size + 1), train_batch_size)
+            update_per_epochs = len(list_of_batch_indexes)
+            unused_samples = n_samples_train - update_per_epochs * train_batch_size
+
+        self.run_training_params['update_per_epochs'] = update_per_epochs
+        self.run_training_params['unused_samples'] = unused_samples
         self.visualizer.showTrainParams()
 
         import time
@@ -934,6 +944,8 @@ class Neu4mes:
         return aux_losses
     
     def __Train(self, data, n_samples, batch_size, loss_gains, shuffle=True, train=True):
+        check((n_samples - batch_size + 1) > 0, ValueError,
+              f"The number of available sample are (n_samples_train - train_batch_size + 1) = {n_samples - batch_size + 1}.")
         if shuffle:
             randomize = torch.randperm(n_samples)
             data = {key: val[randomize] for key, val in data.items()}

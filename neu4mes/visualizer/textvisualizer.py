@@ -199,27 +199,18 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 1:
             self.__title(" Neu4mes Model Train Parameters ")
             par = self.n4m.run_training_params
-
-            if par['recurrent_train']:
-                batch_size = par['train_batch_size']
-                n_samples = par['n_samples_train']
-                prediction_samples = par['prediction_samples']
-                step = par['step']
-                n_update = len(range(0, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)))
-                unused_samples = n_samples - n_update * (batch_size + step - 1) - prediction_samples
-            else:
-                batch_size = par['train_batch_size']
-                n_samples = par['n_samples_train']
-                n_update = len(range(0, (n_samples - batch_size + 1), batch_size))
-                unused_samples = n_samples - n_update * batch_size
+            batch_size = par['train_batch_size']
+            n_samples = par['n_samples_train']
+            n_update = par['update_per_epochs']
+            unused_samples = par['unused_samples']
 
             self.__paramjson("models:", par['models'])
             self.__paramjson("num of epochs:", par['num_of_epochs'])
             self.__param("update per epochs:", f"{n_update}")
             if par['recurrent_train']:
-                self.__info("update per epochs=(n_samples-batch_size-prediction_samples+1)/(batch_size+step-1)")
+                self.__info("update per epochs=(n_samples-batch_size-prediction_samples+1)/(batch_size+step-1)+1")
             else:
-                self.__info("update per epochs=(n_samples-batch_size+1)/batch_size")
+                self.__info("update per epochs=(n_samples-batch_size)/batch_size+1")
 
             if par['shuffle_data']:
                 self.__param('shuffle data:', str(par['shuffle_data']))

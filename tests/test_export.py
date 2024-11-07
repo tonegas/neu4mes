@@ -19,7 +19,7 @@ class Neu4mesExport(unittest.TestCase):
         super(Neu4mesExport, self).__init__(*args, **kwargs)
 
         self.result_path = './results'
-        self.test = Neu4mes(seed=42, workspace=self.result_path)
+        self.test = Neu4mes(visualizer=None, seed=42, workspace=self.result_path)
 
         x = Input('x')
         y = Input('y')
