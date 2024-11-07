@@ -88,9 +88,10 @@ class Neu4mes:
         self.optimizer = None
 
         # Training Losses
-        self.losses = {}
+        self.loss_functions = {}
 
         # Validation Parameters
+        self.training = {}
         self.performance = {}
         self.prediction = {}
 
@@ -752,7 +753,7 @@ class Neu4mes:
         minimize_gain = self.__get_parameter(minimize_gain = minimize_gain)
         self.run_training_params['minimizers'] = {}
         for name, values in self.model_def['Minimizers'].items():
-            self.losses[name] = CustomLoss(values['loss'])
+            self.loss_functions[name] = CustomLoss(values['loss'])
             self.run_training_params['minimizers'][name] = {}
             self.run_training_params['minimizers'][name]['A'] = values['A']
             self.run_training_params['minimizers'][name]['B'] = values['B']
@@ -835,17 +836,18 @@ class Neu4mes:
         ## Save the training time
         end = time.time()
         ## Visualize the training time
+        for key in self.model_def['Minimizers'].keys():
+            self.training[key] = {'train': train_losses[key]}
+            if n_samples_val > 0:
+                self.training[key]['val'] = val_losses[key]
         self.visualizer.showEndTraining(num_of_epochs-1, train_losses, val_losses)
         self.visualizer.showTrainingTime(end-start)
 
         self.resultAnalysis(train_dataset, XY_train, minimize_gain, closed_loop, connect,  prediction_samples, step, train_batch_size)
-        self.visualizer.showResult(train_dataset)
         if self.run_training_params['n_samples_val'] > 0:
             self.resultAnalysis(validation_dataset, XY_val, minimize_gain, closed_loop, connect,  prediction_samples, step, val_batch_size)
-            self.visualizer.showResult(validation_dataset)
         if self.run_training_params['n_samples_test'] > 0:
             self.resultAnalysis(test_dataset, XY_test, minimize_gain, closed_loop, connect,  prediction_samples, step, test_batch_size)
-            self.visualizer.showResult(test_dataset)
 
         self.visualizer.showResults()
 
@@ -854,18 +856,21 @@ class Neu4mes:
 
     def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, closed_loop, connect, prediction_samples, step, shuffle=True, train=True):
         ## Sample Shuffle
-        initial_value = random.randint(0, step - 1) if shuffle else 0
+        initial_value = 0 #random.randint(0, step - 1) if shuffle else 0
+
+        n_available_samples = n_samples - batch_size - prediction_samples + 1
+        check(n_available_samples > 0, ValueError, f"The number of available sample are (n_samples_train - train_batch_size - prediction_samples + 1) = {n_available_samples}.")
+        list_of_batch_indexes = range(initial_value, n_available_samples, (batch_size + step - 1))
 
         ## Initialize the train losses vector
-        list_update = range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1))
-        aux_losses = torch.zeros([len(self.model_def['Minimizers']), len(list_update)])
+        aux_losses = torch.zeros([len(self.model_def['Minimizers']), len(list_of_batch_indexes)])
 
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
         input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
 
         ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
         ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
-        for valval, idx in enumerate(list_update):
+        for batch_val, idx in enumerate(list_of_batch_indexes):
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
 
@@ -886,7 +891,7 @@ class Neu4mes:
 
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
-                    loss = self.losses[key](minimize_out[value['A']], minimize_out[value['B']])
+                    loss = self.loss_functions[key](minimize_out[value['A']], minimize_out[value['B']])
                     loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                     horizon_losses[ind].append(loss)
 
@@ -912,14 +917,14 @@ class Neu4mes:
             total_loss = 0
             for ind in range(len(self.model_def['Minimizers'])):
                 loss = sum(horizon_losses[ind])/(prediction_samples+1)
-                aux_losses[ind][valval] = loss.item()
+                aux_losses[ind][batch_val] = loss.item()
                 total_loss += loss
 
             ## Gradient Step
             if train:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
-                self.visualizer.showWeightsInTrain(batch = idx/(batch_size + step - 1))
+                self.visualizer.showWeightsInTrain(batch = batch_val)
 
         ## return the losses
         return aux_losses
@@ -941,7 +946,7 @@ class Neu4mes:
             ## Loss Calculation
             total_loss = 0
             for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
-                loss = self.losses[key](minimize_out[value['A']], minimize_out[value['B']])
+                loss = self.loss_functions[key](minimize_out[value['A']], minimize_out[value['B']])
                 loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                 aux_losses[ind][idx//batch_size] = loss.item()
                 total_loss += loss
@@ -1122,6 +1127,8 @@ class Neu4mes:
             self.performance[dataset]['total']['mean_error'] = np.mean([value for key,value in total_losses.items()])
             self.performance[dataset]['total']['fvu'] = np.mean([self.performance[dataset][key]['fvu']['total'] for key in self.model_def['Minimizers'].keys()])
             self.performance[dataset]['total']['aic'] = np.mean([self.performance[dataset][key]['aic']['value']for key in self.model_def['Minimizers'].keys()])
+
+        self.visualizer.showResult(dataset)
 
     def getWorkspace(self):
         return self.exporter.getWorkspace()

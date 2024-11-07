@@ -16,7 +16,7 @@ if line:
         B = data_point['prediction_B']
         sample_time = data_point['sample_time']
     except ValueError:
-        exit()
+        pass
 
 fig, ax = plt.subplots()
 ax.cla()

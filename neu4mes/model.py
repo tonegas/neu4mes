@@ -176,28 +176,11 @@ class Model(nn.Module):
 
                     ## Update the connect variables if necessary
                     for connect_in, connect_out in self.connect.items():
-                        # if connect_in in available_keys:
-                        #     continue
                         if relation == self.outputs[connect_out]:  ## we have to save the output
                             shift = result_dict[relation].shape[1]
                             self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
                             self.connect_variables[connect_in][:, -shift:, :] = result_dict[relation]
                             result_dict[connect_in] = self.connect_variables[connect_in].clone()
-                            # window_size = self.input_n_samples[connect_in]
-                            # relation_size = result_dict[relation].shape[1]
-                            # if relation_size > window_size:
-                            #     result_dict[connect_in] = result_dict[relation][:, window_size:, :].clone()
-                            # elif relation_size == window_size:
-                            #     result_dict[connect_in] = result_dict[relation].clone()
-                            # else: ## input window is bigger than the output window
-                            #     if self.initialize_connect:
-                            #         result_dict[connect_in] = self.connect_variables[connect_in].clone()
-                            #         self.initialize_connect=False
-                            #     else:
-                            #         result_dict[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)#relation_size, dims=1)
-                            #     result_dict[connect_in][:, -relation_size:, :] = result_dict[relation].clone()
-                            #     self.connect_variables[connect_in] = result_dict[connect_in].clone()
-                            ## add the new input
                             available_keys.add(connect_in)
 
                     ## Update connect state if necessary
@@ -206,23 +189,15 @@ class Model(nn.Module):
                             shift = result_dict[relation].shape[1]
                             self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
                             self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
-                            #self.states[state].requires_grad = False
                             available_keys.add(state)
 
         ## Update closed loop state if necessary
         for relation in self.relations.keys():
-            # for connect_in, connect_out in self.connect.items():
-            #     if relation == self.outputs[connect_out]:  ## we have to save the output
-            #         self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
-            # if relation in self.states_connect.values():
-            #     for state in [key for key, value in self.states_connect.items() if value == relation]:
-            #         self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
             if relation in self.states_closed_loop.values():
                 for state in [key for key, value in self.states_closed_loop.items() if value == relation]:
                     shift = result_dict[relation].shape[1]
                     self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)  # shifts=-shift, dims=1)
                     self.states[state][:, -shift:, :] = result_dict[relation]  # .detach() ## TODO: detach??
-                    # self.states[state].requires_grad = False
 
         ## Return a dictionary with all the outputs final values
         output_dict = {key: result_dict[value] for key, value in self.outputs.items()}
