@@ -4,6 +4,7 @@ from neu4mes.visualizer.textvisualizer import TextVisualizer
 from neu4mes.fuzzify import return_fuzzify
 from neu4mes.parametricfunction import return_standard_inputs, return_function
 from neu4mes.utils import check
+from neu4mes.modeldef import ModelDef
 
 from neu4mes.logger import logging, Neu4MesLogger
 log = Neu4MesLogger(__name__, logging.INFO)
@@ -131,7 +132,9 @@ class MPLVisualizer(TextVisualizer):
                                                                   stdin=subprocess.PIPE,
                                                                   text=True)
                 elif 'code':
-                    function_inputs = return_standard_inputs(value, self.n4m.model_def, xlim, num_points)
+                    model_def = ModelDef(self.n4m.model_def)
+                    model_def.updateParameters(self.n4m.model)
+                    function_inputs = return_standard_inputs(value, model_def, xlim, num_points)
                     function_output, function_input_list = return_function(value, function_inputs)
 
                     data = {"name": key}

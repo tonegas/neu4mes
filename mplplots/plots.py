@@ -19,7 +19,9 @@ def plot_training(ax, title, key, data_train, data_val = None, last = None):
     ax.set_xlabel('Epochs')
     ax.set_ylabel('Loss')
     # Set plot limits
+    data_train = np.nan_to_num(data_train, nan=np.nan, posinf=np.nan, neginf=np.nan)
     if data_val:
+        data_val = np.nan_to_num(data_val, nan=np.nan, posinf=np.nan, neginf=np.nan)
         min_val = min([min(data_val), min(data_train)])
         max_val = max([max(data_val), max(data_train)])
     else:

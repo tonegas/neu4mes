@@ -111,6 +111,24 @@ class Neu4mesVisualizer(unittest.TestCase):
         m.showFunctions(list_of_functions[3])
         m.closeFunctions()
 
+    def test_export_mplvisualizer2(self):
+        x = Input('x')
+        F = Input('F')
+        def myFun(K1, K2, p1, p2):
+            import torch
+            return p1 * K1 + p2 * torch.sin(K2)
+
+        parfun = ParamFun(myFun)
+        out = Output('fun', parfun(x.last(), F.last()))
+        m = MPLVisualizer()
+        example = Neu4mes(visualizer=m)
+        example.addModel('out', out)
+        example.neuralizeModel()
+        print(example({'x': [1], 'F': [1]}))
+        print(example({'x': [1, 2], 'F': [1, 2]}))
+        m.showFunctions(list(example.model_def['Functions'].keys()), xlim=[[-5, 5], [-1, 1]])
+        m.closeFunctions()
+
     # def test_export_mplnotebookvisualizer(self):
     #     m = MPLNotebookVisualizer(5)
     #     test = Neu4mes(visualizer=m, seed=42)
