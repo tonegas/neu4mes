@@ -1,6 +1,5 @@
 General things to do / note:
 Most important:
-- fix print unused_samples
 - model checkpoint
 - closed-loop training:
   - try to execute part of the NN in feedforward with the whole window size (vector inputs), and execute only the RLS part in closed loop one sample at a time
