@@ -23,6 +23,25 @@ def enforce_types(func):
 
     return wrapper
 
+# Linear interpolation function, operating on batches of input data and returning batches of output data
+def linear_interp(x,x_data,y_data):
+    # Inputs: 
+    # x: query point
+    # x_data: map of x values, sorted in ascending order
+    # y_data: map of y values
+    # Output:
+    # y: interpolated value at x
+
+    # Saturate x to the range of x_data
+    x = torch.min(torch.max(x,x_data[0]),x_data[-1])
+
+    # Find the index of the closest value in x_data
+    idx = torch.argmin(torch.abs(x_data[:-1] - x),dim=1)
+    
+    # Linear interpolation
+    y = y_data[idx] + (y_data[idx+1] - y_data[idx])/(x_data[idx+1] - x_data[idx])*(x - x_data[idx])
+    return y
+
 def tensor_to_list(data):
     if isinstance(data, torch.Tensor):
         # Converte il tensore in una lista

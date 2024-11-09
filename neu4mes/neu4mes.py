@@ -7,7 +7,7 @@ import pandas as pd
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.model import Model
-from neu4mes.utils import check, argmax_max, argmin_min, tensor_to_list
+from neu4mes.utils import check, argmax_max, argmin_min, tensor_to_list, linear_interp
 from neu4mes.optimizer import Optimizer, SGD, Adam
 from neu4mes.exporter import Exporter, StandardExporter
 from neu4mes.modeldef import ModelDef
