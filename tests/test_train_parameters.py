@@ -1,5 +1,5 @@
 import unittest, os, sys
-
+sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
@@ -7,9 +7,6 @@ relation.CHECK_NAMES = False
 from neu4mes.logger import logging, Neu4MesLogger
 log = Neu4MesLogger(__name__, logging.CRITICAL)
 log.setAllLevel(logging.CRITICAL)
-
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
 
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 
