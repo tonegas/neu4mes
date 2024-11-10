@@ -26,11 +26,11 @@ def enforce_types(func):
 # Linear interpolation function, operating on batches of input data and returning batches of output data
 def linear_interp(x,x_data,y_data):
     # Inputs: 
-    # x: query point
-    # x_data: map of x values, sorted in ascending order
-    # y_data: map of y values
+    # x: query point, a tensor of shape torch.Size([N, 1, 1])
+    # x_data: map of x values, sorted in ascending order, a tensor of shape torch.Size([Q, 1])
+    # y_data: map of y values, a tensor of shape torch.Size([Q, 1])
     # Output:
-    # y: interpolated value at x
+    # y: interpolated value at x, a tensor of shape torch.Size([N, 1, 1])
 
     # Saturate x to the range of x_data
     x = torch.min(torch.max(x,x_data[0]),x_data[-1])
