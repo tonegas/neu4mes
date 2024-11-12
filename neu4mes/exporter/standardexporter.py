@@ -94,7 +94,7 @@ class StandardExporter(Exporter):
             model = import_onnx_model(name, model_folder)
             self.visualizer.importModel('Onnx Model', os.path.join(model_folder,name+'.py'))
         except Exception as e:
-            self.visualizer.warning(f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
+            log.warning(f"The module {name} it is not found in the folder {model_folder}.\nError: {e}")
         return model
 
     def exportReport(self, n4m, name = 'net', model_folder = None):

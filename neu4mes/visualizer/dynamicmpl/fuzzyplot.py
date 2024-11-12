@@ -20,7 +20,7 @@ if line:
         for ind, key in enumerate(data_point['y'].keys()):
             y.append(data_point['y'][key])
     except ValueError:
-        exit()
+        pass
 
 fig, ax = plt.subplots()
 ax.cla()

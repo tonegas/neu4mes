@@ -4,7 +4,7 @@ from pprint import pformat
 import subprocess
 import json
 
-from neu4mes.visualizer.visualizer import Visualizer, color, GREEN, RED
+from neu4mes.visualizer.visualizer import Visualizer, color, GREEN, RED, BLUE
 
 class TextVisualizer(Visualizer):
     def __init__(self, verbose=1):
@@ -21,6 +21,9 @@ class TextVisualizer(Visualizer):
 
     def __singleline(self):
         print(color('-'.center(80, '-'),GREEN))
+
+    def __info(self,name, dim =30):
+        print(color((name).ljust(dim),BLUE))
 
     def __paramjson(self,name, value, dim =30):
         lines = pformat(value, width=80 - dim).strip().splitlines()
@@ -46,13 +49,17 @@ class TextVisualizer(Visualizer):
 
     def showModelInputWindow(self):
         if self.verbose >= 2:
+            input_ns_backward = {key: value['ns'][0] for key, value in
+                                 (self.n4m.model_def['Inputs'] | self.n4m.model_def['States']).items()}
+            input_ns_forward = {key: value['ns'][1] for key, value in
+                                (self.n4m.model_def['Inputs'] | self.n4m.model_def['States']).items()}
             self.__title(" Neu4mes Model Input Windows ")
-            self.__paramjson("time_window_backward:",self.n4m.input_tw_backward)
-            self.__paramjson("time_window_forward:",self.n4m.input_tw_forward)
-            self.__paramjson("sample_window_backward:", self.n4m.input_ns_backward)
-            self.__paramjson("sample_window_forward:", self.n4m.input_ns_forward)
+            #self.__paramjson("time_window_backward:",self.n4m.input_tw_backward)
+            #self.__paramjson("time_window_forward:",self.n4m.input_tw_forward)
+            self.__paramjson("sample_window_backward:", input_ns_backward)
+            self.__paramjson("sample_window_forward:", input_ns_forward)
             self.__paramjson("input_n_samples:", self.n4m.input_n_samples)
-            self.__param("max_samples [backw, forw]:", f"[{self.n4m.max_samples_backward},{self.n4m.max_samples_forward}]")
+            self.__param("max_samples [backw, forw]:", f"[{self.n4m.model_def['Info']['ns'][0]},{self.n4m.model_def['Info']['ns'][1]}]")
             self.__param("max_samples total:",f"{self.n4m.max_n_samples}")
             self.__line()
 
@@ -79,7 +86,7 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 2:
             par = self.n4m.run_training_params
             dim = len(self.n4m.model_def['Minimizers'])
-            COLOR = RED
+            COLOR = BLUE
             if epoch is not None:
                 print(color('|' + (f"{epoch + 1}/{par['num_of_epochs']}").center(10, ' ') + '|',COLOR), end='')
                 print(color((f' Params end epochs {epoch + 1} ').center(20 * (dim + 1) - 1, '-') + '|',COLOR))
@@ -89,7 +96,7 @@ class TextVisualizer(Visualizer):
                 print(color((f' Params end batch {batch + 1} ').center(20 * (dim + 1) - 1, '-') + '|', COLOR))
 
             for key, param in self.n4m.model.all_parameters.items():
-                if key in weights or weights is None:
+                if weights is None or key in weights:
                     print(color('|' + (f"{key}").center(10, ' ') + '|', COLOR), end='')
                     print(color((f'{param.tolist()}').center(20 * (dim + 1) - 1, ' ') + '|', COLOR))
 
@@ -192,9 +199,41 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 1:
             self.__title(" Neu4mes Model Train Parameters ")
             par = self.n4m.run_training_params
+            batch_size = par['train_batch_size']
+            n_samples = par['n_samples_train']
+            n_update = par['update_per_epochs']
+            unused_samples = par['unused_samples']
+
             self.__paramjson("models:", par['models'])
+            self.__paramjson("num of epochs:", par['num_of_epochs'])
+            self.__param("update per epochs:", f"{n_update}")
+            if par['recurrent_train']:
+                self.__info("update per epochs=(n_samples-batch_size-prediction_samples+1)/(batch_size+step-1)+1")
+            else:
+                self.__info("update per epochs=(n_samples-batch_size)/batch_size+1")
+
+            if par['shuffle_data']:
+                self.__param('shuffle data:', str(par['shuffle_data']))
+
+            if 'early_stopping' in par:
+                self.__param('early stopping:', par['early_stopping'])
+                self.__paramjson('early stopping params:', par['early_stopping_params'])
+
+            if par['recurrent_train']:
+                self.__param("prediction samples:", f"{par['prediction_samples']}")
+                self.__param("step:", f"{par['step']}")
+                self.__paramjson("closed loop:", par['closed_loop'])
+                self.__paramjson("connect:", par['connect'])
+
             self.__param("train dataset:", f"{par['train_dataset']}")
-            self.__param("train {batch size, samples}:", f"{{{par['train_batch_size']}, {par['n_samples_train']}}}")
+            self.__param(" - num of samples:", f"{n_samples}")
+            self.__param(" - batch size:", f"{batch_size}")
+            self.__param(" - unused samples:", f"{unused_samples}")
+            if par['recurrent_train']:
+                self.__info("unused samples=n_samples-prediction_samples-update_per_epochs*(batch_size+step-1)")
+            else:
+                self.__info("unused samples=n_samples-update_per_epochs*batch_size")
+
             if par['n_samples_val']:
                 self.__param("val dataset:", f"{par['validation_dataset']}")
                 self.__param("val {batch size, samples}:", f"{{{par['val_batch_size']}, {par['n_samples_val']}}}")
@@ -202,20 +241,7 @@ class TextVisualizer(Visualizer):
                 self.__param("test dataset:", f"{par['test_dataset']}")
                 self.__param("test {batch size, samples}:", f"{{{par['test_batch_size']}, {par['n_samples_test']}}}")
 
-            self.__paramjson("num of epochs:", par['num_of_epochs'])
-            if par['shuffle_data']:
-                self.__param('shuffle data:', str(par['shuffle_data']))
-            if 'early_stopping' in par:
-                self.__param('early stopping:', par['early_stopping'])
-                self.__paramjson('early stopping params:', par['early_stopping_params'])
-
             self.__paramjson('minimizers:', par['minimizers'])
-
-            if par['recurrent_train']:
-                self.__param("prediction samples:", str(par['prediction_samples']))
-                self.__param("step:", str(par['step']))
-                self.__paramjson("closed loop:", par['closed_loop'])
-                self.__paramjson("connect:", par['connect'])
 
             self.__param("optimizer:", par['optimizer'])
             self.__paramjson("optimizer defaults:",self.n4m.run_training_params['optimizer_defaults'])
@@ -227,23 +253,24 @@ class TextVisualizer(Visualizer):
     def showResult(self, name_data):
         eng = lambda val: np.format_float_scientific(val, precision=3)
         if self.verbose >= 1:
+            dim_loss = len(max(self.n4m.model_def['Minimizers'].keys(),key=len))
             loss_type_list = set([value["loss"] for ind, (key, value) in enumerate(self.n4m.model_def['Minimizers'].items())])
-            self.__title(f" Neu4mes Model Results for {name_data} ", 12 + (len(loss_type_list) + 2) * 20)
-            print(color('|' + (f'Loss').center(10, ' ') + '|'), end='')
+            self.__title(f" Neu4mes Model Results for {name_data} ", dim_loss + 2 + (len(loss_type_list) + 2) * 20)
+            print(color('|' + (f'Loss').center(dim_loss, ' ') + '|'), end='')
             for loss in loss_type_list:
                 print(color((f'{loss}').center(19, ' ') + '|'), end='')
             print(color((f'FVU').center(19, ' ') + '|'), end='')
             print(color((f'AIC').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10, ' ') + '|'), end='')
+            print(color('|' + (f'').center(dim_loss, ' ') + '|'), end='')
             for i in range(len(loss_type_list)):
                 print(color((f'small better').center(19, ' ') + '|'), end='')
             print(color((f'small better').center(19, ' ') + '|'), end='')
             print(color((f'lower better').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
+            print(color('|' + (f'').center(dim_loss + 20 * (len(loss_type_list) + 2), '-') + '|'))
             for ind, (key, value) in enumerate(self.n4m.model_def['Minimizers'].items()):
-                print(color('|'+(f'{key}').center(10, ' ') + '|'), end='')
+                print(color('|'+(f'{key}').center(dim_loss, ' ') + '|'), end='')
                 for loss in list(loss_type_list):
                     if value["loss"] == loss:
                         print(color((f'{eng(self.n4m.performance[name_data][key][value["loss"]])}').center(19, ' ') + '|'), end='')
@@ -252,13 +279,13 @@ class TextVisualizer(Visualizer):
                 print(color((f'{eng(self.n4m.performance[name_data][key]["fvu"]["total"])}').center(19, ' ') + '|'), end='')
                 print(color((f'{eng(self.n4m.performance[name_data][key]["aic"]["value"])}').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
-            print(color('|'+(f'Total').center(10, ' ') + '|'), end='')
+            print(color('|' + (f'').center(dim_loss + 20 * (len(loss_type_list) + 2), '-') + '|'))
+            print(color('|'+(f'Total').center(dim_loss, ' ') + '|'), end='')
             print(color((f'{eng(self.n4m.performance[name_data]["total"]["mean_error"])}').center(len(loss_type_list)*20-1, ' ') + '|'), end='')
             print(color((f'{eng(self.n4m.performance[name_data]["total"]["fvu"])}').center(19, ' ') + '|'), end='')
             print(color((f'{eng(self.n4m.performance[name_data]["total"]["aic"])}').center(19, ' ') + '|'))
 
-            print(color('|' + (f'').center(10 + 20 * (len(loss_type_list) + 2), '-') + '|'))
+            print(color('|' + (f'').center(dim_loss + 20 * (len(loss_type_list) + 2), '-') + '|'))
 
         if self.verbose >= 2:
             self.__title(" Detalied Results ")

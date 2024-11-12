@@ -44,9 +44,7 @@ mass_spring_damper.loadData(name='mass_spring_dataset', source=data_folder, form
 
 #Neural network train not reccurent training
 params = {'num_of_epochs': 100,
-          'train_batch_size': 128, 
-          'val_batch_size':128, 
-          'test_batch_size':1, 
+          'train_batch_size': 128,
           'lr':0.001}
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params)
 
@@ -57,9 +55,7 @@ vis.showResult("validation_mass_spring_dataset_0.20")
 
 ## Recurrent training
 params = {'num_of_epochs': 20,
-          'train_batch_size': 128, 
-          'val_batch_size':128, 
-          'test_batch_size':1, 
+          'train_batch_size': 128,
           'lr':0.0001}
 #Neural network train not reccurent training
 mass_spring_damper.trainModel(splits=[70,20,10], training_params = params, closed_loop={'x':'x[k+1]'}, prediction_samples=10)

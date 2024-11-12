@@ -9,7 +9,7 @@ def early_stop_patience(train_losses, val_losses, params):
     losses = val_losses
   else:
     # if there is no validation set, use the training losses
-    losses = train_losses    
+    losses = train_losses
 
   if 'error' in params.keys():
     # if the type of loss to be used is provided by the user

@@ -4,10 +4,8 @@ import numpy as np
 
 from neu4mes.utils import check, merge
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.CRITICAL, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
 
 MAIN_JSON = {
                 'Info' : {},
@@ -89,7 +87,7 @@ class Stream(Relation):
 
     def tw(self, tw, offset = None):
         from neu4mes.input import State, Connect
-        from neu4mes.utilis import merge
+        from neu4mes.utils import merge
         s = State(self.name+"_state",dimensions=self.dim['dim'])
         if type(tw) == int:
             out_connect = Connect(self, s)
@@ -98,7 +96,7 @@ class Stream(Relation):
 
     def sw(self, sw, offset = None):
         from neu4mes.input import State, Connect
-        from neu4mes.utilis import merge
+        from neu4mes.utils import merge
         s = State(self.name+"_state",dimensions=self.dim['dim'])
         if type(sw) == int:
             out_connect = Connect(self, s)
@@ -107,7 +105,7 @@ class Stream(Relation):
 
     def z(self, delay):
         from neu4mes.input import State, Connect
-        from neu4mes.utilis import merge
+        from neu4mes.utils import merge
         s = State(self.name + "_state",dimensions=self.dim['dim'])
         if type(delay) == int and delay > 0:
             out_connect = Connect(self, s)

@@ -1,17 +1,13 @@
-import sys
-import os
-
-import numpy as np
-
-# append a new directory to sys.path
+import sys, os, torch
 sys.path.append(os.getcwd())
-
 import unittest
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-import torch
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
 
 # 14 Tests
 # This file test the model prediction when closed loop or connect are present in particular the output value

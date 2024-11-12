@@ -20,10 +20,10 @@ class Reporter:
         for key, value in self.n4m.model_def['Minimizers'].items():
             fig = plt.figure(figsize=(10, 5))
             ax = fig.add_subplot(111)
-            if key in self.n4m.val_losses:
-                plots.plot_training(ax, f"Training Loss of {key}", key, self.n4m.train_losses[key], self.n4m.val_losses[key])
+            if 'val' in self.n4m.training[key]:
+                plots.plot_training(ax, f"Training Loss of {key}", key, self.n4m.training[key]['train'], self.n4m.training[key]['val'])
             else:
-                plots.plot_training(ax, f"Training Loss of {key}", key, self.n4m.train_losses[key])
+                plots.plot_training(ax, f"Training Loss of {key}", key, self.n4m.training[key]['train'])
             training = io.BytesIO()
             plt.savefig(training, format='png')
             training.seek(0)

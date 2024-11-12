@@ -22,7 +22,7 @@ if line:
         input_names = data_point['input_names']
         output = data_point['output']
     except ValueError:
-        exit()
+        pass
 
 if 'x1' in data_point.keys():
     plots.plot_3d_function(plt, name, x0, x1, params, output, input_names)

@@ -1,14 +1,12 @@
-import unittest
-import torch
-
-import sys
-import os
-# append a new directory to sys.path
+import unittest, os, sys
 sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
-
 relation.CHECK_NAMES = False
+
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
 
 data_folder = os.path.join(os.path.dirname(__file__), 'data/')
 

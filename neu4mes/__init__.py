@@ -33,14 +33,14 @@ from neu4mes.arithmetic import Add, Sum, Sub, Mul, Pow, Neg
 from neu4mes.trigonometric import Sin, Cos, Tan
 from neu4mes.parametricfunction import ParamFun
 from neu4mes.fuzzify import Fuzzify
-from neu4mes.part import TimePart, TimeSelect, SamplePart, SampleSelect, Part, Select, VectToSample
+from neu4mes.part import TimePart, TimeSelect, SamplePart, SampleSelect, Part, Select
 from neu4mes.localmodel import LocalModel
 from neu4mes.parameter import Parameter, Constant
-from neu4mes.timeoperation import Int
 from neu4mes.logger import logging
 from neu4mes.visualizer import Visualizer, TextVisualizer, MPLVisualizer, MPLNotebookVisualizer
 from neu4mes.initializer import init_negexp, init_exp, init_lin, init_constant
 from neu4mes.exporter import Exporter, StandardExporter
+from neu4mes.utils import linear_interp
 
 import os, os.path, logging
 from pprint import pp, pprint

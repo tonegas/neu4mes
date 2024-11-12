@@ -42,6 +42,21 @@ def export_python_model(model_def, model, model_path):
     # Get the symbolic tracer
     with torch.no_grad():
         trace = symbolic_trace(model)
+
+    ## Standard way to modify the graph
+    # # Replace all _tensor_constant variables with their constant values
+    # for node in trace.graph.nodes:
+    #     if node.op == 'get_attr' and node.target.startswith('_tensor_constant'):
+    #         constant_value = getattr(model, node.target).item()
+    #         with trace.graph.inserting_after(node):
+    #             new_node = trace.graph.create_node('call_function', torch.tensor, (constant_value,))
+    #         node.replace_all_uses_with(new_node)
+    #         trace.graph.erase_node(node)
+    #
+    # # Recompile the graph
+    # trace.recompile()
+    ## Standard way to modify the graph
+
     attributes = sorted(set([line for line in trace.code.split() if 'self.' in line]))
     saved_functions = []
 
@@ -125,6 +140,10 @@ def export_python_model(model_def, model, model_path):
                 key = attr.split('.')[-1]
                 file.write(
                     f"        self.all_parameters[\"{key}\"] = torch.nn.Parameter(torch.tensor({model.all_parameters[key].tolist()}), requires_grad=True)\n")
+            elif '_tensor_constant' in attr:
+                key = attr.split('.')[-1]
+                file.write(
+                    f"        {attr} = torch.tensor({getattr(model,key).item()})\n")
 
         file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
         file.write("        self.all_constants = torch.nn.ParameterDict(self.all_constants)\n")

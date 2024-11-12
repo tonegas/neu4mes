@@ -1,17 +1,12 @@
-import unittest, torch, shutil
-
-import sys
-import os
-# append a new directory to sys.path
+import sys, os, unittest, torch, shutil
 sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
 
-from neu4mes import LOG_LEVEL
-from neu4mes.logger import logging
-log = logging.getLogger(__name__)
-log.setLevel(max(logging.DEBUG, LOG_LEVEL))
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.CRITICAL)
+log.setAllLevel(logging.CRITICAL)
 
 # 10 Tests
 # Test of export the network to a file
@@ -52,12 +47,13 @@ class Neu4mesExport(unittest.TestCase):
             return torch.tan(x)
 
         fuzzy = Fuzzify(output_dimension=4, range=[0, 4], functions=fuzzyfun)(x.tw(1))
+        fuzzyTriang = Fuzzify(centers=[1, 2, 3, 7])(x.tw(1))
 
         out = Output('out', Fir(parfun_x(x.tw(1)) + parfun_y(y.tw(1), c_v)))
         # out = Output('out', Fir(parfun_x(x.tw(1))+parfun_y(y.tw(1),c_v)+parfun_z(x.tw(5),t_5,c_5)))
         out2 = Output('out2', Add(w, x.tw(1)) + Add(t, y.tw(1)) + Add(w, c))
         out3 = Output('out3', Add(fir_w, fir_t))
-        out4 = Output('out4', Linear(output_dimension=1)(fuzzy))
+        out4 = Output('out4', Linear(output_dimension=1)(fuzzy+fuzzyTriang))
         out5 = Output('out5', Fir(time_part) + Fir(sample_select))
         out6 = Output('out6', LocalModel(output_function=Fir())(x.tw(1), fuzzy))
 
@@ -264,6 +260,18 @@ class Neu4mesExport(unittest.TestCase):
         self.test.exportONNX(['x', 'y'], ['out3', 'out4', 'out2'], ['modelB'])  # Export the onnx model
         self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net.onnx')))
         self.assertTrue(os.path.exists(os.path.join(self.test.getWorkspace(), 'onnx', 'net_modelB.onnx')))
+
+    def test_export_report(self):
+        self.test.resetSeed(42)
+        self.test.neuralizeModel(0.5, clear_model=True)
+        data_x = np.arange(0.0, 10, 0.1)
+        data_y = np.arange(0.0, 10, 0.1)
+        a, b = -1.0, 2.0
+        dataset = {'x': data_x, 'y': data_y, 'z': a * data_x + b * data_y}
+        params = {'num_of_epochs': 20, 'lr': 0.01}
+        self.test.loadData(name='dataset', source=dataset)  # Create the dataset
+        self.test.trainModel(optimizer='SGD', training_params=params)  # Train the traced model
+        self.test.exportReport()
 
 if __name__ == '__main__':
     unittest.main()
