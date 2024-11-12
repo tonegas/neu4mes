@@ -271,9 +271,9 @@ class Neu4mes:
                 ## Update the recurrent variable
                 for close_in, out_var in closed_loop.items():
                     #if i >= input_windows[close_in]-1:
-                    dim = result[out_var].shape[1]  ## take the output time dimension
+                    shift = result[out_var].shape[1]  ## take the output time dimension
                     X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
-                    X[close_in][:, -dim:, :] = result[out_var] ## substitute with the predicted value
+                    X[close_in][:, -shift:, :] = result[out_var] ## substitute with the predicted value
 
                 ## Append the prediction of the current sample to the result dictionary
                 for key in self.model_def['Outputs'].keys():
@@ -364,7 +364,7 @@ class Neu4mes:
         max_samples_forward = max(input_ns_forward.values())
         max_n_samples = max_samples_backward + max_samples_forward
 
-        num_of_samples = []
+        num_of_samples = {}
         if type(source) is str: ## we have a directory path containing the files
             ## collect column indexes
             format_idx = {}
@@ -416,7 +416,7 @@ class Neu4mes:
             ## Stack the files
             for key in format_idx.keys():
                 self.data[name][key] = np.stack(self.data[name][key])
-                num_of_samples.append(self.data[name][key].shape[0])
+                num_of_samples[key] = self.data[name][key].shape[0]
 
         elif type(source) is dict:  ## we have a crafted dataset
             self.file_count = 1
@@ -444,12 +444,12 @@ class Neu4mes:
                     self.data[name][key] = np.expand_dims(self.data[name][key], axis=-1)
                 if self.data[name][key].ndim > 3:
                     self.data[name][key] = np.squeeze(self.data[name][key], axis=1)
-                num_of_samples.append(self.data[name][key].shape[0])
+                num_of_samples[key] = self.data[name][key].shape[0]
 
         # Check dim of the samples
-        check(len(set(num_of_samples)) == 1, ValueError,
-              f"The number of the sample of the dataset {name} are not the same for all input in the dataset")
-        self.num_of_samples[name] = num_of_samples[0]
+        check(len(set(num_of_samples.values())) == 1, ValueError,
+              f"The number of the sample of the dataset {name} are not the same for all input in the dataset: {num_of_samples}")
+        self.num_of_samples[name] = num_of_samples[list(num_of_samples.keys())[0]]
 
         ## Set the Loaded flag to True
         self.data_loaded = True
@@ -526,19 +526,22 @@ class Neu4mes:
         self.__get_parameter(val_batch_size = val_batch_size)
         self.__get_parameter(test_batch_size = test_batch_size)
 
-        if self.run_training_params['train_batch_size'] > self.run_training_params['n_samples_train']:
-            self.run_training_params['train_batch_size'] = self.run_training_params['n_samples_train']
-
         if self.run_training_params['recurrent_train']:
+            if self.run_training_params['train_batch_size'] > self.run_training_params['n_samples_train']:
+                self.run_training_params['train_batch_size'] = self.run_training_params['n_samples_train'] - self.run_training_params['prediction_samples']
             if self.run_training_params['val_batch_size'] is None or self.run_training_params['val_batch_size'] > self.run_training_params['n_samples_val']:
                 self.run_training_params['val_batch_size'] = max(0,self.run_training_params['n_samples_val'] - self.run_training_params['prediction_samples'])
             if self.run_training_params['test_batch_size'] is None or self.run_training_params['test_batch_size'] > self.run_training_params['n_samples_test']:
                 self.run_training_params['test_batch_size'] = max(0,self.run_training_params['n_samples_test'] - self.run_training_params['prediction_samples'])
         else:
+            if self.run_training_params['train_batch_size'] > self.run_training_params['n_samples_train']:
+                self.run_training_params['train_batch_size'] = self.run_training_params['n_samples_train']
             if self.run_training_params['val_batch_size'] is None or self.run_training_params['val_batch_size'] > self.run_training_params['n_samples_val']:
                 self.run_training_params['val_batch_size'] = self.run_training_params['n_samples_val']
             if self.run_training_params['test_batch_size'] is None or self.run_training_params['test_batch_size'] > self.run_training_params['n_samples_test']:
                 self.run_training_params['test_batch_size'] = self.run_training_params['n_samples_test']
+
+        check(self.run_training_params['train_batch_size'] > 0, ValueError, f'The auto train_batch_size ({self.run_training_params["train_batch_size"] }) = n_samples_train ({self.run_training_params["n_samples_train"]}) - prediction_samples ({self.run_training_params["prediction_samples"]}), must be greater than 0.')
 
         return self.run_training_params['train_batch_size'], self.run_training_params['val_batch_size'], self.run_training_params['test_batch_size']
 
@@ -801,7 +804,7 @@ class Neu4mes:
         if recurrent_train:
             list_of_batch_indexes = range(0, (n_samples_train - train_batch_size - prediction_samples + 1), (train_batch_size + step - 1))
             check(n_samples_train - train_batch_size - prediction_samples + 1 > 0, ValueError,
-                  f"The number of available sample are (n_samples_train - train_batch_size - prediction_samples + 1) = {n_samples_train - train_batch_size - prediction_samples + 1}.")
+                  f"The number of available sample are (n_samples_train ({n_samples_train}) - train_batch_size ({train_batch_size}) - prediction_samples ({prediction_samples}) + 1) = {n_samples_train - train_batch_size - prediction_samples + 1}.")
             update_per_epochs = (n_samples_train - train_batch_size - prediction_samples + 1)//(train_batch_size + step - 1) + 1
             unused_samples = n_samples_train - list_of_batch_indexes[-1] - train_batch_size - prediction_samples
         else:
@@ -881,7 +884,6 @@ class Neu4mes:
         aux_losses = torch.zeros([len(self.model_def['Minimizers']), len(list_of_batch_indexes)])
 
         json_inputs = self.model_def['Inputs'] | self.model_def['States']
-        input_ns_backward = {key:value['ns'][0] for key, value in json_inputs.items()}
 
         ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
         ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
@@ -891,6 +893,11 @@ class Neu4mes:
 
             ## Build the input tensor
             XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
+            # Add missing inputs
+            for key in closed_loop:
+                if key not in XY:
+                    XY[key] = torch.zeros([batch_size, json_inputs[key]['ntot'], json_inputs[key]['dim']]).to(torch.float32)
+
             ## collect the horizon labels
             XY_horizon = {key: val[idx:idx+batch_size+prediction_samples] for key, val in data.items()}
             horizon_losses = {ind: [] for ind in range(len(self.model_def['Minimizers']))}
@@ -920,13 +927,22 @@ class Neu4mes:
                 if horizon_idx < prediction_samples:
                     for key in XY.keys():
                         if key in closed_loop.keys(): ## the input is recurrent
-                            dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
+                            shift = out[closed_loop[key]].shape[1]  ## take the output time dimension
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=1) ## Roll the time window
-                            XY[key][:, input_ns_backward[key]-dim:input_ns_backward[key], :] = out[closed_loop[key]] ## substitute with the predicted value
-                            XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
+                            XY[key][:, -shift:, :] = out[closed_loop[key]] ## substitute with the predicted value
+
+                            # dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
+                            # XY[key] = torch.roll(XY[key], shifts=-1, dims=1)  ## Roll the time window
+                            # XY[key][:, input_ns_backward[key] - dim:input_ns_backward[key], :] = out[
+                            #     closed_loop[key]]  ## substitute with the predicted value
+                            # XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][
+                            #                                          horizon_idx:horizon_idx + batch_size,
+                            #                                          input_ns_backward[key]:,
+                            #                                          :]  ## fill the remaining values from the dataset
                         else: ## the input is not recurrent
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
                             XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
+
 
             ## Calculate the total loss
             total_loss = 0
@@ -1016,6 +1032,11 @@ class Neu4mes:
                 for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
                     ## Build the input tensor
                     XY = {key: val[idx:idx + batch_size] for key, val in data.items()}
+                    # Add missing inputs
+                    for key in closed_loop:
+                        if key not in XY:
+                            XY[key] = torch.zeros([batch_size, json_inputs[key]['ntot'], json_inputs[key]['dim']]).to(
+                                torch.float32)
                     ## collect the horizon labels
                     XY_horizon = {key: val[idx:idx + batch_size + prediction_samples] for key, val in data.items()}
                     horizon_losses = {key: [] for key in self.model_def['Minimizers'].keys()}
@@ -1045,14 +1066,10 @@ class Neu4mes:
                         if horizon_idx < prediction_samples:
                             for key in XY.keys():
                                 if key in closed_loop.keys():  ## the input is recurrent
-                                    dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
+                                    shift = out[closed_loop[key]].shape[1]  ## take the output time dimension
                                     XY[key] = torch.roll(XY[key], shifts=-1, dims=1)  ## Roll the time window
-                                    XY[key][:, input_ns_backward[key] - dim:input_ns_backward[key], :] = out[
-                                        closed_loop[key]]  ## substitute with the predicted value
-                                    XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][
-                                                                             horizon_idx:horizon_idx + batch_size,
-                                                                             input_ns_backward[key]:,
-                                                                             :]  ## fill the remaining values from the dataset
+                                    XY[key][:, -shift:, :] = out[closed_loop[key]]  ## substitute with the predicted value
+                                    # XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
                                 else:  ## the input is not recurrent
                                     XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
                                     XY[key][-1] = XY_horizon[key][
