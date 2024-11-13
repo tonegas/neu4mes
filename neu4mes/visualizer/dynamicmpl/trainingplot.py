@@ -30,12 +30,12 @@ def update_graph(frame):
                 key = data['key']
                 last = data['last']
                 epoch = data['epoch']
+                # Clear the current plot
+                ax.cla()
+                # Clear the current plot
+                plots.plot_training(ax, title, key, data_train, data_val, last)
             except ValueError:
                 pass
-        # Clear the current plot
-        ax.cla()
-        # Clear the current plot
-        plots.plot_training(ax, title, key, data_train, data_val, last)
     else:
         pass
 

@@ -49,15 +49,15 @@ class MPLVisualizer(TextVisualizer):
         pass
 
     def showTraining(self, epoch, train_losses, val_losses):
-        for key in self.n4m.model_def['Minimizers'].keys():
-            if key in self.process_training and self.process_training[key].poll() is None:
-                self.process_training[key].terminate()
-                self.process_training[key].wait()
-        self.process_training[key] = {}
-
         if epoch == 0:
+            for key in self.process_training.keys():
+                if self.process_training[key].poll() is None:
+                    self.process_training[key].terminate()
+                    self.process_training[key].wait()
+                self.process_training[key] = {}
+
+            self.process_training = {}
             for key in self.n4m.model_def['Minimizers'].keys():
-                # Start the data visualizer process
                 self.process_training[key] = subprocess.Popen(['python', self.training_visualizer_script], stdin=subprocess.PIPE, text=True)
 
         num_of_epochs = self.n4m.run_training_params['num_of_epochs']
@@ -75,10 +75,13 @@ class MPLVisualizer(TextVisualizer):
                     # Send data to the visualizer process
                     self.process_training[key].stdin.write(f"{json.dumps(data)}\n")
                     self.process_training[key].stdin.flush()
-                    self.process_training[key].stdin.close()
                 except BrokenPipeError:
                     self.closeTraining()
                     log.warning("The visualizer process has been closed.")
+
+        if epoch+1 == num_of_epochs:
+            for key in self.n4m.model_def['Minimizers'].keys():
+                self.process_training[key].stdin.close()
 
     def showResult(self, name_data):
         super().showResult(name_data)
@@ -181,7 +184,7 @@ class MPLVisualizer(TextVisualizer):
                 if key in self.process_training and self.process_training[key].poll() is None:
                     self.process_training[key].terminate()
                     self.process_training[key].wait()
-            self.process_training[key] = {}
+                self.process_training[key] = {}
         else:
             self.process_training[minimizer].terminate()
             self.process_training[minimizer].wait()

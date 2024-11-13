@@ -72,7 +72,7 @@ class Neu4mesVisualizer(unittest.TestCase):
         data_y = np.arange(0.0, 1, 0.1)
         a, b = -1.0, 2.0
         dataset = {'x': data_x, 'y': data_y, 'z': a * data_x + b * data_y}
-        params = {'num_of_epochs': 1, 'lr': 0.01}
+        params = {'num_of_epochs': 10, 'lr': 0.01}
         test.loadData(name='dataset', source=dataset)  # Create the datastest.trainModel(optimizer='SGD', training_params=params)  # Train the traced model
         test.trainModel(optimizer='SGD', training_params=params)
 
@@ -93,7 +93,7 @@ class Neu4mesVisualizer(unittest.TestCase):
         data_y = np.arange(0.0, 10, 0.1)
         a, b = -1.0, 2.0
         dataset = {'x': data_x, 'y': data_y, 'z': a * data_x + b * data_y}
-        params = {'num_of_epochs': 1, 'lr': 0.01}
+        params = {'num_of_epochs': 10, 'lr': 0.01}
         test.loadData(name='dataset', source=dataset)  # Create the dataset
         test.trainModel(optimizer='SGD', training_params=params)  # Train the traced model
         test.trainModel(optimizer='SGD', training_params=params)
