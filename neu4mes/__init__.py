@@ -40,6 +40,7 @@ from neu4mes.logger import logging
 from neu4mes.visualizer import Visualizer, TextVisualizer, MPLVisualizer, MPLNotebookVisualizer
 from neu4mes.initializer import init_negexp, init_lin, init_constant
 from neu4mes.exporter import Exporter, StandardExporter
+from neu4mes.utils import linear_interp
 
 import os, os.path, logging
 from pprint import pp, pprint

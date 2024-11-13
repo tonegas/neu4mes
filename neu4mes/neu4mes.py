@@ -1112,8 +1112,8 @@ class Neu4mes:
                         total_losses[key].append(loss.detach().numpy())
 
                 for key, value in self.model_def['Minimizers'].items():
-                    A[key] = np.concat(A[key])
-                    B[key] = np.concat(B[key])
+                    A[key] = np.concatenate(A[key])
+                    B[key] = np.concatenate(B[key])
                     total_losses[key] = np.mean(total_losses[key])
 
             for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):

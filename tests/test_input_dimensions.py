@@ -1,5 +1,5 @@
 import unittest, sys, os, torch
-
+sys.path.append(os.getcwd())
 from neu4mes import *
 from neu4mes import relation
 relation.CHECK_NAMES = False
@@ -7,9 +7,6 @@ relation.CHECK_NAMES = False
 from neu4mes.logger import logging, Neu4MesLogger
 log = Neu4MesLogger(__name__, logging.CRITICAL)
 log.setAllLevel(logging.CRITICAL)
-
-# append a new directory to sys.path
-sys.path.append(os.getcwd())
 
 # 13 Tests
 # This file tests the dimensions of the inputs in particular:
