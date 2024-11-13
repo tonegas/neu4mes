@@ -73,6 +73,7 @@ class Neu4mes:
             'closed_loop' : {}, 'connect' : {}, 'step' : 1, 'prediction_samples' : 0,
             'shuffle_data' : True,
             'early_stopping' : None, 'early_stopping_params' : {},
+            'select_model' : 'last', 'select_model_params' : {},
             'minimize_gain' : {},
             'num_of_epochs': 100,
             'train_batch_size' : 128, 'val_batch_size' : None, 'test_batch_size' : None,
@@ -613,6 +614,7 @@ class Neu4mes:
                     closed_loop = None, connect = None, step = None, prediction_samples = None,
                     shuffle_data = None,
                     early_stopping = None, early_stopping_params = None,
+                    select_model = None, select_model_params = None,
                     minimize_gain = None,
                     num_of_epochs = None,
                     train_batch_size = None, val_batch_size = None, test_batch_size = None,
@@ -813,6 +815,13 @@ class Neu4mes:
 
         self.run_training_params['update_per_epochs'] = update_per_epochs
         self.run_training_params['unused_samples'] = unused_samples
+
+        ## Select the model
+        select_model = self.__get_parameter(select_model = select_model)
+        select_model_params = self.__get_parameter(select_model_params = select_model_params)
+        selected_model_params = copy.deepcopy(self.model.all_parameters)
+
+        ## Show the training parameters
         self.visualizer.showTrainParams()
 
         import time
@@ -842,14 +851,26 @@ class Neu4mes:
                     val_losses[key].append(torch.mean(losses[ind]).tolist())
 
             ## Early-stopping
-            if early_stopping:
+            if callable(early_stopping):
                 if early_stopping(train_losses, val_losses, early_stopping_params):
-                    log.warning('Stopping the training..')
+                    log.info(f'Stopping the training at epoch {epoch} due to early stopping.')
                     break
+
+            if callable(select_model):
+                if select_model(train_losses, val_losses, select_model_params):
+                    best_model_epoch = epoch
+                    selected_model_params = copy.deepcopy(self.model.all_parameters)
 
             ## Visualize the training...
             self.visualizer.showTraining(epoch, train_losses, val_losses)
             self.visualizer.showWeightsInTrain(epoch = epoch)
+
+        ## Select the model
+        if callable(select_model):
+            log.info(f'Selected the model at the epoch {best_model_epoch}.')
+            self.model.all_parameters = copy.deepcopy(selected_model_params)
+        else:
+            log.info('The selected model is the LAST model of the training.')
 
         ## Save the training time
         end = time.time()
@@ -930,15 +951,6 @@ class Neu4mes:
                             shift = out[closed_loop[key]].shape[1]  ## take the output time dimension
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=1) ## Roll the time window
                             XY[key][:, -shift:, :] = out[closed_loop[key]] ## substitute with the predicted value
-
-                            # dim = out[closed_loop[key]].shape[1]  ## take the output time dimension
-                            # XY[key] = torch.roll(XY[key], shifts=-1, dims=1)  ## Roll the time window
-                            # XY[key][:, input_ns_backward[key] - dim:input_ns_backward[key], :] = out[
-                            #     closed_loop[key]]  ## substitute with the predicted value
-                            # XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][
-                            #                                          horizon_idx:horizon_idx + batch_size,
-                            #                                          input_ns_backward[key]:,
-                            #                                          :]  ## fill the remaining values from the dataset
                         else: ## the input is not recurrent
                             XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
                             XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
