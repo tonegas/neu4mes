@@ -56,7 +56,7 @@ class JsonFormatter(logging.Formatter):
 class Neu4MesLogger(logging.Logger):
     levels = []
     loggers = []
-    info = {'level':None}
+    params = {'level':None}
     def __init__(self, name, level):
         logging.Logger.__init__(self, name)
         self.setLevel(max(level, LOG_LEVEL))
@@ -77,17 +77,17 @@ class Neu4MesLogger(logging.Logger):
         #self.addHandler(file)
 
     def setAllLevel(self, level):
-        if self.info['level'] is None or self.info['level'] != level:
+        if self.params['level'] is None or self.params['level'] != level:
             self._log(logging.INFO,
                       COLOR_SEQ % (30 + BLUE) + (f" Loggers to {LEVEL_STRING[level]} ").center(80, '=') + RESET_SEQ, None)
-            self.info['level'] = level
+            self.params['level'] = level
         for ind, logger in enumerate(self.loggers):
             logger.setLevel(level)
 
     def resetAllLevel(self):
-        if self.info['level'] != 0:
+        if self.params['level'] != 0:
             self._log(logging.INFO, COLOR_SEQ % (30 + BLUE) + (" Standard Level Log ").center(80, '=') + RESET_SEQ, None)
-            self.info['level'] = None
+            self.params['level'] = None
         for ind, logger in enumerate(self.loggers):
             logger.setLevel(self.levels[ind])
 
