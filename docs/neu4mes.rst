@@ -1,5 +1,6 @@
 neu4mes
 =======
+Documentation of the module neu4mes.
 
 .. automodule:: neu4mes
     The neu4mes module.
