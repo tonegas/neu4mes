@@ -12,7 +12,7 @@ Welcome to nnodely's documentation!
 
    introduction
    usage
-   api
+   neu4mes
 
 Indices and tables
 ==================
