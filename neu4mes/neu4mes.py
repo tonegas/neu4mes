@@ -16,6 +16,25 @@ from neu4mes.logger import logging, Neu4MesLogger
 log = Neu4MesLogger(__name__, logging.INFO)
 
 class Neu4mes:
+    """
+    Create the main object, the Neu4mes object, that will be used to create the network, train and export it.
+
+    :param visualizer: The visualizer use by the neu4mes
+    :type visualizer: str or Visualizer or None
+    :param exporter: The exporter use by neu4mes
+    :type exporter: str or Exporter or None
+    :param seed: It is the seed used for the random number generator
+    :type seed: int or None
+    :param workspace: The workspace where the data will be automatically saved
+    :type workspace: str or None
+    :param log_internal: If True the internal variables of the network will be saved (example during training)
+    :type log_internal: bool
+    :param save_history: If True the history of the training will be saved for each training a folder will be generated
+    :type save_history: bool
+
+    Example:
+        >>> model = Neu4mes()
+    """
     def __init__(self,
                  visualizer:str|Visualizer|None = 'Standard',
                  exporter:str|Exporter|None = 'Standard',
