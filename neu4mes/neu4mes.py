@@ -114,6 +114,18 @@ class Neu4mes:
         self.prediction = {}
 
     def resetSeed(self, seed):
+        """
+        Resets the random seed for reproducibility.
+
+        This method sets the seed for various random number generators used in the project to ensure reproducibility of results.
+
+        :param seed: The seed value to be used for the random number generators.
+        :type seed: int
+
+        Example:
+            >>> model = Neu4mes()
+            >>> model.resetSeed(42)
+        """
         torch.manual_seed(seed)  ## set the pytorch seed
         torch.cuda.manual_seed_all(seed)
         random.seed(seed)  ## set the random module seed
