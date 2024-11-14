@@ -1,5 +1,5 @@
-neu4mes module
-==============
+neu4mes
+=======
 
 .. automodule:: neu4mes
    :members:
