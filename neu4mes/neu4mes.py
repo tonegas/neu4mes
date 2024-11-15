@@ -865,13 +865,6 @@ class Neu4mes:
             self.visualizer.showTraining(epoch, train_losses, val_losses)
             self.visualizer.showWeightsInTrain(epoch = epoch)
 
-        ## Select the model
-        if callable(select_model):
-            log.info(f'Selected the model at the epoch {best_model_epoch}.')
-            self.model.all_parameters = copy.deepcopy(selected_model_params)
-        else:
-            log.info('The selected model is the LAST model of the training.')
-
         ## Save the training time
         end = time.time()
         ## Visualize the training time
@@ -881,6 +874,13 @@ class Neu4mes:
                 self.training[key]['val'] = val_losses[key]
         self.visualizer.showEndTraining(num_of_epochs-1, train_losses, val_losses)
         self.visualizer.showTrainingTime(end-start)
+
+        ## Select the model
+        if callable(select_model):
+            log.info(f'Selected the model at the epoch {best_model_epoch+1}.')
+            self.model.all_parameters = copy.deepcopy(selected_model_params)
+        else:
+            log.info('The selected model is the LAST model of the training.')
 
         self.resultAnalysis(train_dataset, XY_train, minimize_gain, closed_loop, connect,  prediction_samples, step, train_batch_size)
         if self.run_training_params['n_samples_val'] > 0:
