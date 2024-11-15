@@ -1,6 +1,10 @@
+Things done:
+- in trainingplot.py, added "sys.path.append(os.getcwd())" before the "from mplplots import plots"
+- model checkpoint: log.info(f'Selected the model at the epoch {best_model_epoch+1}.') --> added +1 since the epoch starts from 0
+
 General things to do / note:
 Most important:
-- model checkpoint
+- model checkpoint --> the correct epoch is selected, but the final loss function is the one of the last epoch, not the one of the best model. 
 - closed-loop training:
   - try to execute part of the NN in feedforward with the whole window size (vector inputs), and execute only the RLS part in closed loop one sample at a time
   - shuffle false does not work in some cases, in closed loop
@@ -9,13 +13,8 @@ Most important:
   - model.exportPythonModel() --> this will export the model in a Python script and will do the tracing
   - model.importPythonModel() --> import the traced model
   - jit compile in Pytorch or other tricks to pre-compile the model and speed-up the training
-- the full model of ARD takes a lot to be trained
 - when exporting the json in a net_trained.json, the function torch.searchsorted(x_data, x, right=True) is exported with true instead of True
-- closed loop training: 
-  - run a profiler in CLion.
-  - the training is extremely slow (w.r.t. Keras, for the same batch_size and predict_samples). 
-  - try to trace the model 
-  - investigate the warning "Creating a tensor from a list of numpy.ndarrays is extremely slow ..."
+- investigate the warning "Creating a tensor from a list of numpy.ndarrays is extremely slow ..."
 - The new MPLVisualizer does not work in Python
 - shuffle_flag = True does not work or does not work as expected in closed-loop training
 - the user should be able to give each layer (including FIR layers) a custom name, and the same names should appear in the json as well, to make it easier to identify them and load them in a new model as initial weights

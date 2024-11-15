@@ -1,9 +1,10 @@
-import sys, json
+import sys, json, os
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from collections import deque
 
+sys.path.append(os.getcwd())
 from mplplots import plots
 
 # Buffer to hold the data points

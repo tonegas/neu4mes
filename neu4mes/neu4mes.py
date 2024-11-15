@@ -867,7 +867,7 @@ class Neu4mes:
 
         ## Select the model
         if callable(select_model):
-            log.info(f'Selected the model at the epoch {best_model_epoch}.')
+            log.info(f'Selected the model at the epoch {best_model_epoch+1}.')
             self.model.all_parameters = copy.deepcopy(selected_model_params)
         else:
             log.info('The selected model is the LAST model of the training.')
