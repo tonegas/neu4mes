@@ -4,7 +4,6 @@ Most important:
 - closed-loop training:
   - try to execute part of the NN in feedforward with the whole window size (vector inputs), and execute only the RLS part in closed loop one sample at a time
   - shuffle false does not work in some cases, in closed loop
-  - when using inputs (closed-loop) instead of states, different values of loss are computed during the training. They should be the same.
 
 - Once the symbolic tracing works, we can do the following to speed-up the training:
   - model.exportPythonModel() --> this will export the model in a Python script and will do the tracing
