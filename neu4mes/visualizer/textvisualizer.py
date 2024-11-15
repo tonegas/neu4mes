@@ -148,7 +148,7 @@ class TextVisualizer(Visualizer):
         if self.verbose >= 1:
             eng = lambda val: np.format_float_scientific(val, precision=3)
             par = self.n4m.run_training_params
-            show_epoch = 1 if par['num_of_epochs'] <= 20 else 10
+            show_epoch = 1 if par['num_of_epochs'] <= 20 else 1 #10
             dim = len(self.n4m.model_def['Minimizers'])
             if epoch < par['num_of_epochs']:
                 print('', end='\r')
