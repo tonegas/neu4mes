@@ -26,6 +26,22 @@ def early_stop_patience(train_losses, val_losses, params):
       return True
   return False
 
+
+def select_best_model(train_losses, val_losses, params):
+    if val_losses:
+        losses = val_losses
+    else:
+        # if there is no validation set, use the training losses
+        losses = train_losses
+    import numpy as np
+    losses_use = [np.mean([losses[key][index] for key in losses.keys()]) for index in
+                  range(len(losses[list(losses.keys())[0]]))]
+    if len(losses_use)-1 == losses_use.index(min(losses_use)):
+        return True
+    else:
+        return False
+
+
 def mean_stopping(train_losses, val_losses, params):
     tol = params['tol'] if 'tol' in params.keys() else 0.001
     if val_losses:

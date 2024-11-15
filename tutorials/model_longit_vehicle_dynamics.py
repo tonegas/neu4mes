@@ -5,6 +5,7 @@ print(os.getcwd())
 sys.path.append(os.getcwd())
 
 from neu4mes import *
+from neu4mes.earlystopping import select_best_model
 
 # Create neu4mes structure
 vehicle = Neu4mes(visualizer=MPLVisualizer(),seed=2)
@@ -55,7 +56,8 @@ optimizer_params = [{'params':'gravity','weight_decay': 0.1}]
 optimizer_defaults = {'weight_decay': 0.00001}
 training_params = {'num_of_epochs':150, 'val_batch_size':128, 'train_batch_size':128, 'lr':0.00003}
 vehicle.trainModel(train_dataset='trainingset', validation_dataset='validationset', shuffle_data=True,
-                   add_optimizer_params=optimizer_params, add_optimizer_defaults=optimizer_defaults, training_params=training_params)
+                   add_optimizer_params=optimizer_params, add_optimizer_defaults=optimizer_defaults, training_params=training_params,
+                   select_model=select_best_model)
 
 ## Neural network Predict
 # sample = vehicle.getSamples(dataset='validationset', window=5)
