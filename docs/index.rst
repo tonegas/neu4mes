@@ -10,9 +10,6 @@ Welcome to nnodely's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   introduction
-   usage
-   neu4mes
 
 Indices and tables
 ==================
