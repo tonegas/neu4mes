@@ -6,6 +6,9 @@
 Welcome to nnodely's documentation!
 ====================================
 
+.. automodule:: neu4mes
+    :members:
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
