@@ -27,3 +27,6 @@ exclude_patterns = []
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = []
+
+# -- Options for EPUB output -------------------------------------------------
+epub_copyright = '2024, tonegas'  # Add this line
