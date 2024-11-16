@@ -3,7 +3,8 @@
 # -- Path setup --------------------------------------------------------------
 import os
 import sys
-sys.path.insert(0, os.path.abspath('neu4mes'))
+dirname = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(dirname, "..", "neu4mes"))
 
 # -- Project information -----------------------------------------------------
 
