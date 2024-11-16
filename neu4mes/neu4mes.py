@@ -4,15 +4,15 @@ import numpy as np
 import pandas as pd
 
 # Neu4mes packages
-from neu4mes.visualizer import TextVisualizer, Visualizer
-from neu4mes.loss import CustomLoss
-from neu4mes.model import Model
-from neu4mes.utils import check, argmax_max, argmin_min, tensor_to_list
-from neu4mes.optimizer import Optimizer, SGD, Adam
-from neu4mes.exporter import Exporter, StandardExporter
-from neu4mes.modeldef import ModelDef
+from visualizer import TextVisualizer, Visualizer
+from loss import CustomLoss
+from model import Model
+from utils import check, argmax_max, argmin_min, tensor_to_list
+from optimizer import Optimizer, SGD, Adam
+from exporter import Exporter, StandardExporter
+from modeldef import ModelDef
 
-from neu4mes.logger import logging, Neu4MesLogger
+from logger import logging, Neu4MesLogger
 log = Neu4MesLogger(__name__, logging.INFO)
 
 class Neu4mes:
