@@ -3,7 +3,7 @@
 # -- Path setup --------------------------------------------------------------
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../neu4mes'))
+sys.path.insert(0, os.path.abspath('neu4mes'))
 
 # -- Project information -----------------------------------------------------
 
