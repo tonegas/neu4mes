@@ -5,6 +5,7 @@ import os
 import sys
 dirname = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(dirname, ".."))
+sys.path.insert(0, os.path.join(dirname, "..", "neu4mes"))
 
 # -- Project information -----------------------------------------------------
 
