@@ -320,6 +320,7 @@ class Neu4mes:
     def getSamples(self, dataset, index = None, window=1):
         if index is None:
             index = random.randint(0, self.num_of_samples[dataset] - window)
+        check(self.data_loade, ValueError, 'The Dataset must first be loaded using <loadData> function!')
         if self.data_loaded:
             result_dict = {}
             for key in (self.model_def['Inputs'].keys() | self.model_def['States'].keys()):
@@ -329,9 +330,6 @@ class Neu4mes:
                     if key in (self.model_def['Inputs'].keys() | self.model_def['States'].keys()):
                         result_dict[key].append(samples[index+idx])
             return result_dict
-        else:
-            print('The Dataset must first be loaded using <loadData> function!')
-            return {}
 
     def addConnect(self, stream_out, state_list_in):
         self.model_def.addConnect(stream_out, state_list_in)
@@ -426,7 +424,7 @@ class Neu4mes:
             try:
                 _,_,files = next(os.walk(source))
             except StopIteration as e:
-                print(f'ERROR: The path "{source}" does not exist!')
+                check(False,StopIteration, f'ERROR: The path "{source}" does not exist!')
                 return
             self.file_count = len(files)
 
@@ -850,7 +848,7 @@ class Neu4mes:
         ## Select the model
         select_model = self.__get_parameter(select_model = select_model)
         select_model_params = self.__get_parameter(select_model_params = select_model_params)
-        selected_model_params = copy.deepcopy(self.model.all_parameters)
+        selected_model_def = ModelDef(self.model_def.json)
 
         ## Show the training parameters
         self.visualizer.showTrainParams()
@@ -859,6 +857,7 @@ class Neu4mes:
         ## start the train timer
         start = time.time()
         self.visualizer.showStartTraining()
+
         for epoch in range(num_of_epochs):
             ## TRAIN
             self.model.train()
@@ -890,18 +889,11 @@ class Neu4mes:
             if callable(select_model):
                 if select_model(train_losses, val_losses, select_model_params):
                     best_model_epoch = epoch
-                    selected_model_params = copy.deepcopy(self.model.all_parameters)
+                    selected_model_def.updateParameters(self.model)
 
             ## Visualize the training...
             self.visualizer.showTraining(epoch, train_losses, val_losses)
             self.visualizer.showWeightsInTrain(epoch = epoch)
-
-        ## Select the model
-        if callable(select_model):
-            log.info(f'Selected the model at the epoch {best_model_epoch}.')
-            self.model.all_parameters = copy.deepcopy(selected_model_params)
-        else:
-            log.info('The selected model is the LAST model of the training.')
 
         ## Save the training time
         end = time.time()
@@ -912,6 +904,13 @@ class Neu4mes:
                 self.training[key]['val'] = val_losses[key]
         self.visualizer.showEndTraining(num_of_epochs-1, train_losses, val_losses)
         self.visualizer.showTrainingTime(end-start)
+
+        ## Select the model
+        if callable(select_model):
+            log.info(f'Selected the model at the epoch {best_model_epoch+1}.')
+            self.model = Model(selected_model_def)
+        else:
+            log.info('The selected model is the LAST model of the training.')
 
         self.resultAnalysis(train_dataset, XY_train, minimize_gain, closed_loop, connect,  prediction_samples, step, train_batch_size)
         if self.run_training_params['n_samples_val'] > 0:
@@ -1062,7 +1061,6 @@ class Neu4mes:
 
             if recurrent:
                 json_inputs = self.model_def['Inputs'] | self.model_def['States']
-                input_ns_backward = {key: value['ns'][0] for key, value in json_inputs.items()}
                 batch_size = batch_size if batch_size is not None else n_samples - prediction_samples
                 initial_value = 0
 
@@ -1112,7 +1110,6 @@ class Neu4mes:
                                     shift = out[closed_loop[key]].shape[1]  ## take the output time dimension
                                     XY[key] = torch.roll(XY[key], shifts=-1, dims=1)  ## Roll the time window
                                     XY[key][:, -shift:, :] = out[closed_loop[key]]  ## substitute with the predicted value
-                                    # XY[key][:, input_ns_backward[key]:, :] = XY_horizon[key][horizon_idx:horizon_idx+batch_size, input_ns_backward[key]:, :]  ## fill the remaining values from the dataset
                                 else:  ## the input is not recurrent
                                     XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
                                     XY[key][-1] = XY_horizon[key][
