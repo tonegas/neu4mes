@@ -9,9 +9,6 @@ Welcome to nnodely's documentation!
 .. automodule:: neu4mes
     :members:
 
-.. automodule:: neu4mes.visualizer
-    :members:
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
