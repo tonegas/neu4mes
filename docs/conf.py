@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(dirname, ".."))
 project = 'nnodely'
 author = 'tonegas'
 release = '1.0'
+version = '1.0'
 
 # -- General configuration ---------------------------------------------------
 
