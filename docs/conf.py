@@ -20,7 +20,7 @@ extensions = [
     'sphinx.ext.viewcode',
 ]
 
-templates_path = ['_templates']
+templates_path = []
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
