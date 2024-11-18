@@ -28,3 +28,6 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/tonegas/neu4mes"
+
+[tool.setuptools]
+packages = ["neu4mes"]
