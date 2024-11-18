@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neu4mes"
+version = "0.1.0"
+description = "Model-strucured neural network framework for modeling and control mechanical system"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "AGPL-3.0 License"}
+authors = [
+    {name = "Gastone Pietro Rosati Papini", email = "tonegas@gmail.com"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: AGPL-3.0 License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "onnx",
+    "pandas",
+    "torch",
+    "reportlab"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/tonegas/neu4mes"
