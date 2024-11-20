@@ -289,7 +289,7 @@ class Neu4mes:
     def getSamples(self, dataset, index = None, window=1):
         if index is None:
             index = random.randint(0, self.num_of_samples[dataset] - window)
-        check(self.data_loade, ValueError, 'The Dataset must first be loaded using <loadData> function!')
+        check(self.data_loaded, ValueError, 'The Dataset must first be loaded using <loadData> function!')
         if self.data_loaded:
             result_dict = {}
             for key in (self.model_def['Inputs'].keys() | self.model_def['States'].keys()):
