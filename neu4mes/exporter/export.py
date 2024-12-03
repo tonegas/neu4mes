@@ -147,12 +147,12 @@ def export_python_model(model_def, model, model_path):
 
         file.write("        self.all_parameters = torch.nn.ParameterDict(self.all_parameters)\n")
         file.write("        self.all_constants = torch.nn.ParameterDict(self.all_constants)\n")
-        file.write("    def init_states(self, state_model, connect = {}, reset_states = False):\n")
+        file.write("    def update(self, closed_loop={}, connect={}):\n")
         file.write("        pass\n")
-        file.write("    def reset_connect_variables(self, connect, values = None, only = True):\n")
-        file.write("        pass\n")
-        file.write("    def reset_states(self, values = None, only = True):\n")
-        file.write("        pass\n")
+        # file.write("    def reset_connect_variables(self, connect, values = None, only = True):\n")
+        # file.write("        pass\n")
+        # file.write("    def reset_states(self, values = None, only = True):\n")
+        # file.write("        pass\n")
 
         for line in trace.code.split("\n")[len(saved_functions) + 1:]:
             if 'self.relation_forward' in line:

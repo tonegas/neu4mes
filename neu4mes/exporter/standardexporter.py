@@ -7,6 +7,9 @@ from neu4mes.exporter.reporter import Reporter
 from neu4mes.exporter.export import save_model, load_model, export_python_model, export_pythononnx_model, export_onnx_model, import_python_model, import_onnx_model
 from neu4mes.utils import check
 
+from neu4mes.logger import logging, Neu4MesLogger
+log = Neu4MesLogger(__name__, logging.INFO)
+
 class StandardExporter(Exporter):
     def __init__(self, workspace=None, visualizer=None, save_history=False):
         super().__init__(workspace, visualizer, save_history)
