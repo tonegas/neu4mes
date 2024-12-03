@@ -7,7 +7,7 @@ import pandas as pd
 from neu4mes.visualizer import TextVisualizer, Visualizer
 from neu4mes.loss import CustomLoss
 from neu4mes.model import Model
-from neu4mes.utils import check, argmax_max, argmin_min, tensor_to_list
+from neu4mes.utils import check, tensor_to_list, argmax_dict, argmin_dict
 from neu4mes.optimizer import Optimizer, SGD, Adam
 from neu4mes.exporter import Exporter, StandardExporter
 from neu4mes.modeldef import ModelDef
@@ -57,6 +57,7 @@ class Neu4mes:
         self.neuralized = False
         self.traced = False
         self.model = None
+        self.states = {}
 
         # Dataaset Parameters
         self.data_loaded = False
@@ -100,8 +101,7 @@ class Neu4mes:
         random.seed(seed)  ## set the random module seed
         np.random.seed(seed)  ## set the numpy seed
 
-    def __call__(self, inputs = {}, sampled = False, closed_loop = {}, connect = {}, prediction_samples = 'auto', num_of_samples = 'auto'):#, align_input = False):
-        ## Copy dict for avoid python bug
+    def __call__(self, inputs={}, sampled=False, closed_loop={}, connect={}, prediction_samples='auto', num_of_samples=None): ##, align_input=False):
         inputs = copy.deepcopy(inputs)
         closed_loop = copy.deepcopy(closed_loop)
         connect = copy.deepcopy(connect)
@@ -109,172 +109,129 @@ class Neu4mes:
         ## Check neuralize
         check(self.neuralized, RuntimeError, "The network is not neuralized.")
 
-        ## Bild the list of inputs
+        ## Check closed loop integrity
+        for close_in, close_out in closed_loop.items():
+            check(close_in in self.model_def['Inputs'], ValueError, f'the tag {close_in} is not an input variable.')
+            check(close_out in self.model_def['Outputs'], ValueError, f'the tag {close_out} is not an output of the network')
+
+        ## List of keys
         model_inputs = list(self.model_def['Inputs'].keys())
         model_states = list(self.model_def['States'].keys())
-        provided_inputs = list(inputs.keys())
-        missing_inputs = list(set(model_inputs) - set(provided_inputs)) #- set(connect.keys()))
-        extra_inputs = list(set(provided_inputs) - set(model_inputs) - set(model_states))
-        if not set(provided_inputs).issubset(set(model_inputs) | set(model_states)):
-            ## Ignoring extra inputs
-            log.warning(f'The complete model inputs are {model_inputs}, the provided input are {provided_inputs}. Ignoring {extra_inputs}...')
-            for key in extra_inputs:
-                del inputs[key]
-            provided_inputs = list(inputs.keys())
-        non_recurrent_inputs = list(set(provided_inputs) - set(closed_loop.keys()) - set(connect.keys()) - set(model_states))
-        recurrent_inputs = set(closed_loop.keys())|set(connect.keys())|set(model_states)
+        state_closed_loop = [key for key, value in self.model_def['States'].items() if 'closedLoop' in value.keys()] + list(closed_loop.keys())
+        state_connect = [key for key, value in self.model_def['States'].items() if 'connect' in value.keys()] + list(connect.keys())
+        extra_inputs = list(set(list(inputs.keys())) - set(model_inputs) - set(model_states))
+        non_mandatory_inputs = state_closed_loop + state_connect 
+        mandatory_inputs = list(set(model_inputs) - set(non_mandatory_inputs))
 
-        ## Define input windows and check closed loop and connect
-        input_windows = {}
-        for in_var, out_var in (closed_loop.items() | connect.items()):
-            check(in_var in self.model_def['Inputs'], ValueError, f'the tag {in_var} is not an input variable.')
-            check(out_var in self.model_def['Outputs'], ValueError, f'the tag {out_var} is not an output of the network')
-            if in_var in inputs.keys():
-                input_windows[in_var] = len(inputs[in_var]) if sampled else len(inputs[in_var]) - self.input_n_samples[in_var] + 1
-            else:
-                input_windows[in_var] = 1
-        for key in model_states:
-            if key in inputs.keys():
-                input_windows[key] = len(inputs[key]) if sampled else len(inputs[key]) - self.input_n_samples[key] + 1
-            else:
-                input_windows[key] = 1
+        ## Remove extra inputs
+        for key in extra_inputs:
+            log.warning(f'The provided input {key} is not used inside the network. the inference will continue without using it')
+            del inputs[key]
 
-        ## Determine the Maximal number of samples that can be created
-        if non_recurrent_inputs:
-            if sampled:
-                min_dim_ind, min_dim  = argmin_min([len(inputs[key]) for key in non_recurrent_inputs])
-                max_dim_ind, max_dim = argmax_max([len(inputs[key]) for key in non_recurrent_inputs])
-            else:
-                min_dim_ind, min_dim = argmin_min([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
-                max_dim_ind, max_dim  = argmax_max([len(inputs[key])-self.input_n_samples[key]+1 for key in non_recurrent_inputs])
-            min_din_key = non_recurrent_inputs[min_dim_ind]
-            max_din_key = non_recurrent_inputs[max_dim_ind]
-        else:
-            if recurrent_inputs:
-                #ps = 0 if prediction_samples=='auto' or prediction_samples is None else prediction_samples
-                if provided_inputs:
-                    min_dim_ind, min_dim = argmin_min([input_windows[key]  for key in provided_inputs])
-                    max_dim_ind, max_dim = argmax_max([input_windows[key]  for key in provided_inputs])
-                    min_din_key = provided_inputs[min_dim_ind]
-                    max_din_key = provided_inputs[max_dim_ind]
+        ## Get the number of data windows for each input/state
+        num_of_windows = {key: len(value) for key, value in inputs.items()} if sampled else {key: len(value) - self.input_n_samples[key] + 1 for key, value in inputs.items()}
+
+        ## Get the maximum inference window
+        if num_of_samples:
+            window_dim = num_of_samples
+            for key in inputs.keys():
+                input_dim = self.model_def['Inputs'][key]['dim'] if key in model_inputs else self.model_def['States'][key]['dim']
+                if input_dim > 1:
+                    inputs[key] += [[0 for _ in range(input_dim)] for _ in range(num_of_samples - (len(inputs[key]) - self.input_n_samples[key] + 1))]
                 else:
-                    min_dim = max_dim =  1
-            else:
-                min_dim = max_dim = 0
+                    inputs[key] += [0 for _ in range(num_of_samples - (len(inputs[key]) - self.input_n_samples[key] + 1))]
+        elif inputs:
+            windows = []
+            for key in inputs.keys():
+                if key in mandatory_inputs:
+                    n_samples = len(inputs[key]) if sampled else len(inputs[key]) - self.model_def['Inputs'][key]['ntot'] + 1
+                    windows.append(n_samples)
+            if not windows:
+                for key in inputs.keys():
+                    if key in non_mandatory_inputs:
+                        if key in model_inputs:
+                            n_samples = len(inputs[key]) if sampled else len(inputs[key]) - self.model_def['Inputs'][key]['ntot'] + 1
+                        else:
+                            n_samples = len(inputs[key]) if sampled else len(inputs[key]) - self.model_def['States'][key]['ntot'] + 1
+                        windows.append(n_samples)
+            window_dim = min(windows) if windows else 0
+        else: ## No inputs
+            window_dim = 1 if non_mandatory_inputs else 0
+        check(window_dim > 0, StopIteration, f'Missing samples in the input window')
 
-        ## Define the number of samples
-        if num_of_samples != 'auto':
-            window_dim = min_dim = max_dim = num_of_samples
-        else:
-            # Use the minimum number of input samples if the net is not autonoma otherwise the minimum number of state samples
-            window_dim = min_dim
-        check(window_dim > 0, StopIteration, f'Missing at least {abs(min_dim)+1} samples in the input window')
+        if len(set(num_of_windows.values())) > 1:
+            max_ind_key, max_dim = argmax_dict(num_of_windows)
+            min_ind_key, min_dim = argmin_dict(num_of_windows)
+            log.warning(f'Different number of samples between inputs [MAX {num_of_windows[max_ind_key]} = {max_dim}; MIN {num_of_windows[min_ind_key]} = {min_dim}]')
 
         ## Autofill the missing inputs
+        provided_inputs = list(inputs.keys())
+        missing_inputs = list(set(mandatory_inputs) - set(provided_inputs))
         if missing_inputs:
             log.warning(f'Inputs not provided: {missing_inputs}. Autofilling with zeros..')
             for key in missing_inputs:
-                inputs[key] = np.zeros(
-                    shape=(self.input_n_samples[key] + window_dim - 1, self.model_def['Inputs'][key]['dim']),
-                    dtype=np.float32).tolist()
+                inputs[key] = np.zeros(shape=(self.input_n_samples[key] + window_dim - 1, self.model_def['Inputs'][key]['dim']),dtype=np.float32).tolist()
 
-        n_samples_input = {}
-        for key in inputs.keys():
-            if key in missing_inputs:
-                n_samples_input[key] = 1
-            else:
-                n_samples_input[key] = len(inputs[key]) if sampled else len(inputs[key]) - self.input_n_samples[key] + 1
+        ## Transform inputs in 3D Tensors
+        for key, val in inputs.items():
+            input_dim = self.model_def['Inputs'][key]['dim'] if key in model_inputs else self.model_def['States'][key]['dim']
+            inputs[key] = torch.from_numpy(np.array(inputs[key])).to(torch.float32)
 
-        # Vettore di input
-        if num_of_samples != 'auto':
-            for key in inputs.keys():
-                if key in model_inputs:
-                    input_dim = self.model_def['Inputs'][key]['dim']
-                elif key in model_states:
-                    input_dim = self.model_def['States'][key]['dim']
-                if input_dim > 1:
-                    inputs[key] += [[0 for val in range(input_dim)] for val in
-                                    range(num_of_samples - (len(inputs[key]) - self.input_n_samples[key] + 1))]
-                else:
-                    inputs[key] += [0 for val in range(num_of_samples - (len(inputs[key]) - self.input_n_samples[key] + 1))]
-                #n_samples_input[key] = num_of_samples
+            if input_dim > 1:
+                correct_dim = 3 if sampled else 2
+                check(len(inputs[key].shape) == correct_dim, ValueError,f'The input {key} must have {correct_dim} dimensions')
+                check(inputs[key].shape[correct_dim - 1] == input_dim, ValueError,f'The second dimension of the input "{key}" must be equal to {input_dim}')
 
-        ## Warning the users about different time windows between samples
-        if min_dim != max_dim:
-            log.warning(f'Different number of samples between inputs [MAX {max_din_key} = {max_dim}; MIN {min_din_key} = {min_dim}]')
+            if input_dim == 1 and inputs[key].shape[-1] != 1: ## add the input dimension
+                inputs[key] = inputs[key].unsqueeze(-1)
+            if inputs[key].ndim <= 1: ## add the batch dimension
+                inputs[key] = inputs[key].unsqueeze(0)
+            if inputs[key].ndim <= 2: ## add the time dimension
+                inputs[key] = inputs[key].unsqueeze(0)
 
-        result_dict = {} ## initialize the resulting dictionary
+        ## initialize the resulting dictionary
+        result_dict = {}
         for key in self.model_def['Outputs'].keys():
             result_dict[key] = []
 
-        ## Initialize the state variables
-        if prediction_samples == None:
-            # If the prediction sample is None the connection are removed
-            self.model.init_states({}, connect = connect)
-        else:
-            self.model.init_states(self.model_def['States'], connect = connect, reset_states = False)
-
-        ## Cycle through all the samples provided
+        ## Inference
         with torch.inference_mode():
+            self.model.eval()
+            ## Update with virtual states
+            if prediction_samples is not None:
+                self.model.update(closed_loop=closed_loop, connect=connect)
+            else:
+                prediction_samples = 0
             X = {}
-            for i in range(window_dim):
-                for key, val in inputs.items():
-                    # If the prediction sample is None take the input
-                    # If the prediction sample is auto and the sample is less than the available samples take the input
-                    # Every prediction sample take the input
-                    # Otherwise if the key is a state or a connect or a closed_loop variable keep the same input
-                    # If the key is a state or connect input remove the input
-                    if not (prediction_samples is None \
-                        or ((prediction_samples is not None and prediction_samples != 'auto') and i % (prediction_samples + 1) == 0) \
-                        or (prediction_samples == 'auto' and i < n_samples_input[key])):
-                        if key in (closed_loop|connect).keys() or key in model_states:
-                            if (key in model_states or key in connect.keys()) and key in X.keys():
-                                del X[key]
-                            continue
-                    X[key] = torch.from_numpy(np.array(val[i])).to(torch.float32) if sampled else torch.from_numpy(
-                            np.array(val[i:i + self.input_n_samples[key]])).to(torch.float32)
-
-                    if key in model_inputs:
-                        input_dim = self.model_def['Inputs'][key]['dim']
-                    elif key in model_states:
-                        input_dim = self.model_def['States'][key]['dim']
-
-                    if input_dim > 1:
-                        check(len(X[key].shape) == 2, ValueError,
-                                f'The input {key} must have two dimensions')
-                        check(X[key].shape[1] == input_dim, ValueError,
-                                f'The second dimension of the input "{key}" must be equal to {input_dim}')
-
-                    if input_dim == 1 and X[key].shape[-1] != 1: ## add the input dimension
-                        X[key] = X[key].unsqueeze(-1)
-                    if X[key].ndim <= 1: ## add the batch dimension
-                        X[key] = X[key].unsqueeze(0)
-                    if X[key].ndim <= 2: ## add the time dimension
-                        X[key] = X[key].unsqueeze(0)
-
-                ## Reset the state variable
-                if  prediction_samples is None:
-                    ## If prediction sample is None the state is reset every step
-                    self.model.reset_states(X, only=False)
-                    self.model.reset_connect_variables(connect, X, only=False)
-                elif prediction_samples == 'auto':
-                    ## If prediction sample is auto is reset with the available samples
-                    self.model.reset_states(X)
-                    self.model.reset_connect_variables(connect, X)
+            count = 0
+            first = True
+            for idx in range(window_dim):
+                ## Get mandatory data inputs
+                for key in mandatory_inputs:
+                    X[key] = inputs[key][idx:idx+1] if sampled else inputs[key][:, idx:idx + self.input_n_samples[key]]
+                ## reset states
+                if count == 0 or prediction_samples=='auto':
+                    count = prediction_samples
+                    for key in non_mandatory_inputs: ## Get non mandatory data (from inputs, from states, or with zeros)
+                        ## if prediction_samples is 'auto' and i have enough samples
+                        ## if prediction_samples is NOT 'auto' but i have enough extended window (with zeros)
+                        if (key in inputs.keys() and prediction_samples == 'auto' and idx < num_of_windows[key]) or (key in inputs.keys() and prediction_samples != 'auto' and idx < inputs[key].shape[1]):
+                            X[key] = inputs[key][idx:idx+1].clone() if sampled else inputs[key][:, idx:idx + self.input_n_samples[key]].clone()
+                        ## if im in the first reset
+                        ## if i have a state in memory
+                        ## if i have prediction_samples = 'auto' and not enough samples
+                        elif (key in self.states.keys() and (first or prediction_samples == 'auto')) and (prediction_samples == 'auto' or prediction_samples == None):
+                            X[key] = self.states[key]
+                        else: ## if i have no samples and no states
+                            window_size = self.input_n_samples[key]
+                            dim = self.model_def['Inputs'][key]['dim'] if key in model_inputs else self.model_def['States'][key]['dim']
+                            X[key] = torch.zeros(size=(1, window_size, dim), dtype=torch.float32, requires_grad=False)
+                            self.states[key] = X[key]
+                    first = False
                 else:
-                    ## Otherwise the variable are reset every prediction samples
-                    if i%(prediction_samples+1) == 0:
-                        self.model.reset_states(X, only=False)
-                        self.model.reset_connect_variables(connect, X, only=False)
-
-                result, _ = self.model(X)
-
-                ## Update the recurrent variable
-                for close_in, out_var in closed_loop.items():
-                    #if i >= input_windows[close_in]-1:
-                    shift = result[out_var].shape[1]  ## take the output time dimension
-                    X[close_in] = torch.roll(X[close_in], shifts=-1, dims=1) ## Roll the time window
-                    X[close_in][:, -shift:, :] = result[out_var] ## substitute with the predicted value
+                    count -= 1
+                ## Forward pass
+                result, _, out_closed_loop, out_connect = self.model(X)
 
                 ## Append the prediction of the current sample to the result dictionary
                 for key in self.model_def['Outputs'].keys():
@@ -284,6 +241,22 @@ class Neu4mes:
                             result[key] = result[key].squeeze(-1)
                     result_dict[key].append(result[key].detach().squeeze(dim=0).tolist())
 
+                ## Update closed_loop and connect
+                if prediction_samples:
+                    for key, val in out_closed_loop.items():
+                        shift = val.shape[1]  ## take the output time dimension
+                        X[key] = torch.roll(X[key], shifts=-1, dims=1) ## Roll the time window
+                        X[key][:, -shift:, :] = val ## substitute with the predicted value
+                        self.states[key] = X[key]
+                    for key, val in out_connect.items():
+                        X[key] = val
+                        self.states[key] = X[key]
+
+        ## Remove virtual states
+        for key in (connect.keys() | closed_loop.keys()):
+            if key in self.states.keys():
+                del self.states[key]
+        
         return result_dict
 
     def getSamples(self, dataset, index = None, window=1):
@@ -319,6 +292,19 @@ class Neu4mes:
     def removeMinimize(self, name_list):
         self.model_def.removeMinimize(name_list)
 
+    def resetStates(self, states=[], batch=1):
+        if states: ## reset only specific states
+            for key in states:
+                window_size = self.input_n_samples[key]
+                dim = self.model_def['States'][key]['dim']
+                self.states[key] = torch.zeros(size=(batch, window_size, dim), dtype=torch.float32, requires_grad=False)
+        else: ## reset all states
+            self.states = {}
+            for key, state in self.model_def['States'].items():
+                window_size = self.input_n_samples[key]
+                dim = state['dim']
+                self.states[key] = torch.zeros(size=(batch, window_size, dim), dtype=torch.float32, requires_grad=False)
+
     def neuralizeModel(self, sample_time = None, clear_model = False, model_def = None):
         if model_def is not None:
             check(sample_time == None, ValueError, 'The sample_time must be None if a model_def is provided')
@@ -339,6 +325,9 @@ class Neu4mes:
         for key, value in (self.model_def['Inputs'] | self.model_def['States']).items():
             self.input_n_samples[key] = input_ns_backward[key] + input_ns_forward[key]
         self.max_n_samples = max(input_ns_backward.values()) + max(input_ns_forward.values())
+
+        ## Initialize States 
+        self.resetStates()
 
         self.neuralized = True
         self.traced = False
@@ -496,10 +485,6 @@ class Neu4mes:
                 self.data[dataset_name][key] = np.delete(self.data[dataset_name][key], idx_to_remove, axis=0)
                 self.num_of_samples[dataset_name] = self.data[dataset_name][key].shape[0]
             self.visualizer.showDataset(name=dataset_name)
-
-    def resetStates(self, values = None, only = True):
-        self.model.init_states(self.model_def['States'], reset_states=False)
-        self.model.reset_states(values, only)
 
     def __save_internal(self, key, value):
         self.internals[key] = tensor_to_list(value)
@@ -892,44 +877,49 @@ class Neu4mes:
         ## Get trained model from torch and set the model_def
         self.model_def.updateParameters(self.model)
 
-    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, closed_loop, connect, prediction_samples, step, shuffle=True, train=True):
-        ## Sample Shuffle
-        initial_value = 0 #random.randint(0, step - 1) if shuffle else 0
+    def __recurrentTrain(self, data, n_samples, batch_size, loss_gains, closed_loop, connect, prediction_samples, step, shuffle, train=True):
 
+        model_inputs = list(self.model_def['Inputs'].keys())
+        state_closed_loop = [key for key, value in self.model_def['States'].items() if 'closedLoop' in value.keys()] + list(closed_loop.keys())
+        state_connect = [key for key, value in self.model_def['States'].items() if 'connect' in value.keys()] + list(connect.keys())
+        non_mandatory_inputs = state_closed_loop + state_connect 
+        mandatory_inputs = list(set(model_inputs) - set(non_mandatory_inputs))
+
+        ## shuffle TODO
+        initial_value = 0  #np.random.randint(0, prediction_samples)
         n_available_samples = n_samples - batch_size - prediction_samples + 1
-        check(n_available_samples > 0, ValueError, f"The number of available sample are (n_samples_train - train_batch_size - prediction_samples + 1) = {n_available_samples}.")
         list_of_batch_indexes = range(initial_value, n_available_samples, (batch_size + step - 1))
 
-        ## Initialize the train losses vector
+        ## Loss vector 
         aux_losses = torch.zeros([len(self.model_def['Minimizers']), len(list_of_batch_indexes)])
 
-        json_inputs = self.model_def['Inputs'] | self.model_def['States']
-
-        ## +1 means that n_samples = 1 - batch_size = 1 - prediction_samples = 1 + 1 = 0 # zero epochs
-        ## +1 means that n_samples = 2 - batch_size = 1 - prediction_samples = 1 + 1 = 1 # one epochs
+        ## Update with virtual states
+        self.model.update(closed_loop=closed_loop, connect=connect)
+        X = {}
         for batch_val, idx in enumerate(list_of_batch_indexes):
             if train:
                 self.optimizer.zero_grad() ## Reset the gradient
 
-            ## Build the input tensor
-            XY = {key: val[idx:idx+batch_size] for key, val in data.items()}
-            # Add missing inputs
-            for key in closed_loop:
-                if key not in XY:
-                    XY[key] = torch.zeros([batch_size, json_inputs[key]['ntot'], json_inputs[key]['dim']]).to(torch.float32)
-
-            ## collect the horizon labels
-            XY_horizon = {key: val[idx:idx+batch_size+prediction_samples] for key, val in data.items()}
+            ## Reset 
             horizon_losses = {ind: [] for ind in range(len(self.model_def['Minimizers']))}
-
-            ## Reset state variables with zeros or using inputs
-            self.model.reset_states(XY, only = False)
-            self.model.reset_connect_variables(connect, XY, only= False)
+            for key in non_mandatory_inputs:
+                if key in data.keys():
+                ## with data
+                    X[key] = data[key][idx:idx+batch_size]
+                else: ## with zeros
+                    window_size = self.input_n_samples[key]
+                    dim = self.model_def['Inputs'][key]['dim'] if key in model_inputs else self.model_def['States'][key]['dim']
+                    X[key] = torch.zeros(size=(batch_size, window_size, dim), dtype=torch.float32, requires_grad=False)
+                    self.states[key] = X[key]
 
             for horizon_idx in range(prediction_samples + 1):
-                out, minimize_out = self.model(XY)  ## Forward pass
-                if self.log_internal:
-                    self.__save_internal('inout_'+str(idx)+'_'+str(horizon_idx),{'XY':XY,'out':out,'state':self.model.states,'param':self.model.all_parameters,'connect':self.model.connect_variables})
+                ## Get data 
+                for key in mandatory_inputs:
+                    X[key] = data[key][idx+horizon_idx:idx+horizon_idx+batch_size]
+                ## Forward pass
+                out, minimize_out, out_closed_loop, out_connect = self.model(X)
+
+                internals_dict = {'XY':X,'out':out,'param':self.model.all_parameters,'closedLoop':self.model.closed_loop_update,'connect':self.model.connect_update}
 
                 ## Loss Calculation
                 for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
@@ -937,23 +927,19 @@ class Neu4mes:
                     loss = (loss * loss_gains[key]) if key in loss_gains.keys() else loss  ## Multiply by the gain if necessary
                     horizon_losses[ind].append(loss)
 
-                ## remove the states variables from the data
-                if prediction_samples > 1:
-                    for state_key in self.model_def['States'].keys():
-                        if state_key in XY.keys():
-                            del XY[state_key]
+                ## Update
+                for key, val in out_closed_loop.items():
+                    shift = val.shape[1]  ## take the output time dimension
+                    X[key] = torch.roll(X[key], shifts=-1, dims=1) ## Roll the time window
+                    X[key][:, -shift:, :] = val ## substitute with the predicted value
+                    self.states[key] = X[key].clone()
+                for key, value in out_connect.items():
+                    X[key] = value
+                    self.states[key] = X[key].clone()
 
-                ## Update the input with the recurrent prediction
-                if horizon_idx < prediction_samples:
-                    for key in XY.keys():
-                        if key in closed_loop.keys(): ## the input is recurrent
-                            shift = out[closed_loop[key]].shape[1]  ## take the output time dimension
-                            XY[key] = torch.roll(XY[key], shifts=-1, dims=1) ## Roll the time window
-                            XY[key][:, -shift:, :] = out[closed_loop[key]] ## substitute with the predicted value
-                        else: ## the input is not recurrent
-                            XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                            XY[key][-1] = XY_horizon[key][batch_size+horizon_idx]  ## take the next sample from the dataset
-
+                internals_dict['state'] = self.states
+                if self.log_internal:
+                    self.__save_internal('inout_'+str(idx)+'_'+str(horizon_idx),internals_dict)
 
             ## Calculate the total loss
             total_loss = 0
@@ -967,6 +953,11 @@ class Neu4mes:
                 total_loss.backward() ## Backpropagate the error
                 self.optimizer.step()
                 self.visualizer.showWeightsInTrain(batch = batch_val)
+
+        ## Remove virtual states
+        for key in (connect.keys() | closed_loop.keys()):
+            if key in self.states.keys():
+                del self.states[key]
 
         ## return the losses
         return aux_losses
@@ -986,7 +977,7 @@ class Neu4mes:
             if train:
                 self.optimizer.zero_grad()
             ## Model Forward
-            _, minimize_out = self.model(XY)  ## Forward pass
+            _, minimize_out, _, _ = self.model(XY)  ## Forward pass
             ## Loss Calculation
             total_loss = 0
             for ind, (key, value) in enumerate(self.model_def['Minimizers'].items()):
@@ -1033,30 +1024,44 @@ class Neu4mes:
                 batch_size = batch_size if batch_size is not None else n_samples - prediction_samples
                 initial_value = 0
 
+                model_inputs = list(self.model_def['Inputs'].keys())
+
+                state_closed_loop = [key for key, value in self.model_def['States'].items() if 'closedLoop' in value.keys()] + list(closed_loop.keys())
+                state_connect = [key for key, value in self.model_def['States'].items() if 'connect' in value.keys()] + list(connect.keys())
+
+                non_mandatory_inputs = state_closed_loop + state_connect 
+                mandatory_inputs = list(set(model_inputs) - set(non_mandatory_inputs))
+
                 for key, value in self.model_def['Minimizers'].items():
                     total_losses[key], A[key], B[key] = [], [], []
                     for horizon_idx in range(prediction_samples + 1):
                         A[key].append([])
                         B[key].append([])
 
+                X = {}
+                ## Update with virtual states
+                self.model.update(closed_loop=closed_loop, connect=connect)
                 for idx in range(initial_value, (n_samples - batch_size - prediction_samples + 1), (batch_size + step - 1)):
-                    ## Build the input tensor
-                    XY = {key: val[idx:idx + batch_size] for key, val in data.items()}
-                    # Add missing inputs
-                    for key in closed_loop:
-                        if key not in XY:
-                            XY[key] = torch.zeros([batch_size, json_inputs[key]['ntot'], json_inputs[key]['dim']]).to(
-                                torch.float32)
-                    ## collect the horizon labels
-                    XY_horizon = {key: val[idx:idx + batch_size + prediction_samples] for key, val in data.items()}
+                    ## Reset 
                     horizon_losses = {key: [] for key in self.model_def['Minimizers'].keys()}
-
-                    ## Reset state variables with zeros or using inputs
-                    self.model.reset_states(XY, only=False)
-                    self.model.reset_connect_variables(connect, XY, only=False)
+                    for key in non_mandatory_inputs:
+                        if key in data.keys(): # and len(data[key]) >= (idx + self.input_n_samples[key]): 
+                        ## with data
+                            X[key] = data[key][idx:idx+batch_size]
+                        #elif key in self.states.keys(): ## with state
+                            #X[key] = self.states[key]
+                        else: ## with zeros
+                            window_size = self.input_n_samples[key]
+                            dim = self.model_def['Inputs'][key]['dim'] if key in model_inputs else self.model_def['States'][key]['dim']
+                            X[key] = torch.zeros(size=(batch_size, window_size, dim), dtype=torch.float32, requires_grad=False)
+                            self.states[key] = X[key]
 
                     for horizon_idx in range(prediction_samples + 1):
-                        out, minimize_out = self.model(XY)  ## Forward pass
+                        ## Get data 
+                        for key in mandatory_inputs:
+                            X[key] = data[key][idx+horizon_idx:idx+horizon_idx+batch_size]
+                        ## Forward pass
+                        out, minimize_out, out_closed_loop, out_connect = self.model(X)
 
                         ## Loss Calculation
                         for key, value in self.model_def['Minimizers'].items():
@@ -1066,23 +1071,15 @@ class Neu4mes:
                             loss = (loss * minimize_gain[key]) if key in minimize_gain.keys() else loss  ## Multiply by the gain if necessary
                             horizon_losses[key].append(loss)
 
-                        ## remove the states variables from the data
-                        if prediction_samples > 1:
-                            for state_key in self.model_def['States'].keys():
-                                if state_key in XY.keys():
-                                    del XY[state_key]
-
-                        ## Update the input with the recurrent prediction
-                        if horizon_idx < prediction_samples:
-                            for key in XY.keys():
-                                if key in closed_loop.keys():  ## the input is recurrent
-                                    shift = out[closed_loop[key]].shape[1]  ## take the output time dimension
-                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=1)  ## Roll the time window
-                                    XY[key][:, -shift:, :] = out[closed_loop[key]]  ## substitute with the predicted value
-                                else:  ## the input is not recurrent
-                                    XY[key] = torch.roll(XY[key], shifts=-1, dims=0)  ## Roll the sample window
-                                    XY[key][-1] = XY_horizon[key][
-                                        batch_size + horizon_idx]  ## take the next sample from the dataset
+                        ## Update
+                        for key, val in out_closed_loop.items():
+                            shift = val.shape[1]  ## take the output time dimension
+                            X[key] = torch.roll(X[key], shifts=-1, dims=1) ## Roll the time window
+                            X[key][:, -shift:, :] = val ## substitute with the predicted value
+                            self.states[key] = X[key].clone()
+                        for key, value in out_connect.items():
+                            X[key] = value
+                            self.states[key] = X[key].clone()
 
                     ## Calculate the total loss
                     for key in self.model_def['Minimizers'].keys():
@@ -1105,13 +1102,13 @@ class Neu4mes:
                 for idx in range(0, (n_samples - batch_size + 1), batch_size):
                     ## Build the input tensor
                     XY = {key: val[idx:idx + batch_size] for key, val in data.items()}
-                    if (closed_loop or connect or self.model_def['States']):
+                    #if (closed_loop or connect or self.model_def['States']):
                         ## Reset state variables with zeros or using inputs
-                        self.model.reset_states(XY, only=False)
-                        self.model.reset_connect_variables(connect, XY, only=False)
+                        #self.model.reset_states(XY, only=False)
+                        #self.model.reset_connect_variables(connect, XY, only=False)
 
                     ## Model Forward
-                    _, minimize_out = self.model(XY)  ## Forward pass
+                    _, minimize_out, _, _ = self.model(XY)  ## Forward pass
                     ## Loss Calculation
                     for key, value in self.model_def['Minimizers'].items():
                         A[key].append(minimize_out[value['A']].numpy())
@@ -1165,6 +1162,11 @@ class Neu4mes:
                 self.prediction[dataset][key] = {}
                 self.prediction[dataset][key]['A'] = A_np.tolist()
                 self.prediction[dataset][key]['B'] = B_np.tolist()
+
+            ## Remove virtual states
+            for key in (connect.keys() | closed_loop.keys()):
+                if key in self.states.keys():
+                    del self.states[key]
 
             self.performance[dataset]['total'] = {}
             self.performance[dataset]['total']['mean_error'] = np.mean([value for key,value in total_losses.items()])
