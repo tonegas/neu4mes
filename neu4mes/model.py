@@ -29,14 +29,8 @@ class Model(nn.Module):
         self.all_constants = {}
         self.relation_forward = {}
         self.relation_inputs = {}
-        self.states = {}
-        self.states_closed_loop = {}
-        self.states_connect = {}
-        #self.constants = set()
-
-        self.connect_variables = {}
-        self.connect = {}
-        self.initialize_connect = False
+        self.closed_loop_update = {}
+        self.connect_update = {}
 
         ## Define the correct slicing
         json_inputs = self.inputs | self.state_model
@@ -85,9 +79,7 @@ class Model(nn.Module):
         for name, param_data in self.constants.items():
             self.all_constants[name] = nn.Parameter(torch.tensor(param_data['values'], dtype=torch.float32), requires_grad=False)
 
-
         ## Initialize state variables
-        self.init_states(self.state_model_main, reset_states=True)
         all_params_and_consts = self.all_parameters | self.all_constants
 
         ## Create all the relations
@@ -147,8 +139,8 @@ class Model(nn.Module):
         result_dict = {}
 
         ## Initially i have only the inputs from the dataset, the parameters, and the constants
-        available_inputs = [key for key in self.inputs.keys() if key not in self.connect.keys()]  ## remove connected inputs
-        available_states = [key for key in self.state_model.keys() if key not in self.states_connect.keys()] ## remove connected states
+        available_inputs = [key for key in self.inputs.keys() if key not in self.connect_update.keys()]  ## remove connected inputs
+        available_states = [key for key in self.state_model.keys() if key not in self.connect_update.keys()] ## remove connected states
         available_keys = set(available_inputs + list(self.all_parameters.keys()) + list(self.all_constants.keys()) + available_states)
 
         ## Forward pass through the relations
@@ -161,9 +153,9 @@ class Model(nn.Module):
                     for key in self.relation_inputs[relation]:
                         if key in self.all_constants.keys(): ## relation that takes a constant
                             layer_inputs.append(self.all_constants[key])
-                        elif key in self.states.keys(): ## relation that takes a state
-                            layer_inputs.append(self.states[key])
-                        elif key in available_inputs:  ## relation that takes inputs (self.inputs.keys())
+                        elif key in available_states: ## relation that takes a state
+                            layer_inputs.append(kwargs[key])
+                        elif key in available_inputs:  ## relation that takes an input
                             layer_inputs.append(kwargs[key])
                         elif key in self.all_parameters.keys(): ## relation that takes parameters
                             layer_inputs.append(self.all_parameters[key])
@@ -174,31 +166,20 @@ class Model(nn.Module):
                     result_dict[relation] = self.relation_forward[relation](*layer_inputs)
                     available_keys.add(relation)
 
-                    ## Update the connect variables if necessary
-                    for connect_in, connect_out in self.connect.items():
-                        if relation == self.outputs[connect_out]:  ## we have to save the output
+                    ## Check if the relation is inside the connect
+                    for connect_input, connect_rel in self.connect_update.items():
+                        if relation == connect_rel:
                             shift = result_dict[relation].shape[1]
-                            self.connect_variables[connect_in] = torch.roll(self.connect_variables[connect_in], shifts=-1, dims=1)
-                            self.connect_variables[connect_in][:, -shift:, :] = result_dict[relation]
-                            result_dict[connect_in] = self.connect_variables[connect_in].clone()
-                            available_keys.add(connect_in)
+                            virtual = torch.roll(kwargs[connect_input], shifts=-1, dims=1)
+                            virtual[:, -shift:, :] = result_dict[relation]
+                            result_dict[connect_input] = virtual.clone()
+                            available_keys.add(connect_input)
 
-                    ## Update connect state if necessary
-                    if relation in self.states_connect.values():
-                        for state in [key for key, value in self.states_connect.items() if value == relation]:
-                            shift = result_dict[relation].shape[1]
-                            self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)
-                            self.states[state][:, -shift:, :] = result_dict[relation]#.detach() ## TODO: detach??
-                            available_keys.add(state)
 
-        ## Update closed loop state if necessary
-        for relation in self.relations.keys():
-            if relation in self.states_closed_loop.values():
-                for state in [key for key, value in self.states_closed_loop.items() if value == relation]:
-                    shift = result_dict[relation].shape[1]
-                    self.states[state] = torch.roll(self.states[state], shifts=-1, dims=1)  # shifts=-shift, dims=1)
-                    self.states[state][:, -shift:, :] = result_dict[relation]  # .detach() ## TODO: detach??
-
+        ## Return a dictionary with all the connected inputs
+        connect_update_dict = {key: result_dict[key] for key, value in self.connect_update.items()}
+        ## Return a dictionary with all the relations that updates the state variables
+        closed_loop_update_dict = {key: result_dict[value] for key, value in self.closed_loop_update.items()}
         ## Return a dictionary with all the outputs final values
         output_dict = {key: result_dict[value] for key, value in self.outputs.items()}
         ## Return a dictionary with the minimization relations
@@ -206,58 +187,22 @@ class Model(nn.Module):
         for key in self.minimizers_keys:
             minimize_dict[key] = result_dict[self.outputs[key]] if key in self.outputs.keys() else result_dict[key]
                 
-        return output_dict, minimize_dict
+        return output_dict, minimize_dict, closed_loop_update_dict, connect_update_dict
+    
+    def update(self, closed_loop={}, connect={}):
+        self.closed_loop_update = {}
+        self.connect_update = {}
 
+        for key, state in self.state_model.items():
+            if 'connect' in state.keys():
+                self.connect_update[key] = state['connect']
+            elif 'closedLoop' in state.keys():
+                self.closed_loop_update[key] = state['closedLoop']
 
-    def init_states(self, state_model, connect = {}, reset_states = False):
-        ## Initialize state variables
-        if reset_states:
-            self.reset_states()
-        self.reset_connect_variables(copy.deepcopy(connect), only=False)
-        self.states_connect = {}
-        self.states_closed_loop = {}
-        ## save the states updates
-        for state, param in state_model.items():
-            if 'connect' in param.keys():
-                self.states_connect[state] = param['connect']
-            else:
-                self.states_closed_loop[state] = param['closedLoop']
+        for connect_in, connect_rel in connect.items():
+            self.connect_update[connect_in] = self.outputs[connect_rel]
 
-    def reset_connect_variables(self, connect, values = None, only = True):
-        if only == False:
-            self.connect = connect
-            self.connect_variables = {}
-            self.initialize_connect = True
-        for key in connect.keys():
-            if values is not None and key in values.keys():
-                self.connect_variables[key] = values[key].clone()
-            elif only == False:
-                batch = values[list(values)[0]].shape[0] if values is not None else 1
-                window_size = self.input_n_samples[key]
-                self.connect_variables[key] = torch.zeros(size=(batch, window_size, self.inputs[key]['dim']),
-                                                           dtype=torch.float32, requires_grad=False)
-    def reset_states(self, values = None, only = True):
-        if values is None:
-            for key, value in self.state_model.items():
-                batch = self.states[key].shape[0] if key in self.states else 1
-                window_size = self.input_n_samples[key]
-                self.states[key] = torch.zeros(size=(batch, window_size, self.state_model[key]['dim']),
-                                               dtype=torch.float32, requires_grad=False)
-        else:
-            if type(values) is set:
-                for key in self.state_model.keys():
-                    if key in values:
-                        batch = self.states[key].shape[0] if key in self.states else 1
-                        window_size = self.input_n_samples[key]
-                        self.states[key] = torch.zeros(size=(batch, window_size, self.state_model[key]['dim']),
-                                                   dtype=torch.float32, requires_grad=False)
-            else:
-                for key in self.state_model.keys():
-                    if key in values.keys():
-                        self.states[key] = values[key].clone()
-                        self.states[key].requires_grad = False
-                    elif only == False:
-                        batch = values[list(values)[0]].shape[0]
-                        window_size = self.input_n_samples[key]
-                        self.states[key] = torch.zeros(size=(batch, window_size, self.state_model[key]['dim']),
-                                                         dtype=torch.float32, requires_grad=False)
+        for close_in, close_rel in closed_loop.items():
+            self.closed_loop_update[close_in] = self.outputs[close_rel]
+        
+
