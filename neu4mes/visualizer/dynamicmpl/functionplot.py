@@ -1,4 +1,6 @@
 import sys, json
+import os
+sys.path.append(os.getcwd())
 
 import matplotlib.pyplot as plt
 import numpy as np
