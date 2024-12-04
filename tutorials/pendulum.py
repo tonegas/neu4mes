@@ -13,6 +13,7 @@ from neu4mes.visualizer import MPLVisualizer
 workspace = os.path.join(os.getcwd(), "results")
 pendolum = Neu4mes(visualizer=MPLVisualizer(), workspace=workspace)
 
+
 # Create neural model
 # Input of the neural model
 theta = Input('theta')
